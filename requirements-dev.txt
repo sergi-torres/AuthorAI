@@ -1,0 +1,7 @@
+# Shared dev tooling — same versions for all 3 of us.
+# Install into the activated venv with:  pip install -r requirements-dev.txt
+# (Project/runtime deps live in ai_pipeline/ and backend/ pyproject.toml, created in Sprint 0.)
+
+ruff==0.6.9
+black==24.8.0
+pre-commit==3.8.0

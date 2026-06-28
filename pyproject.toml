@@ -1,0 +1,30 @@
+# Root tooling config for all Python in the monorepo (ai_pipeline/, backend/, scripts/).
+# This file holds ONLY shared tool config (Ruff + Black) — it is not a buildable package.
+# When you create ai_pipeline/pyproject.toml and backend/pyproject.toml for dependencies,
+# either omit [tool.*] there (Ruff will inherit this root config) OR copy the same
+# line-length so the tools never disagree. Black reads the NEAREST pyproject.toml, so if a
+# sub-package pyproject.toml exists it MUST repeat [tool.black] (or at least line-length).
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "venv", "__pycache__", "build", "dist", "node_modules"]
+
+[tool.ruff.lint]
+# E/W: pycodestyle · F: pyflakes · I: isort · B: bugbear · UP: pyupgrade
+# C4: comprehensions · SIM: simplify · RUF: Ruff-specific
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
+# E501 (line length) is handled by Black; let Black own line wrapping.
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert-heavy / unused fixtures patterns.
+"**/tests/**" = ["B011"]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["autoria_ai", "app"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
