@@ -47,13 +47,13 @@ AutorIA is the authorship layer for AI-assisted creators. Three pieces:
 
 AutorIA helps individual creators **preserve their authentic voice** when using AI, instead of being homogenized by averaged-out LLM outputs. And it gives the creative industry — agencies, publishers, regulators — the **technical infrastructure** needed to comply with the EU AI Act's disclosure requirements.
 
-| Criterion | How AutorIA delivers |
-|---|---|
+| Criterion               | How AutorIA delivers                                                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Technical Execution** | Full AI pipeline (spaCy + sentence-transformers + Watsonx) + real cryptographic signing (JWS ES256) + Postgres + pgvector with HNSW indexing |
-| **Innovation** | The "auditable authorship" layer is novel — almost nobody is building this in time for EU AI Act |
-| **Feasibility** | Focused MVP, mainstream stack, verifiable demo, clear path to scale |
-| **Challenge Fit** | Solves a concrete, named, urgent problem in a creative industry |
-| **Real-World Impact** | EU AI Act creates urgent demand (€14B AI-assisted creative market, August 2026 deadline) |
+| **Innovation**          | The "auditable authorship" layer is novel — almost nobody is building this in time for EU AI Act                                             |
+| **Feasibility**         | Focused MVP, mainstream stack, verifiable demo, clear path to scale                                                                          |
+| **Challenge Fit**       | Solves a concrete, named, urgent problem in a creative industry                                                                              |
+| **Real-World Impact**   | EU AI Act creates urgent demand (€14B AI-assisted creative market, August 2026 deadline)                                                     |
 
 ---
 
@@ -80,13 +80,13 @@ graph LR
 
 The `StyleProfile v1.0` captures an author's stylistic DNA across four orthogonal layers:
 
-| Layer | Examples | File |
-|---|---|---|
-| **Lexical** | Type-Token Ratio, MATTR-500, hapax ratio, avg word length | `ai_pipeline/autoria_ai/extractor/lexical.py` |
-| **Syntactic** | Sentence length distribution, subordination ratio, dep-tree depth | `ai_pipeline/autoria_ai/extractor/syntactic.py` |
-| **Stylistic** | Punctuation & POS distribution, discourse markers | `ai_pipeline/autoria_ai/extractor/stylistic.py` |
-| **Distinctive Vocabulary** | Top-50 TF-IDF terms vs reference corpus | `ai_pipeline/autoria_ai/extractor/vocabulary.py` |
-| **Semantic** | Author centroid (768-dim) + UMAP 2D projection | `ai_pipeline/autoria_ai/embedder.py` |
+| Layer                      | Examples                                                          | File                                             |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------ |
+| **Lexical**                | Type-Token Ratio, MATTR-500, hapax ratio, avg word length         | `ai_pipeline/autoria_ai/extractor/lexical.py`    |
+| **Syntactic**              | Sentence length distribution, subordination ratio, dep-tree depth | `ai_pipeline/autoria_ai/extractor/syntactic.py`  |
+| **Stylistic**              | Punctuation & POS distribution, discourse markers                 | `ai_pipeline/autoria_ai/extractor/stylistic.py`  |
+| **Distinctive Vocabulary** | Top-50 TF-IDF terms vs reference corpus                           | `ai_pipeline/autoria_ai/extractor/vocabulary.py` |
+| **Semantic**               | Author centroid (768-dim) + UMAP 2D projection                    | `ai_pipeline/autoria_ai/embedder.py`             |
 
 Full feature spec → **[docs/style_features.md](docs/style_features.md)**.
 
@@ -117,12 +117,12 @@ The signature can be verified **publicly and offline** against the AutorIA publi
 
 We built AutorIA in 30 days with IBM Bob as our main copilot. Four Custom Modes — one per owner plus a shared crypto mode — orchestrated different parts of the development cycle:
 
-| Custom Mode | Purpose | Doc |
-|---|---|---|
-| **StyleExtractor** | Building the linguistic feature extractor with spaCy | [`bob/custom-modes/style-extractor.md`](bob/custom-modes/style-extractor.md) |
+| Custom Mode             | Purpose                                                                                  | Doc                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| **StyleExtractor**      | Building the linguistic feature extractor with spaCy                                     | [`bob/custom-modes/style-extractor.md`](bob/custom-modes/style-extractor.md)           |
 | **GenerationConductor** | RAG retrieval, conditioned-prompt composition, Watsonx orchestration, `fit_score` tuning | [`bob/custom-modes/generation-conductor.md`](bob/custom-modes/generation-conductor.md) |
-| **StudioComposer** | Style DNA viz, side-by-side UI, `/verify` screen, API contract alignment, i18n | [`bob/custom-modes/studio-composer.md`](bob/custom-modes/studio-composer.md) |
-| **PassportAuditor** | Designing and verifying the JWS-signed Passport | [`bob/custom-modes/passport-auditor.md`](bob/custom-modes/passport-auditor.md) |
+| **StudioComposer**      | Style DNA viz, side-by-side UI, `/verify` screen, API contract alignment, i18n           | [`bob/custom-modes/studio-composer.md`](bob/custom-modes/studio-composer.md)           |
+| **PassportAuditor**     | Designing and verifying the JWS-signed Passport                                          | [`bob/custom-modes/passport-auditor.md`](bob/custom-modes/passport-auditor.md)         |
 
 Weekly BobShell session exports for each team member live in **[`bob/sessions/`](bob/sessions/)** (created on the first Friday of Sprint 1).
 
@@ -134,16 +134,16 @@ Our team's operational playbook for using Bob — prompt patterns, export workfl
 
 ## ⚙️ Tech Stack
 
-| Layer | Tech | Why |
-|---|---|---|
-| **Frontend** | Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui + Recharts | Modern React, fast static + SSR, great DX for visualizations |
-| **Backend** | FastAPI + Python 3.11 + Pydantic v2 + SQLAlchemy 2 + asyncpg | Async by default, type-safe, fits a Python AI pipeline natively |
+| Layer           | Tech                                                                                                   | Why                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| **Frontend**    | Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui + Recharts                                 | Modern React, fast static + SSR, great DX for visualizations                    |
+| **Backend**     | FastAPI + Python 3.11 + Pydantic v2 + SQLAlchemy 2 + asyncpg                                           | Async by default, type-safe, fits a Python AI pipeline natively                 |
 | **AI Pipeline** | spaCy 3.7 (`en_core_web_lg`) + sentence-transformers (`all-mpnet-base-v2`) + scikit-learn + umap-learn | Industry-standard English NLP; strong 768-dim semantic embeddings; reproducible |
-| **LLM** | IBM Watsonx (Llama 3.3 70B + Granite 3 8B) | End-to-end IBM stack; full-IBM points; strong creative English generation |
-| **Database** | PostgreSQL 16 + pgvector (Supabase) | Single DB for relational + vector; HNSW index for fast RAG |
-| **Crypto** | python-jose, ES256 (ECDSA P-256) | Standard JWS; small signatures; native browser verification |
-| **Hosting** | Vercel (frontend) + Railway (backend) + Supabase (DB) | Zero-ops, free or near-free tiers, push-to-deploy |
-| **Dev tools** | IBM Bob + GitHub + GitHub Projects + GitHub Actions + Docker Compose | Bob is mandatory; the rest is best-in-class CI/CD for this size |
+| **LLM**         | IBM Watsonx (Llama 3.3 70B + Granite 3 8B)                                                             | End-to-end IBM stack; full-IBM points; strong creative English generation       |
+| **Database**    | PostgreSQL 16 + pgvector (Supabase)                                                                    | Single DB for relational + vector; HNSW index for fast RAG                      |
+| **Crypto**      | python-jose, ES256 (ECDSA P-256)                                                                       | Standard JWS; small signatures; native browser verification                     |
+| **Hosting**     | Vercel (frontend) + Railway (backend) + Supabase (DB)                                                  | Zero-ops, free or near-free tiers, push-to-deploy                               |
+| **Dev tools**   | IBM Bob + GitHub + GitHub Projects + GitHub Actions + Docker Compose                                   | Bob is mandatory; the rest is best-in-class CI/CD for this size                 |
 
 ---
 
@@ -226,11 +226,11 @@ autorIA/
 
 ## 👥 Team
 
-| | Name | Role | GitHub | LinkedIn |
-|---|---|---|---|---|
-| P1 | _(name)_ | Frontend + Pitch + Bob Champion | _(link)_ | _(link)_ |
-| P2 | _(name)_ | AI/ML Engineer | _(link)_ | _(link)_ |
-| P3 | _(name)_ | Backend + AI Generation + Crypto | _(link)_ | _(link)_ |
+|     | Name           | Role                             | GitHub                                      | LinkedIn                                              |
+| --- | -------------- | -------------------------------- | ------------------------------------------- | ----------------------------------------------------- |
+| P1  | Sergi Torres   | Frontend + Pitch + Bob Champion  | [sergi-torres](https://github.com/sergi-torres) | [LinkedIn](https://www.linkedin.com/in/storres-dev/)  |
+| P2  | David Muñoz    | AI/ML Engineer                   | [Davisuco28](https://github.com/Davisuco28)   | [LinkedIn](https://www.linkedin.com/in/dmunoz-dev/)   |
+| P3  | Pablo Chaume   | Backend + AI Generation + Crypto | [PabloVc-77](https://github.com/PabloVc-77) | [LinkedIn](https://www.linkedin.com/in/pablo-v-chaume-magraner/) |
 
 ---
 
