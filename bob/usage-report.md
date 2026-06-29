@@ -1,6 +1,6 @@
 # How We Used IBM Bob — AutorIA Final Report
 
-> **Status**: skeleton. Filled in Sprint 4 (Jul 22-28).
+> **Status**: skeleton. Filled in Sprint 3 (Jul 22-28).
 > **Owner**: P1 (Bob Champion).
 
 This document is the canonical artifact for the **"How we used IBM Bob"** section of the README. The README links here.
@@ -101,10 +101,10 @@ This document is the canonical artifact for the **"How we used IBM Bob"** sectio
 
 All weekly BobShell exports live in `bob/sessions/weekN/<initial>.md`. Highlights:
 
-- **Week 1** — `bob/sessions/week1/` — onboarding + first Custom Modes
-- **Week 2** — `bob/sessions/week2/` — StyleProfile pipeline
-- **Week 3** — `bob/sessions/week3/` — Watsonx integration + Passport
-- **Week 4** — `bob/sessions/week4/` — polish + demo prep
+- **Week 1** — `bob/sessions/week1/` — onboarding + first Custom Modes (Sprint 1)
+- **Week 2** — `bob/sessions/week2/` — StyleProfile pipeline (Sprint 1)
+- **Week 3** — `bob/sessions/week3/` — Watsonx integration + Passport (Sprint 2)
+- **Week 4** — `bob/sessions/week4/` — polish + demo prep (Sprint 3)
 
 ---
 

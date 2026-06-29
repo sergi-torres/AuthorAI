@@ -113,7 +113,7 @@ The signature can be verified **publicly and offline** against the AutorIA publi
 
 ## 🤖 How We Used IBM Bob
 
-> ⚠️ **This is THE most important section for IBM judges.** It will be completed in Sprint 4 (Jul 22–28) with screenshots, metrics, and BobShell exports.
+> ⚠️ **This is THE most important section for IBM judges.** It will be completed in Sprint 3 (Jul 22–28) with screenshots, metrics, and BobShell exports.
 
 We built AutorIA in 30 days with IBM Bob as our main copilot. Four Custom Modes — one per owner plus a shared crypto mode — orchestrated different parts of the development cycle:
 
@@ -124,7 +124,7 @@ We built AutorIA in 30 days with IBM Bob as our main copilot. Four Custom Modes 
 | **StudioComposer**      | Style DNA viz, side-by-side UI, `/verify` screen, API contract alignment, i18n           | [`bob/custom-modes/studio-composer.md`](bob/custom-modes/studio-composer.md)           |
 | **PassportAuditor**     | Designing and verifying the JWS-signed Passport                                          | [`bob/custom-modes/passport-auditor.md`](bob/custom-modes/passport-auditor.md)         |
 
-Weekly BobShell session exports for each team member live in **[`bob/sessions/`](bob/sessions/)** (created on the first Friday of Sprint 1).
+Weekly BobShell session exports for each team member live in **[`bob/sessions/`](bob/sessions/)** (created on the first Friday of Sprint 1, July 10).
 
 The complete Bob usage report (metrics + screenshots + analysis) lives in **[`bob/usage-report.md`](bob/usage-report.md)**.
 

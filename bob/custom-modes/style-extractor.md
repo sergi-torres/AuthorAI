@@ -1,8 +1,8 @@
 # Custom Mode — StyleExtractor
 
 > **Owner**: P2 (AI/ML Engineer)
-> **Created on**: Sprint 1, Day 1 (Jul 1, 2026)
-> **Used during**: Sprints 1–2, while building `ai_pipeline/autoria_ai/extractor/*`
+> **Created on**: Sprint 1, Day 1 (Jul 5, 2026)
+> **Used during**: Sprint 1, while building `ai_pipeline/autoria_ai/extractor/*`
 
 ---
 

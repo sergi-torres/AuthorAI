@@ -310,7 +310,7 @@ Backlog → Sprint Ready → In Progress → In Review → Done
 ### Custom fields on every issue
 | Field | Values |
 |---|---|
-| **Sprint** | Sprint 0 / 1 / 2 / 3 / 4 / Buffer / Backlog |
+| **Sprint** | Sprint 0 / 1 / 2 / 3 / Buffer / Backlog |
 | **Size** | XS (<2h) / S (2-4h) / M (4-8h) / L (1-2d) / XL (2-3d) |
 | **Module** | ai_pipeline / backend / frontend / bob / docs / infra / demo |
 | **Priority** | P0 blocker / P1 must / P2 should / P3 nice |
@@ -323,7 +323,7 @@ Plus a **Milestone** (the sprint with its real due date).
 3. **In Progress > 3 days?** Mark `blocked` or split it.
 4. **Unplanned work?** Create a retroactive issue so the board reflects reality.
 5. **No moving to Done without a merge.** `In Review` is a mandatory step.
-6. **At Sunday review**, unfinished issues move to next sprint or back to Backlog — never silently dragged.
+6. **At Sprint end review**, unfinished issues move to next sprint or back to Backlog — never silently dragged.
 
 ### Creating an issue (CLI)
 ```powershell
@@ -332,7 +332,7 @@ gh issue create `
   --title "ai: add MATTR-500 to lexical extractor" `
   --body  "Add Moving-Average TTR (window=500). Acceptance: output in [0,1], test on Dickens corpus." `
   --label "ml,size:S,prio:P1" `
-  --milestone "Sprint 2 — StyleProfile" `
+  --milestone "Sprint 1 — Foundation + StyleProfile" `
   --assignee @me
 ```
 Then add it to the Project and fill `Sprint`, `Size`, `Module`, `Priority`.
@@ -475,15 +475,15 @@ This enforces our "lint passes before the PR" rule automatically.
 
 ## 10. Sprints & ceremonies
 
-Each sprint = 1 week.
+Each sprint is 7-10 days (Sprint 1 is 10 days, Sprints 2-3 are 7 days).
 
 | When | What | Mode |
 |---|---|---|
-| Monday AM | Sprint kick — pick 3-5 issues, move to In Progress | Async |
+| Sprint kickoff | Sprint kick — pick 3-5 issues, move to In Progress | Async |
 | Mon–Fri | Daily — 2 lines: done / today / blockers | Async |
 | Friday 18:00 | Mini-review | Sync, 15 min |
-| Sunday 18:00 | Sprint review + planning | Sync, 30-40 min |
-| Per sprint | 1 pair session on a critical piece | Sync, 2h |
+| Sprint end (Tuesday 18:00) | Sprint review + planning | Sync, 30-40 min |
+| Per sprint | 1 pair session on a critical piece (two in Sprint 1) | Sync, 2h |
 
 Communication: if you can write it, don't call. If it takes >10 min in writing, call. Blocked >2h? Ping immediately.
 

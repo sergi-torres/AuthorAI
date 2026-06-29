@@ -93,7 +93,7 @@ Everything we build must serve this **3-minute video**. If a feature doesn't sho
 ```
 
 **Demo success criterion (the bar we must clear):** a non-NLP-expert human sees the difference between vanilla and AutorIA in **≤5 seconds**.
-**How we validate it (Sprint 2 gate):** show the side-by-side screen to **3 non-technical people**. If **3/3** correctly pick "which sounds more like Dickens" in ≤5s, we pass. If not, we iterate on the conditioning before moving on.
+**How we validate it (Sprint 1 gate):** show the side-by-side screen to **3 non-technical people**. If **3/3** correctly pick "which sounds more like Dickens" in ≤5s, we pass. If not, we iterate on the conditioning before moving on.
 
 ---
 
@@ -418,7 +418,7 @@ bob/
   sessions/
     week1/  p1.md  p2.md  p3.md   (BobShell exports)
     week2/  ...                    (same for 4 weeks)
-  usage-report.md                  (final, Sprint 4: screenshots + metrics)
+  usage-report.md                  (final, Sprint 3: screenshots + metrics)
 ```
 
 ### Metrics to report in the README
@@ -433,7 +433,7 @@ bob/
 
 Labels: `[front] [back] [ml] [bob] [demo] [docs] [infra]` · Sizes: XS<2h, S 2-4h, M 4-8h, L 1-2d, XL 2-3d.
 
-### Sprint 1 — Jul 1–7 — Foundation
+### Sprint 1 — Jul 5–14 — Foundation & Full StyleProfile (Long Sprint)
 - `[infra][L]` Repo + monorepo, Vercel + Railway
 - `[infra][M]` Supabase project + pgvector + initial schema migration
 - `[infra][S]` GitHub Actions: lint + basic tests on every PR
@@ -444,8 +444,6 @@ Labels: `[front] [back] [ml] [bob] [demo] [docs] [infra]` · Sizes: XS<2h, S 2-4
 - `[front][M]` Base layout + author selector page (cards)
 - `[bob][M]` Create 4 Custom Modes, first BobShell export per person
 - `[bob][S]` Validate Llama-3.3-70b voice-matching quality, 5 prompts
-
-### Sprint 2 — Jul 8–14 — Full StyleProfile
 - `[ml][L]` Syntactic features with spaCy (dep parsing, subordination)
 - `[ml][M]` POS and punctuation distribution
 - `[ml][L]` Distinctive vocabulary TF-IDF vs base corpus
@@ -456,9 +454,9 @@ Labels: `[front] [back] [ml] [bob] [demo] [docs] [infra]` · Sizes: XS<2h, S 2-4
 - `[front][L]` "Style DNA" screen: radar + 2D scatter + metrics
 - `[front][M]` Main screen skeleton with prompt + button
 - `[demo][M]` **5-sec validation with 3 non-technical humans (GATE)**
-- `[bob][M]` BobShell exports week 2
+- `[bob][M]` BobShell exports week 1 & week 2
 
-### Sprint 3 — Jul 15–21 — Generation + Passport
+### Sprint 2 — Jul 15–21 — Generation + Passport
 - `[back][L]` Watsonx integration (auth + retry + timeout)
 - `[ml][M]` Conditioned system prompt composition
 - `[ml][M]` `fit_score` computation (5 components)
@@ -471,7 +469,7 @@ Labels: `[front] [back] [ml] [bob] [demo] [docs] [infra]` · Sizes: XS<2h, S 2-4
 - `[demo][M]` Timed demo rehearsal ×2
 - `[bob][M]` BobShell exports week 3
 
-### Sprint 4 — Jul 22–28 — Polish + Demo
+### Sprint 3 — Jul 22–28 — Polish + Demo
 - `[front][L]` Visual polish (typography, spacing, microinteractions)
 - `[front][M]` Loading / error / empty states
 - `[demo][L]` Refine demo prompts, timed rehearsal ×5
@@ -496,8 +494,8 @@ The project is "done" when **all** of these are true:
 - [ ] 3 preloaded authors, each with a computed and visualizable StyleProfile
 - [ ] Side-by-side generation works end-to-end in **<8s P95**
 - [ ] Authorship Passport issued, downloaded, and **verifies** with a valid signature
-- [ ] Visible vanilla-vs-AutorIA difference: **≥3/3 non-technical humans** identify it in **≤5s** (Sprint 2 gate)
-- [ ] Live 90s demo rehearsed **5 times without failure** (Sprint 4)
+- [ ] Visible vanilla-vs-AutorIA difference: **≥3/3 non-technical humans** identify it in **≤5s** (Sprint 1 gate)
+- [ ] Live 90s demo rehearsed **5 times without failure** (Sprint 3)
 - [ ] Public repo with a complete README including the "How we used IBM Bob" section
 - [ ] 4 Custom Modes documented in `bob/custom-modes/`
 - [ ] ≥12 BobShell exports in `bob/sessions/`
@@ -512,8 +510,8 @@ The project is "done" when **all** of these are true:
 | # | Risk | Mitigation |
 |---|---|---|
 | **R1** | Llama-3.3-70b doesn't convincingly match a target voice | Validate Sprint 1 day 2. If <6/10, plan B: stronger conditioning / more RAG passages, `llama-3-1-405b`, or `granite-3-8b`; last resort Mistral Large via Watsonx. |
-| **R2** | Stylistic metrics don't distinguish authors | Validate Sprint 2 with a blind A/B. If Austen ≈ Dickens (both 19thc British), add bigram/trigram distinctive features. (Poe is the easy separation.) |
-| **R3** | Generation >15s, demo doesn't flow | P3 measures latency Sprint 3 day 1. If >10s: switch parallel→sequential with optimistic loading, and/or use `granite-8b` for the baseline (faster). |
-| **R4** | Live demo fails during recording | Sprint 4: record each step separately as an editable fallback. Final video may mix live + pre-recorded. |
-| **R5** | Watsonx rate-limit / load spike | Exponential backoff (Sprint 3). For the demo, pre-record two famous generations as a local cache fallback. |
+| **R2** | Stylistic metrics don't distinguish authors | Validate Sprint 1 with a blind A/B. If Austen ≈ Dickens (both 19thc British), add bigram/trigram distinctive features. (Poe is the easy separation.) |
+| **R3** | Generation >15s, demo doesn't flow | P3 measures latency Sprint 2 day 1. If >10s: switch parallel→sequential with optimistic loading, and/or use `granite-8b` for the baseline (faster). |
+| **R4** | Live demo fails during recording | Sprint 3: record each step separately as an editable fallback. Final video may mix live + pre-recorded. |
+| **R5** | Watsonx rate-limit / load spike | Exponential backoff (Sprint 2). For the demo, pre-record two famous generations as a local cache fallback. |
 | **R6** | A teammate is sick for a week | Each role has a designated backup; pair on critical pieces; the async daily keeps the backup current. |

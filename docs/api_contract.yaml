@@ -1,0 +1,839 @@
+# AutorIA REST API — OpenAPI 3.1
+# Source of truth for frontend (lib/types.ts) and backend (FastAPI + Pydantic).
+# Locked per docs/MVP.md §7 — changes require 2/3 vote + Decision Log entry.
+openapi: 3.1.0
+
+info:
+  title: AutorIA API
+  version: 1.0.0
+  description: |
+    REST API for AutorIA — style-conditioned generation and Authorship Passport
+    verification (EU AI Act Art. 50).
+
+    **Owners:** P3 (backend), P1 (frontend client). Pair session closes this contract in Sprint 1.
+
+    **Not in scope (MVP):** auth, streaming, caching, user accounts, i18n on API messages.
+  contact:
+    name: AutorIA Team
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Local development (FastAPI + Uvicorn)
+  - url: https://api.autoria.app
+    description: Production (Railway)
+
+tags:
+  - name: health
+    description: Liveness and readiness probes
+  - name: authors
+    description: Author catalog, corpus ingest, and StyleProfile
+  - name: generation
+    description: Vanilla vs AutorIA side-by-side generation
+  - name: passports
+    description: Authorship Passport verification
+  - name: crypto
+    description: Public keys for offline JWS verification
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Health check
+      description: Used by Railway/Vercel deploy probes and local smoke tests.
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service degraded (e.g. database unreachable)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/authors:
+    get:
+      tags: [authors]
+      operationId: listAuthors
+      summary: List authors
+      description: Returns all authors (3 preloaded + any added via document upload).
+      responses:
+        "200":
+          description: Author list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorSummary"
+              examples:
+                preloaded:
+                  summary: Three seeded authors
+                  value:
+                    - id: austen
+                      name: Jane Austen
+                      slug: austen
+                      has_style_profile: true
+                      n_documents: 3
+                    - id: dickens
+                      name: Charles Dickens
+                      slug: dickens
+                      has_style_profile: true
+                      n_documents: 3
+                    - id: poe
+                      name: Edgar Allan Poe
+                      slug: poe
+                      has_style_profile: true
+                      n_documents: 15
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/authors/{author_id}/style-profile:
+    get:
+      tags: [authors]
+      operationId: getAuthorStyleProfile
+      summary: Get StyleProfile (Style DNA)
+      description: |
+        Returns the latest computed StyleProfile v1.0 for the author.
+        Used by the Style DNA panel (radar chart + 2D map).
+      parameters:
+        - $ref: "#/components/parameters/AuthorId"
+      responses:
+        "200":
+          description: StyleProfile JSON v1.0
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StyleProfile"
+        "404":
+          description: Author unknown or StyleProfile not yet computed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                notComputed:
+                  value:
+                    error: not_found
+                    message: StyleProfile not yet computed for this author
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/authors/{author_id}/documents:
+    post:
+      tags: [authors]
+      operationId: uploadAuthorDocument
+      summary: Upload a document to an author's corpus
+      description: |
+        Accepts a `.txt` or `.md` file (multipart) or inline JSON `{ title, text }`.
+        Triggers async chunking, embedding, and StyleProfile recompute.
+        Minimum corpus rules apply at profile compute time (see MVP §4.1).
+      parameters:
+        - $ref: "#/components/parameters/AuthorId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Plain-text or Markdown file (.txt, .md)
+                title:
+                  type: string
+                  maxLength: 500
+                  description: Optional display title; defaults to filename
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentUploadJson"
+      responses:
+        "202":
+          description: Document accepted for async processing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentUploadAccepted"
+        "400":
+          description: Invalid file type, empty content, or malformed body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown author_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Payload too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/generate:
+    post:
+      tags: [generation]
+      operationId: generateText
+      summary: Generate vanilla and AutorIA outputs
+      description: |
+        Runs two parallel Watsonx calls (same model, with/without style conditioning),
+        computes fit_score for each, and mints a signed Authorship Passport for the
+        AutorIA output. Target P95 latency < 8s (MVP §4.3).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateRequest"
+      responses:
+        "200":
+          description: Generation complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateResponse"
+        "400":
+          description: Invalid author_id or empty prompt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Author not found or StyleProfile missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          description: LLM provider unavailable or timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                watsonxTimeout:
+                  value:
+                    error: service_unavailable
+                    message: Generation timed out; retry later
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /api/passports/verify:
+    post:
+      tags: [passports]
+      operationId: verifyPassport
+      summary: Verify an Authorship Passport JWS
+      description: |
+        Validates ES256 signature against `/.well-known/jwks.json`, checks payload
+        schema v1.0, and returns structured errors (unknown kid, invalid signature, etc.).
+        The frontend `/verify` screen POSTs the compact JWS here — no client-side crypto.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyRequest"
+      responses:
+        "200":
+          description: Verification result (valid or invalid — always 200 unless server error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResponse"
+              examples:
+                valid:
+                  value:
+                    valid: true
+                    payload:
+                      schema_version: "1.0"
+                      passport_id: 550e8400-e29b-41d4-a716-446655440000
+                      generated_at: "2026-07-15T14:30:00Z"
+                      author_voice:
+                        id: dickens
+                        style_profile_hash: sha256:abc123
+                        style_profile_version: "1.0"
+                      generation:
+                        model_provider: ibm/watsonx
+                        model_id: meta-llama/llama-3-3-70b-instruct
+                        user_prompt_hash: sha256:def456
+                        output_hash: sha256:789abc
+                        output_length_tokens: 312
+                      rag_sources:
+                        - doc_id: great_expectations
+                          chunk_id: 42
+                          snippet_hash: sha256:chunk42
+                      contribution:
+                        human_pct: 0
+                        ai_pct: 100
+                        note: "v1: 100% AI-assisted. Human-edit tracking is in the roadmap."
+                      fit_score: 87
+                      verifier_url: https://autoria.app/verify
+                    errors: []
+                invalidSignature:
+                  value:
+                    valid: false
+                    payload: null
+                    errors:
+                      - code: invalid_signature
+                        message: ES256 signature verification failed
+        "400":
+          description: Missing or malformed jws_token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /.well-known/jwks.json:
+    get:
+      tags: [crypto]
+      operationId: getJwks
+      summary: JSON Web Key Set (public signing keys)
+      description: |
+        Standard JWKS (RFC 7517) for verifying Authorship Passport JWS tokens offline.
+        `Cache-Control: public, max-age=3600` recommended.
+      responses:
+        "200":
+          description: JWKS document
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: public, max-age=3600
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JwksDocument"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  parameters:
+    AuthorId:
+      name: author_id
+      in: path
+      required: true
+      description: Author identifier (slug), e.g. `dickens`, `austen`, `poe`
+      schema:
+        type: string
+        pattern: ^[a-z][a-z0-9_-]{0,63}$
+      examples:
+        dickens:
+          value: dickens
+
+  responses:
+    ValidationError:
+      description: Request body failed Pydantic validation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorResponse"
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        version:
+          type: string
+          description: API semver
+          example: "1.0.0"
+        database:
+          type: string
+          enum: [connected, disconnected]
+          description: Optional dependency check
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          examples: [not_found, bad_request, internal_error]
+        message:
+          type: string
+          description: Human-readable English message for UI or logs
+
+    ValidationErrorResponse:
+      type: object
+      required: [error, message, details]
+      properties:
+        error:
+          type: string
+          const: validation_error
+        message:
+          type: string
+          example: Request validation failed
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  oneOf:
+                    - type: string
+                    - type: integer
+              msg:
+                type: string
+              type:
+                type: string
+
+    AuthorSummary:
+      type: object
+      required: [id, name, slug, has_style_profile, n_documents]
+      properties:
+        id:
+          type: string
+          description: Stable author identifier (same as slug for preloaded authors)
+          example: dickens
+        name:
+          type: string
+          example: Charles Dickens
+        slug:
+          type: string
+          example: dickens
+        has_style_profile:
+          type: boolean
+          description: True when a StyleProfile v1.0 exists and is served by GET style-profile
+        n_documents:
+          type: integer
+          minimum: 0
+          description: Number of ingested documents in the corpus
+
+    DocumentUploadJson:
+      type: object
+      required: [title, text]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+        text:
+          type: string
+          minLength: 1
+          description: Raw document body (UTF-8)
+
+    DocumentUploadAccepted:
+      type: object
+      required: [document_id, status]
+      properties:
+        document_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          const: processing
+          description: Async pipeline state; poll style-profile until recomputed
+
+    StyleProfile:
+      type: object
+      description: Style DNA fingerprint v1.0 — see docs/MVP.md §4.2
+      required:
+        - schema_version
+        - author_id
+        - computed_at
+        - corpus_stats
+        - lexical
+        - syntactic
+        - stylistic
+        - distinctive_vocab
+        - semantic_centroid
+        - embedding_umap_2d
+      properties:
+        schema_version:
+          type: string
+          const: "1.0"
+        author_id:
+          type: string
+        computed_at:
+          type: string
+          format: date-time
+        corpus_stats:
+          $ref: "#/components/schemas/CorpusStats"
+        lexical:
+          $ref: "#/components/schemas/LexicalFeatures"
+        syntactic:
+          $ref: "#/components/schemas/SyntacticFeatures"
+        stylistic:
+          $ref: "#/components/schemas/StylisticFeatures"
+        distinctive_vocab:
+          type: array
+          items:
+            $ref: "#/components/schemas/DistinctiveTerm"
+        semantic_centroid:
+          type: array
+          description: 768-dimensional mean embedding vector
+          items:
+            type: number
+          minItems: 768
+          maxItems: 768
+        embedding_umap_2d:
+          $ref: "#/components/schemas/EmbeddingUmap2d"
+
+    CorpusStats:
+      type: object
+      required: [n_documents, n_tokens, n_sentences]
+      properties:
+        n_documents:
+          type: integer
+          minimum: 0
+        n_tokens:
+          type: integer
+          minimum: 0
+        n_sentences:
+          type: integer
+          minimum: 0
+
+    LexicalFeatures:
+      type: object
+      required: [ttr, mattr_500, avg_word_length, hapax_ratio]
+      properties:
+        ttr:
+          type: number
+          description: Type-Token Ratio
+        mattr_500:
+          type: number
+          description: Moving Average TTR (window 500)
+        avg_word_length:
+          type: number
+        hapax_ratio:
+          type: number
+
+    SyntacticFeatures:
+      type: object
+      required:
+        - avg_sentence_length_tokens
+        - std_sentence_length_tokens
+        - subordination_ratio
+        - avg_dep_tree_depth
+        - noun_to_verb_ratio
+      properties:
+        avg_sentence_length_tokens:
+          type: number
+        std_sentence_length_tokens:
+          type: number
+        subordination_ratio:
+          type: number
+        avg_dep_tree_depth:
+          type: number
+        noun_to_verb_ratio:
+          type: number
+
+    StylisticFeatures:
+      type: object
+      required: [punct_distribution, pos_distribution, discourse_markers]
+      properties:
+        punct_distribution:
+          type: object
+          additionalProperties:
+            type: number
+          description: Relative frequency per punctuation mark
+        pos_distribution:
+          type: object
+          additionalProperties:
+            type: number
+          description: Relative frequency per POS tag (spaCy labels)
+        discourse_markers:
+          type: array
+          items:
+            type: string
+
+    DistinctiveTerm:
+      type: object
+      required: [term, score]
+      properties:
+        term:
+          type: string
+        score:
+          type: number
+          description: TF-IDF score vs reference corpus
+
+    EmbeddingUmap2d:
+      type: object
+      required: [centroid, spread]
+      properties:
+        centroid:
+          type: array
+          prefixItems:
+            - type: number
+            - type: number
+          minItems: 2
+          maxItems: 2
+          description: UMAP 2D coordinates for the author cluster center
+        spread:
+          type: number
+          description: Cluster dispersion metric for viz scaling
+
+    GenerateRequest:
+      type: object
+      required: [author_id, prompt]
+      properties:
+        author_id:
+          type: string
+          description: Target author voice (slug)
+          example: dickens
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 4000
+          description: User creative prompt (English)
+
+    GenerationOutput:
+      type: object
+      required: [text, fit_score, latency_ms]
+      properties:
+        text:
+          type: string
+          description: Generated literary text (English)
+        fit_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Style fit vs target StyleProfile (0–100)
+        latency_ms:
+          type: integer
+          minimum: 0
+          description: Wall-clock time for this generation branch
+
+    GenerateResponse:
+      type: object
+      required: [vanilla, autoria, passport]
+      properties:
+        vanilla:
+          $ref: "#/components/schemas/GenerationOutput"
+        autoria:
+          $ref: "#/components/schemas/GenerationOutput"
+        passport:
+          $ref: "#/components/schemas/PassportEnvelope"
+
+    PassportEnvelope:
+      type: object
+      required: [jws_token, json_payload]
+      properties:
+        jws_token:
+          type: string
+          description: Compact JWS (ES256) over json_payload
+          example: eyJhbGciOiJFUzI1NiIsImtpZCI6ImF1dG9yaWEtMSJ9...
+        json_payload:
+          $ref: "#/components/schemas/PassportPayload"
+
+    PassportPayload:
+      type: object
+      description: Unsigned Authorship Passport body v1.0 — see docs/MVP.md §4.4
+      required:
+        - schema_version
+        - passport_id
+        - generated_at
+        - author_voice
+        - generation
+        - rag_sources
+        - contribution
+        - fit_score
+        - verifier_url
+      properties:
+        schema_version:
+          type: string
+          const: "1.0"
+        passport_id:
+          type: string
+          format: uuid
+        generated_at:
+          type: string
+          format: date-time
+        author_voice:
+          $ref: "#/components/schemas/AuthorVoiceRef"
+        generation:
+          $ref: "#/components/schemas/GenerationMetadata"
+        rag_sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/RagSourceRef"
+        contribution:
+          $ref: "#/components/schemas/ContributionBreakdown"
+        fit_score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        verifier_url:
+          type: string
+          format: uri
+          example: https://autoria.app/verify
+
+    AuthorVoiceRef:
+      type: object
+      required: [id, style_profile_hash, style_profile_version]
+      properties:
+        id:
+          type: string
+          example: dickens
+        style_profile_hash:
+          type: string
+          pattern: ^sha256:[a-f0-9]{64}$
+        style_profile_version:
+          type: string
+          example: "1.0"
+
+    GenerationMetadata:
+      type: object
+      required:
+        - model_provider
+        - model_id
+        - user_prompt_hash
+        - output_hash
+        - output_length_tokens
+      properties:
+        model_provider:
+          type: string
+          example: ibm/watsonx
+        model_id:
+          type: string
+          example: meta-llama/llama-3-3-70b-instruct
+        user_prompt_hash:
+          type: string
+          pattern: ^sha256:[a-f0-9]{64}$
+          description: SHA-256 of user prompt (privacy-preserving)
+        output_hash:
+          type: string
+          pattern: ^sha256:[a-f0-9]{64}$
+          description: SHA-256 of AutorIA output text
+        output_length_tokens:
+          type: integer
+          minimum: 0
+
+    RagSourceRef:
+      type: object
+      required: [doc_id, chunk_id, snippet_hash]
+      properties:
+        doc_id:
+          type: string
+        chunk_id:
+          type: integer
+        snippet_hash:
+          type: string
+          pattern: ^sha256:[a-f0-9]{64}$
+
+    ContributionBreakdown:
+      type: object
+      required: [human_pct, ai_pct, note]
+      properties:
+        human_pct:
+          type: integer
+          minimum: 0
+          maximum: 100
+        ai_pct:
+          type: integer
+          minimum: 0
+          maximum: 100
+        note:
+          type: string
+
+    VerifyRequest:
+      type: object
+      required: [jws_token]
+      properties:
+        jws_token:
+          type: string
+          minLength: 1
+          description: Compact serialized JWS from passport.jws_token
+
+    VerifyError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - invalid_token
+            - invalid_signature
+            - unknown_kid
+            - unsupported_algorithm
+            - schema_mismatch
+            - jwks_unavailable
+        message:
+          type: string
+
+    VerifyResponse:
+      type: object
+      required: [valid, errors]
+      properties:
+        valid:
+          type: boolean
+        payload:
+          oneOf:
+            - $ref: "#/components/schemas/PassportPayload"
+            - type: "null"
+          description: Decoded payload when signature valid; null when invalid
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerifyError"
+
+    JwksDocument:
+      type: object
+      required: [keys]
+      description: RFC 7517 JSON Web Key Set
+      properties:
+        keys:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/JsonWebKey"
+
+    JsonWebKey:
+      type: object
+      required: [kty, crv, x, y, use, alg, kid]
+      properties:
+        kty:
+          type: string
+          const: EC
+        crv:
+          type: string
+          const: P-256
+        x:
+          type: string
+          description: Base64url-encoded x coordinate
+        y:
+          type: string
+          description: Base64url-encoded y coordinate
+        use:
+          type: string
+          enum: [sig]
+        alg:
+          type: string
+          const: ES256
+        kid:
+          type: string
+          example: autoria-1
