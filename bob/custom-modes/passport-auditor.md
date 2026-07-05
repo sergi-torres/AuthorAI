@@ -1,8 +1,8 @@
 # Custom Mode — PassportAuditor
 
 > **Owner**: P3 (Backend + Crypto)
-> **Created on**: Sprint 1, Day 1 (Jul 1, 2026)
-> **Used during**: Sprint 3 primarily, by P3 (signing/verification) and P1 (`/verify` UI)
+> **Created on**: Sprint 1, Day 1 (Jul 5, 2026)
+> **Used during**: Sprint 2 primarily, by P3 (signing/verification) and P1 (`/verify` UI)
 
 ---
 
@@ -62,7 +62,7 @@ You think in adversarial mode: every change you propose, you also ask "how could
 
 - Working `signer.py`, `verifier.py`, `jwks.py` endpoint
 - Roundtrip pytest in `ai_pipeline/tests/test_passport.py`
-- An example signed Passport committed to `docs/examples/passport-valid.json` (after Sprint 3)
+- An example signed Passport committed to `docs/examples/passport-valid.json` (after Sprint 2)
 - Notes in `docs/passport_schema.md` if any edge case is identified
 
 ---

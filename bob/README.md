@@ -22,10 +22,10 @@ bob/
 │   ├── week3/
 │   └── week4/
 ├── screenshots/                 ← representative captures of Bob in action
-└── usage-report.md              ← final report (Sprint 4) with metrics + analysis
+└── usage-report.md              ← final report (Sprint 3) with metrics + analysis
 ```
 
-> The `sessions/`, `screenshots/` and `custom-modes/` subfolders are created on demand — `sessions/weekN/` is added the first Friday of each sprint, `screenshots/` once we capture our first one in Sprint 1.
+> The `sessions/`, `screenshots/` and `custom-modes/` subfolders are created on demand — `sessions/weekN/` is added every Friday, `screenshots/` once we capture our first one in Sprint 1.
 
 ---
 
@@ -68,7 +68,7 @@ Save them in `screenshots/`. Reference them in `usage-report.md`.
 
 ## Final usage report
 
-Compiled in **Sprint 4** (Jul 22-28). Lives in `usage-report.md`. Contents:
+Compiled in **Sprint 3** (Jul 22-28). Lives in `usage-report.md`. Contents:
 
 - **Numbers**: PRs assisted, Custom Modes created, sessions exported
 - **Concrete examples**: 3-5 problems we solved with Bob that would have taken much longer without

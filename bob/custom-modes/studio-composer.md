@@ -1,8 +1,8 @@
 # Custom Mode — StudioComposer
 
 > **Owner**: P1 (Frontend + Pitch + Bob Champion)
-> **Created on**: Sprint 1, Day 1 (Jul 1, 2026)
-> **Used during**: Sprints 2–4 — Style DNA UI (S2), side-by-side + `/verify` (S3), polish + demo reliability (S4)
+> **Created on**: Sprint 1, Day 1 (Jul 5, 2026)
+> **Used during**: Sprints 1–3 — Style DNA UI (S1), side-by-side + `/verify` (S2), polish + demo reliability (S3)
 
 ---
 
@@ -32,7 +32,7 @@ You do not gold-plate. You ship shadcn + Tailwind components that work on deskto
 ## Typical commands
 
 ```
-# Style DNA panel (Sprint 2)
+# Style DNA panel (Sprint 1)
 > Implement StyleRadarChart.tsx: given a StyleProfile JSON, render a Recharts
   radar with 6 axes (TTR, avg sentence length, subordination ratio, hapax
   ratio, noun/verb ratio, avg dep-tree depth). Normalize each axis to [0,1]
@@ -40,14 +40,14 @@ You do not gold-plate. You ship shadcn + Tailwind components that work on deskto
   lib/i18n/en.ts. Add a Storybook-style static fixture using the Dickens
   sample profile from docs/MVP.md §4.2.
 
-# 2D author map (Sprint 2)
+# 2D author map (Sprint 1)
 > Implement StyleScatter2D.tsx: plot embedding_umap_2d.centroid for all
   loaded authors as labeled points. After generation, plot the vanilla and
   AutorIA output points (returned by the API or computed client-side if
   the contract exposes coords). Highlight when AutorIA lands inside the
   target author cluster and vanilla does not. Tailwind only, no new deps.
 
-# Side-by-side generation (Sprint 3)
+# Side-by-side generation (Sprint 2)
 > Wire SideBySideOutput.tsx to POST /api/generate. Show optimistic loading
   skeleton in both columns. On success, render text + FitScoreBar for each
   column. On timeout (>8s), show the i18n error string and a "retry"
@@ -65,14 +65,14 @@ You do not gold-plate. You ship shadcn + Tailwind components that work on deskto
   Use fetch with typed responses. Surface API errors as user-readable
   strings from en.ts, not raw stack traces.
 
-# /verify screen (Sprint 3 — pair with PassportAuditor for crypto edge cases)
+# /verify screen (Sprint 2 — pair with PassportAuditor for crypto edge cases)
 > Implement app/verify/page.tsx: textarea for pasted JWS or JSON upload,
   POST to /api/passports/verify, render formatted payload on success with
   a green ✓ banner, or a structured error list on failure (unknown kid,
   invalid signature, schema mismatch). All copy from en.ts. Mobile not
   required; optimize for 1280px demo width.
 
-# 5-second clarity audit (Sprint 2 gate / Sprint 4 polish)
+# 5-second clarity audit (Sprint 1 gate / Sprint 3 polish)
 > Review the current studio screen as a non-expert judge would see it
   after generation completes. List 5 concrete UI changes (Tailwind-only,
   one-line diffs preferred) that make the vanilla vs AutorIA contrast
@@ -80,7 +80,7 @@ You do not gold-plate. You ship shadcn + Tailwind components that work on deskto
   terms that appear only in the right column, widen the fit_score gap
   visually, add column headers that name the comparison honestly.
 
-# Demo reliability (Sprint 4)
+# Demo reliability (Sprint 3)
 > Add error boundaries + fallback UI for: (1) style-profile 404 while
   processing, (2) generate timeout, (3) verify network error. Each state
   needs a distinct en.ts string and a recovery action. No silent failures
@@ -107,5 +107,5 @@ You do not gold-plate. You ship shadcn + Tailwind components that work on deskto
 - **Don't fetch inside every child component.** Data flows from the page/layout; pass props down.
 - **Don't add chart libraries beyond Recharts + the existing scatter setup** without a Decision Log entry.
 - **Don't optimize for mobile** — desktop 1280px+ is the demo target; responsive work is explicitly OUT of MVP scope.
-- **Don't redesign in Sprint 4.** Polish spacing, typography, and states — no new routes or features.
+- **Don't redesign in Sprint 3.** Polish spacing, typography, and states — no new routes or features.
 - **Don't implement JWS parsing in the browser.** POST the token to `/api/passports/verify`; the frontend displays results only.

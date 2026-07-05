@@ -23,8 +23,8 @@
 12. [Language policy — what goes in English vs Spanish](#12-language-policy--what-goes-in-english-vs-spanish)
 13. [Communication — channels and cadence](#13-communication--channels-and-cadence)
 14. [Challenge deliverables — what we ship](#14-challenge-deliverables--what-we-ship)
-15. [Pre-July-1 checklist (this week)](#15-pre-july-1-checklist-this-week)
-16. [Sprint 1 — day 1 plan (July 1)](#16-sprint-1--day-1-plan-july-1)
+15. [Pre-July-5 checklist (this period)](#15-pre-july-5-checklist-this-period)
+16. [Sprint 1 — day 1 plan (July 5)](#16-sprint-1--day-1-plan-july-5)
 17. [Anti-patterns — what NOT to do](#17-anti-patterns--what-not-to-do)
 18. [FAQ](#18-faq)
 
@@ -58,7 +58,7 @@ Plus visibility in the IBM ecosystem, BeMyApp mention, and a strong portfolio pr
 
 | Date | Event |
 |---|---|
-| **Jul 1, 2026** | Challenge starts — Sprint 1 kickoff |
+| **Jul 5, 2026** | Challenge starts — Sprint 1 kickoff |
 | **Jul 31, 2026 — 23:59 EST** | Submission deadline (= 5:59 AM Spain time, Aug 1) |
 | **Our internal deadline**: Jul 31, **12:00 Spain time** | Submit in the morning, not at midnight |
 
@@ -151,7 +151,7 @@ And our edge isn't a niche corpus — it's **execution + the signed Authorship P
 | 01:50–02:30 | Impact: EU AI Act, creator market, numbers |
 | 02:30–03:00 | How we used IBM Bob (4 Custom Modes) + repo + team + closing |
 
-**Success criterion**: a non-expert human must see the difference between left column (vanilla) and right (AutorIA) in **≤5 seconds**. Validated in Sprint 2 with 3 non-technical people as gate.
+**Success criterion**: a non-expert human must see the difference between left column (vanilla) and right (AutorIA) in **≤5 seconds**. Validated in Sprint 1 with 3 non-technical people as gate.
 
 ---
 
@@ -211,7 +211,7 @@ There are 3 pieces where the cost of a bug is very high. Done **in pairs, in a 2
 ### The 3 rules
 
 1. **2/3 majority**. If 2 of 3 agree, we move forward. No waiting for unanimous consensus. **We have 30 days, zero margin to argue the same thing 3 times**.
-2. **Every product decision goes to the Decision Log**. If in sprint 3 someone asks "why did we pick Llama over Granite?", the answer is there. 2 minutes writing it today saves 20 minutes arguing later.
+2. **Every product decision goes to the Decision Log**. If in Sprint 2 someone asks "why did we pick Llama over Granite?", the answer is there. 2 minutes writing it today saves 20 minutes arguing later.
 3. **MVP LOCKED**. Any scope change requires 2/3 vote + Decision Log entry. Prevents scope creep during July.
 
 ### The Decision Log
@@ -242,24 +242,23 @@ Read them in `docs/decision_log.md`. The key ones to keep in your head:
 ### Overall structure
 
 ```
-Jun 26-30  →  Sprint 0 — Prep (this week, what we're doing)
-Jul 01-07  →  Sprint 1 — Foundation
-Jul 08-14  →  Sprint 2 — StyleProfile
-Jul 15-21  →  Sprint 3 — Generation + Passport
-Jul 22-28  →  Sprint 4 — Polish + Demo
-Jul 29-31  →  Buffer — Submit with margin
+Jun 26-Jul 4  →  Sprint 0 — Prep (this week, what we're doing)
+Jul 05-14     →  Sprint 1 — Foundation + StyleProfile (longer sprint)
+Jul 15-21     →  Sprint 2 — Generation + Passport
+Jul 22-28     →  Sprint 3 — Polish + Demo
+Jul 29-31     →  Buffer — Submit with margin
 ```
 
-Each sprint is **exactly 1 week**.
+Sprints are 7–10 days (with the first one being a bit longer: 10 days).
 
 ### Ceremonies (minimal, async whenever possible)
 
 | When | What | Duration | Mode |
 |---|---|---|---|
-| **Monday morning** | Sprint kick: everyone picks 3-5 issues from "Sprint Ready" and moves them to "In Progress" | 15 min | Async in channel |
-| **Mon–Fri** | Daily async — 2 lines in channel: done yesterday / today / blockers | 2 min/day | Text |
+| **Sprint kickoff** | Sprint kick: everyone picks 3-5 issues from "Sprint Ready" and moves them to "In Progress" | 15 min | Async in channel |
+| **Daily** | Daily async — 2 lines in channel: done yesterday / today / blockers | 2 min/day | Text |
 | **Friday 18:00** | Mini-review — status, what's left, what moves | 15 min | Sync (call) |
-| **Sunday 18:00** | **Sprint review + planning** — close sprint, move unfinished items, plan next, update Decision Log | 30-40 min | Sync (call) |
+| **Sprint end (18:00)** | **Sprint review + planning** — close sprint, move unfinished items, plan next, update Decision Log | 30-40 min | Sync (call) |
 
 > **Rule**: if you can write it, don't call. If it takes >10 min in writing, call.
 
@@ -267,11 +266,9 @@ Each sprint is **exactly 1 week**.
 
 Scheduled once per sprint when relevant, in shared agenda. 2 hours, one call with screen sharing, both writing and reviewing. Output: PR signed by both.
 
-| Sprint | Pair session |
-|---|---|
 | Sprint 1 | P1 + P3 → close **API contract** (`docs/api_contract.yaml`) |
-| Sprint 2 | P2 + P3 → close **StyleProfile schema** v1.0 |
-| Sprint 3 | P3 + P1 → **Passport sign + verify** end-to-end |
+| Sprint 1 | P2 + P3 → close **StyleProfile schema** v1.0 |
+| Sprint 2 | P3 + P1 → **Passport sign + verify** end-to-end |
 
 ### Definition of Done (DoD) — per issue
 
@@ -289,10 +286,9 @@ An issue is "Done" when:
 
 | Sprint | DoD |
 |---|---|
-| **Sprint 1 — Foundation** | Repo deployed (front + back with `/health`), DB schema in Supabase, doc upload works, extractor skeleton, 4 Custom Modes created in Bob |
-| **Sprint 2 — StyleProfile** | All 4 feature layers (lexical, syntactic, stylistic, vocab) compute. UMAP 2D precomputed. "Style DNA" UI visible with radar + scatter. **Gate**: 3 non-technical humans identify Dickens voice in ≤5s. |
-| **Sprint 3 — Generation + Passport** | `/api/generate` end-to-end < 8s P95. Side-by-side UI works. Signed Passport downloadable. `/verify` validates signature. Public JWKS |
-| **Sprint 4 — Polish + Demo** | Demo rehearsed 5 times without failure. 3-min video on public YouTube. Final README complete. Bob `usage-report.md` with metrics. Stable public deploy |
+| **Sprint 1 — Foundation + StyleProfile** | Repo deployed (front + back with `/health`), DB schema in Supabase, doc upload works, extractor skeleton. All 4 feature layers (lexical, syntactic, stylistic, vocab) compute. UMAP 2D precomputed. "Style DNA" UI visible with radar + scatter. 4 Custom Modes created in Bob. **Gate**: 3 non-technical humans identify Dickens voice in ≤5s. |
+| **Sprint 2 — Generation + Passport** | `/api/generate` end-to-end < 8s P95. Side-by-side UI works. Signed Passport downloadable. `/verify` validates signature. Public JWKS |
+| **Sprint 3 — Polish + Demo** | Demo rehearsed 5 times without failure. 3-min video on public YouTube. Final README complete. Bob `usage-report.md` with metrics. Stable public deploy |
 
 ---
 
@@ -324,7 +320,7 @@ Full document at **`docs/MVP.md`**. Executive summary:
 - ❌ Generation caching
 - ❌ UI multi-language switching (English only)
 
-> **If in Sprint 2 someone says "what if we add X?" and X is on this list, the answer is: NO**. Unless 2/3 vote + Decision Log entry.
+> **If in Sprint 1 someone says "what if we add X?" and X is on this list, the answer is: NO**. Unless 2/3 vote + Decision Log entry.
 
 ### Hinge decisions (already closed)
 
@@ -448,7 +444,7 @@ autoria/
 ├── bob/                       ← IBM Bob — P3 owner, CRITICAL
 │   ├── custom-modes/          ← 3 documented modes
 │   ├── sessions/              ← weekly BobShell exports per person
-│   └── usage-report.md        ← final report (sprint 4)
+│   └── usage-report.md        ← final report (sprint 3)
 │
 ├── corpus/                    ← demo texts of the 3 authors
 ├── infra/supabase/migrations/ ← initial SQL
@@ -512,13 +508,13 @@ bob/
 │   ├── generation-conductor.md
 │   ├── studio-composer.md
 │   └── passport-auditor.md
-├── sessions/                    ← created on the first Friday of Sprint 1
-│   ├── week1/                   ← 3 files: p1.md, p2.md, p3.md
-│   ├── week2/                   ← same
-│   ├── week3/                   ← same
-│   └── week4/                   ← same
+├── sessions/                    ← created on the first Friday of Sprint 1 (July 10)
+├── week1/                   ← 3 files: p1.md, p2.md, p3.md
+├── week2/                   ← same
+├── week3/                   ← same
+└── week4/                   ← same
 ├── screenshots/                 ← 3+ screenshots of Bob working (created in Sprint 1)
-└── usage-report.md              ← final report with metrics (sprint 4)
+└── usage-report.md              ← final report with metrics (sprint 3)
 ```
 
 **Minimum goal by end of July**:
@@ -556,7 +552,7 @@ Our Project is **"AutorIA July Sprint"**. Linked to the `autoria` repo.
 |---|---|---|
 | **📋 Backlog** | Table | See everything pending, grouped by Sprint, sorted by Priority |
 | **🏃 Current Sprint** | Board (kanban) | Your daily view. Filtered by current Sprint, columns = Status |
-| **🗓️ Roadmap** | Roadmap | Timeline of the 4 sprints |
+| **🗓️ Roadmap** | Roadmap | Timeline of the 3 sprints |
 | **🤝 By Owner** | Table | Who has what assigned, grouped by Assignee |
 
 ### Custom fields on each issue
@@ -564,7 +560,7 @@ Our Project is **"AutorIA July Sprint"**. Linked to the `autoria` repo.
 | Field | Values |
 |---|---|
 | **Status** | Backlog → Sprint Ready → In Progress → In Review → Done |
-| **Sprint** | Sprint 0 (prep), Sprint 1, Sprint 2, Sprint 3, Sprint 4, Buffer, Backlog |
+| **Sprint** | Sprint 0 (prep), Sprint 1, Sprint 2, Sprint 3, Buffer, Backlog |
 | **Size** | XS (<2h), S (2-4h), M (4-8h), L (1-2d), XL (2-3d) |
 | **Module** | ai_pipeline, backend, frontend, bob, docs, infra, demo |
 | **Priority** | P0 — blocker, P1 — must, P2 — should, P3 — nice |
@@ -593,7 +589,7 @@ Done                       ← Auto-closed via "Closes #N" in PR
 4. **Every PR closes at least one issue** with `Closes #N`.
 5. **No moving to Done without merge**. "In Review" is a mandatory intermediate column.
 6. **If unplanned work appears**, create a retroactive issue. The Project must reflect everything.
-7. **At Sunday sprint review**, unfinished work either moves to Backlog or to the next sprint. Never silently dragged.
+7. **At Sprint end review**, unfinished work either moves to Backlog or to the next sprint. Never silently dragged.
 
 ### Create a new issue (CLI or web)
 
@@ -606,7 +602,7 @@ gh issue create \
   --title "ml: add MATTR-500 to lexical extractor" \
   --body  "Add Moving Average TTR (window=500) to ai_pipeline/autoria_ai/extractor/lexical.py. Update StyleProfile schema v1.0." \
   --label "ml,size:S,prio:P1" \
-  --milestone "Sprint 2 — StyleProfile" \
+  --milestone "Sprint 1 — Foundation + StyleProfile" \
   --assignee @me
 ```
 
@@ -789,7 +785,7 @@ Note: keep **all** user-visible text out of components and in `en.ts` — button
 | Every morning before starting | Read the channel, catch up | Async (2 min) |
 | Once a day | Write 2 lines: done yesterday / today / blockers | Async |
 | Friday 18:00 | Mini-review of the week | Sync (15 min) |
-| Sunday 18:00 | Sprint review + planning of next | Sync (30-40 min) |
+| Sprint end (Tuesday 18:00) | Sprint review + planning of next | Sync (30-40 min) |
 | Scheduled pair sessions | 1 per sprint, on shared agenda | Sync (2h) |
 
 ### Communication rules
@@ -828,9 +824,9 @@ On July 31 (ideally noon Spain time, NOT 23:59) we upload to the BeMyApp portal:
 
 ---
 
-## 15. Pre-July-1 checklist (this week)
+## 15. Pre-July-5 checklist (this period)
 
-This week (Jun 26-30) is **Sprint 0 — Prep**. Goal: arrive at July 1 with zero setup friction.
+This period (Jun 26–Jul 4) is **Sprint 0 — Prep**. Goal: arrive at July 5 with zero setup friction.
 
 ### Per person
 
@@ -873,7 +869,7 @@ This week (Jun 26-30) is **Sprint 0 — Prep**. Goal: arrive at July 1 with zero
 - [ ] **P2 + P3**: close final `style_profile.json` schema (1h call on Sunday)
 - [ ] **All**: Sunday Jun 30, sprint planning call for Sprint 1 (move "Sprint Ready" issues, assign)
 
-### Consequences if not done by July 1
+### Consequences if not done by July 5
 
 | Item | Consequence if missing |
 |---|---|
@@ -886,7 +882,7 @@ This week (Jun 26-30) is **Sprint 0 — Prep**. Goal: arrive at July 1 with zero
 
 ---
 
-## 16. Sprint 1 — day 1 plan (July 1)
+## 16. Sprint 1 — day 1 plan (July 5)
 
 ### Morning (9:00-13:00) — Sprint kick-off
 
@@ -1011,6 +1007,6 @@ Buffer Jul 29-31 exists exactly for this. Day 29: full submission dry-run. Day 3
 
 ## One last thing
 
-If after reading this something doesn't add up, isn't obvious, or you want to change something: **say it on the channel TODAY**. The best edit of this document is the one you make before July 1. After that, any change costs sprint time.
+If after reading this something doesn't add up, isn't obvious, or you want to change something: **say it on the channel TODAY**. The best edit of this document is the one you make before July 5. After that, any change costs sprint time.
 
 > Welcome to the team. We're going to win this. 🚀

@@ -1,8 +1,8 @@
 # Custom Mode — GenerationConductor
 
 > **Owner**: P3 (Backend + Generation)
-> **Created on**: Sprint 1, Day 1 (Jul 1, 2026).
-> **Used during**: Sprints 2–4 — heavily in Sprint 3 (build) and Sprint 4 (prompt tuning for the demo).
+> **Created on**: Sprint 1, Day 1 (Jul 5, 2026).
+> **Used during**: Sprints 2–3 — heavily in Sprint 2 (build) and Sprint 3 (prompt tuning for the demo).
 
 ---
 
@@ -83,7 +83,7 @@ You think empirically: every prompt change is paired with a measurement (`fit_sc
 - `POST /api/generate` returning `{ vanilla, autoria, passport }` end-to-end in < 8s P95
 - A `tests/test_generation_e2e.py` covering: RAG retrieval, parallel calls, fit_score range, and Passport emission
 - A short markdown report under `docs/examples/generation_ab_<date>.md` per significant prompt-engineering iteration: prompt variants, fit_score delta, latency, decision
-- The final list of demo prompts in `docs/examples/demo_prompts.md` (Sprint 4)
+- The final list of demo prompts in `docs/examples/demo_prompts.md` (Sprint 3)
 
 ---
 
