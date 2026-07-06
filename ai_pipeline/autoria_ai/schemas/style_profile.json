@@ -1,0 +1,256 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/autorIA/autoria/blob/main/ai_pipeline/autoria_ai/schemas/style_profile.json",
+  "title": "StyleProfile",
+  "description": "Versioned stylistic fingerprint of an author, computed from their corpus by the ai_pipeline extractor. Single source of truth for the fit_score and the conditioned generation prompt.",
+  "version": "1.0",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "author_id",
+    "computed_at",
+    "corpus_stats",
+    "lexical",
+    "syntactic",
+    "stylistic",
+    "distinctive_vocab",
+    "semantic_centroid",
+    "embedding_umap_2d"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version. Bump when adding/removing fields. Consumers must reject profiles with unknown versions."
+    },
+
+    "author_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique slug for the author. Preloaded: 'austen', 'dickens', 'poe'.",
+      "examples": ["austen", "dickens", "poe"]
+    },
+
+    "computed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of when this StyleProfile was computed."
+    },
+
+    "corpus_stats": {
+      "type": "object",
+      "description": "High-level statistics of the cleaned corpus used for extraction.",
+      "required": ["n_documents", "n_tokens", "n_sentences"],
+      "additionalProperties": false,
+      "properties": {
+        "n_documents": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of source documents (cleaned .txt files) used."
+        },
+        "n_tokens": {
+          "type": "integer",
+          "minimum": 30000,
+          "description": "Total token count across all documents (spaCy tokenization). Minimum 30k enforced."
+        },
+        "n_sentences": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total sentence count across all documents (spaCy sentence segmentation)."
+        }
+      }
+    },
+
+    "lexical": {
+      "type": "object",
+      "description": "Vocabulary richness and word-level features. See docs/style_features.md §1.",
+      "required": ["mattr_500", "avg_word_length", "hapax_ratio"],
+      "additionalProperties": false,
+      "properties": {
+        "mattr_500": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Moving Average Type-Token Ratio with window=500. Measures vocabulary richness, stable across corpus size. Higher = richer vocabulary per 500-token block."
+        },
+        "avg_word_length": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Mean number of characters per alpha token (punctuation excluded). Poe > Dickens > Austen."
+        },
+        "hapax_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Proportion of lemma types appearing exactly once in the full corpus. High in Poe (exotic vocabulary)."
+        }
+      }
+    },
+
+    "syntactic": {
+      "type": "object",
+      "description": "Sentence architecture features computed via spaCy dependency parser. See docs/style_features.md §2.",
+      "required": [
+        "avg_sentence_length_tokens",
+        "std_sentence_length_tokens",
+        "subordination_ratio",
+        "noun_to_verb_ratio",
+        "passive_voice_ratio"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "avg_sentence_length_tokens": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Mean sentence length in tokens across the full corpus."
+        },
+        "std_sentence_length_tokens": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Standard deviation of sentence length in tokens. High std = high rhythm variation (Dickens)."
+        },
+        "subordination_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Subordinate clauses per sentence (advcl, relcl, ccomp, xcomp dep labels). Normalized per sentence."
+        },
+        "noun_to_verb_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "NOUN token count / VERB token count. High = nominal/descriptive style (Austen, Dickens). Low = verbal/action style (Poe)."
+        },
+        "passive_voice_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Proportion of sentences containing at least one nsubjpass token. High in Poe (Gothic distance effect)."
+        }
+      }
+    },
+
+    "stylistic": {
+      "type": "object",
+      "description": "Surface-level style patterns: punctuation, POS distribution, narrator perspective. See docs/style_features.md §3.",
+      "required": [
+        "punct_distribution",
+        "pos_distribution",
+        "dialogue_ratio",
+        "first_person_ratio"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "punct_distribution": {
+          "type": "object",
+          "description": "Relative frequency of each punctuation mark over all punctuation tokens. Values sum to ~1.0.",
+          "required": [",", ".", ";", ":", "—", "?", "!", "\""],
+          "additionalProperties": false,
+          "properties": {
+            ",": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            ".": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            ";": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            ":": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "—": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "?": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "!": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "\"": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+          }
+        },
+        "pos_distribution": {
+          "type": "object",
+          "description": "Relative frequency of each universal POS tag over all non-punctuation tokens. Values sum to 1.0.",
+          "required": [
+            "NOUN",
+            "VERB",
+            "ADJ",
+            "ADV",
+            "DET",
+            "ADP",
+            "PRON",
+            "CONJ",
+            "SCONJ",
+            "OTHER"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "NOUN": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "VERB": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "ADJ": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "ADV": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "DET": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "ADP": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "PRON": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "CONJ": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "SCONJ": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            "OTHER": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+          }
+        },
+        "dialogue_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Proportion of non-punctuation tokens inside quotation marks. Austen ~0.33, Dickens ~0.24, Poe ~0.09."
+        },
+        "first_person_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Frequency of first-person singular pronouns (I, me, my, mine, myself) per 1000 tokens. Poe ~24, Dickens ~6, Austen ~1."
+        }
+      }
+    },
+
+    "distinctive_vocab": {
+      "type": "array",
+      "description": "Top-30 terms most characteristic of this author vs the other two, ranked by TF-IDF score. See docs/style_features.md §4.",
+      "minItems": 1,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "required": ["term", "score"],
+        "additionalProperties": false,
+        "properties": {
+          "term": {
+            "type": "string",
+            "description": "Lemmatized term (alpha only, min 3 chars)."
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0.0,
+            "description": "TF-IDF score relative to the 3-author base corpus. Higher = more distinctive."
+          }
+        }
+      }
+    },
+
+    "semantic_centroid": {
+      "type": "array",
+      "description": "Mean embedding vector across all ~500-token chunks of the author corpus. Computed with all-mpnet-base-v2 (768-dim). Used for fit_score (cosine similarity) and RAG retrieval. See docs/style_features.md §5.1.",
+      "minItems": 768,
+      "maxItems": 768,
+      "items": {
+        "type": "number"
+      }
+    },
+
+    "embedding_umap_2d": {
+      "type": "object",
+      "description": "2D UMAP projection of the semantic_centroid for demo visualization. See docs/style_features.md §5.2.",
+      "required": ["centroid", "spread"],
+      "additionalProperties": false,
+      "properties": {
+        "centroid": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number" },
+          "description": "2D coordinates [x, y] of the author centroid in UMAP space."
+        },
+        "spread": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Standard deviation of chunk distances to centroid. Measures intra-author semantic consistency."
+        }
+      }
+    }
+  }
+}
