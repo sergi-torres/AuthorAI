@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoria-backend"
+version = "0.1.0"
+description = "AutorIA REST API (FastAPI). Implements docs/api_contract.yaml."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27", "ruff>=0.4", "black>=24"]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+# Black reads the NEAREST pyproject.toml, so repeat the shared config here
+# (see root pyproject.toml note). Keep line-length in sync with the root.
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
