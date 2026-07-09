@@ -1,0 +1,26 @@
+# .bobignore — files IBM Bob must NOT read, write, or parse.
+# Same glob syntax as .gitignore. Kept in sync with the secret-bearing entries
+# of .gitignore. Rationale: BobShell sessions are exported to the PUBLIC repo
+# (bob/sessions/), so any secret Bob reads could be published.
+#
+# NOTE: this is a Bob-tool guardrail, not a sandbox. Two things still leak:
+#   1. @mentioning a file in a Bob prompt BYPASSES .bobignore — never @ a secret.
+#   2. Typing a secret as a BobShell command can still be captured.
+# Primary safeguard for the DB password stays the PG* env vars set in your own
+# terminal (see infra/supabase/README.md). Restart Bob Shell after editing this.
+
+# ─── Environment / secrets ───
+.env
+.env.*
+!.env.example
+.envrc
+.streamlit/secrets.toml
+
+# ─── Authorship Passport signing keys (private) ───
+keys/
+*.pem
+*.key
+!docs/examples/*.pem.example
+
+# ─── Local data / caches (not secret, but noise) ───
+data/
