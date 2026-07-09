@@ -105,3 +105,143 @@ def test_chunk_text_returns_strings_not_token_ids() -> None:
 
 def test_chunk_text_empty_input_returns_empty_list() -> None:
     assert chunk_text("") == []
+
+
+# ── lexical ───────────────────────────────────────────────────────────────────
+#
+# Lemmatization requires a real model.  We load en_core_web_lg (already a
+# project dependency) once at module level.  Tests that do NOT need lemmas use
+# spacy.blank("en") so they remain fast even if the large model is unavailable.
+
+import pytest
+import spacy
+
+from autoria_ai.extractor.lexical import compute_lexical
+
+_NLP_BLANK = spacy.blank("en")
+_NLP_FULL = spacy.load("en_core_web_lg")  # needed for lemma_ tests
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+REQUIRED_KEYS = {"mattr_500", "hapax_ratio", "avg_word_length"}
+
+
+def _doc(text: str):
+    """Blank-model doc — is_alpha and token.text are reliable; lemma_ is ''."""
+    return _NLP_BLANK(text)
+
+
+def _doc_full(text: str):
+    """Full-model doc — lemma_ is populated correctly."""
+    return _NLP_FULL(text)
+
+
+# ── edge cases ────────────────────────────────────────────────────────────────
+
+
+def test_lexical_empty_doc_returns_zeros() -> None:
+    result = compute_lexical(_doc(""))
+    assert result == {"mattr_500": 0.0, "hapax_ratio": 0.0, "avg_word_length": 0.0}
+
+
+def test_lexical_punct_only_doc_returns_zeros() -> None:
+    # No alpha tokens at all
+    result = compute_lexical(_doc("... !!! ???"))
+    assert result == {"mattr_500": 0.0, "hapax_ratio": 0.0, "avg_word_length": 0.0}
+
+
+def test_lexical_short_doc_under_500_tokens() -> None:
+    # 10 distinct words — fewer than the 500-token MATTR window.
+    # Use full model so lemma_ is populated and hapax_ratio is meaningful.
+    text = "alpha bravo charlie delta echo foxtrot golf hotel india juliet"
+    result = compute_lexical(_doc_full(text))
+    assert REQUIRED_KEYS == result.keys()
+    # All 10 lemmas appear once → hapax_ratio == 1.0
+    assert result["hapax_ratio"] == pytest.approx(1.0)
+    # Single window → plain TTR == 1.0 (all unique)
+    assert result["mattr_500"] == pytest.approx(1.0)
+    # All words are 5-7 chars; avg must be in that range
+    assert 4.0 < result["avg_word_length"] < 8.0
+
+
+# ── happy path ────────────────────────────────────────────────────────────────
+
+
+def test_lexical_return_type_is_dict_of_floats() -> None:
+    result = compute_lexical(_doc("The quick brown fox jumps over the lazy dog."))
+    assert isinstance(result, dict)
+    assert REQUIRED_KEYS == result.keys()
+    for v in result.values():
+        assert isinstance(v, float)
+
+
+def test_lexical_avg_word_length_ignores_punctuation() -> None:
+    # "Hi" (2) and "there" (5) → avg = 3.5; punctuation token "." excluded
+    result = compute_lexical(_doc("Hi there."))
+    assert result["avg_word_length"] == pytest.approx(3.5)
+
+
+def test_lexical_hapax_ratio_all_unique() -> None:
+    # Every word appears exactly once (full model for real lemmas)
+    result = compute_lexical(_doc_full("running jumps beautiful darkness whisper"))
+    assert result["hapax_ratio"] == pytest.approx(1.0)
+
+
+def test_lexical_hapax_ratio_no_hapax() -> None:
+    # Each surface form maps to the same lemma twice → no hapax.
+    # Use full model: "cats"→"cat", "dogs"→"dog", "birds"→"bird"
+    result = compute_lexical(_doc_full("cat cats dog dogs bird birds"))
+    assert result["hapax_ratio"] == pytest.approx(0.0)
+
+
+def test_lexical_hapax_ratio_mixed() -> None:
+    # "cat"/"cats" → lemma "cat" (count 2, not hapax)
+    # "dog" → lemma "dog" (count 1, hapax)
+    # → 1 hapax out of 2 lemma types = 0.5
+    result = compute_lexical(_doc_full("cat cats dog"))
+    assert result["hapax_ratio"] == pytest.approx(0.5)
+
+
+def test_lexical_mattr_500_with_exactly_500_alpha_tokens() -> None:
+    # 500 identical words: all same type → TTR = 1/500
+    text = " ".join(["word"] * 500)
+    result = compute_lexical(_doc(text))
+    assert result["mattr_500"] == pytest.approx(1 / 500)
+
+
+def test_lexical_mattr_500_over_500_tokens() -> None:
+    # 600 purely-alphabetic unique words trigger the sliding-window path.
+    # Generate words as e.g. "aaa", "aab", … using letters only.
+    import string
+
+    letters = string.ascii_lowercase
+    # Build 600 unique 3-letter words using combinations with repetition
+    words = []
+    for a in letters:
+        for b in letters:
+            for c in letters:
+                words.append(a + b + c)
+                if len(words) == 600:
+                    break
+            if len(words) == 600:
+                break
+        if len(words) == 600:
+            break
+
+    result = compute_lexical(_doc(" ".join(words)))
+    # All tokens are unique → every window has 500 unique types → MATTR == 1.0
+    assert result["mattr_500"] == pytest.approx(1.0)
+
+
+def test_lexical_mattr_500_repeated_vocab_over_500_tokens() -> None:
+    # 1 000 tokens from a 10-word alphabetic vocabulary.
+    # Each window of 500 contains exactly 10 unique types → TTR = 10/500 = 0.02
+    vocab = [c * 3 for c in "abcdefghij"]  # ["aaa","bbb","ccc",…,"jjj"]
+    text = " ".join(vocab * 100)  # 1 000 alpha tokens
+    result = compute_lexical(_doc(text))
+    assert result["mattr_500"] == pytest.approx(10 / 500)
+
+
+def test_lexical_keys_are_exactly_three() -> None:
+    result = compute_lexical(_doc("Hello world"))
+    assert set(result.keys()) == REQUIRED_KEYS
