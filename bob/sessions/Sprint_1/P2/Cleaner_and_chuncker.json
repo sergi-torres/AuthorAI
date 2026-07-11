@@ -1,0 +1,1509 @@
+{
+  "version": 1,
+  "exportedAt": 1783508159562,
+  "workspace": "file:c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+  "tasks": [
+    {
+      "task": {
+        "id": "a0adb444b7a129354ffdfe036e9d35f7",
+        "workspace": "file:c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+        "parentId": null,
+        "taskType": "normal",
+        "title": "I am building the AutorIA ai_pipeline module. I need to implement two functions:\n\n1. `ai_pipeline/autoria_ai/extractor/cleaner.py` — a `clean_text(text: str) -> str` function that:\n   - Strips Project Gutenberg headers (everything before `*** START OF THE PROJECT GUTENBERG EBOOK`) and footers (everything after `*** END OF THE PROJECT GUTENBERG EBOOK`)\n   - Normalizes curly quotes (`\"` `\"`) to straight ASCII quotes (`\"`)\n   - Normalizes double dashes (`--`) to em-dashes (`—`)\n   - Collapses multiple consecutive blank lines into one\n\n2. `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n   - Uses tiktoken `cl100k_base` encoding\n   - Splits the full text into chunks of `chunk_size` tokens\n   - Uses a sliding window with `overlap` tokens between consecutive chunks\n   - Returns a list of decoded strings (not token ids)\n\nRequirements:\n- Both functions are stateless, no side effects\n- Type hints required (Python 3.11+)\n- One-line docstring per function\n- Do NOT load any model inside the functions\n- Add a happy-path test for each function in `ai_pipeline/tests/test_smoke.py`\n\nStart with `cleaner.py` only. Show me the full file.",
+        "status": "active",
+        "firstMessage": "I am building the AutorIA ai_pipeline module. I need to implement two functions:\n\n1. `ai_pipeline/autoria_ai/extractor/cleaner.py` — a `clean_text(text: str) -> str` function that:\n   - Strips Project Gutenberg headers (everything before `*** START OF THE PROJECT GUTENBERG EBOOK`) and footers (everything after `*** END OF THE PROJECT GUTENBERG EBOOK`)\n   - Normalizes curly quotes (`\"` `\"`) to straight ASCII quotes (`\"`)\n   - Normalizes double dashes (`--`) to em-dashes (`—`)\n   - Collapses multiple consecutive blank lines into one\n\n2. `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n   - Uses tiktoken `cl100k_base` encoding\n   - Splits the full text into chunks of `chunk_size` tokens\n   - Uses a sliding window with `overlap` tokens between consecutive chunks\n   - Returns a list of decoded strings (not token ids)\n\nRequirements:\n- Both functions are stateless, no side effects\n- Type hints required (Python 3.11+)\n- One-line docstring per function\n- Do NOT load any model inside the functions\n- Add a happy-path test for each function in `ai_pipeline/tests/test_smoke.py`\n\nStart with `cleaner.py` only. Show me the full file.",
+        "version": null,
+        "gitSha": null,
+        "gitBranch": null,
+        "env": {
+          "id": "a0adb444b7a129354ffdfe036e9d35f7",
+          "workspace": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+          "scheme": "file",
+          "query": "",
+          "workspaceName": "AuthorAI",
+          "language": "en",
+          "isPlayground": false,
+          "costEffective": true,
+          "_meta": {
+            "commandSecurityModel": "openai/gpt-oss-20b"
+          },
+          "staticEnvInfo": {
+            "primaryWorkspace": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+            "systemInfo": {
+              "platform": "win32",
+              "release": "10.0.26200",
+              "arch": "x64",
+              "shell": "powershell.exe"
+            }
+          },
+          "modeId": "style-extractor"
+        },
+        "costs": {
+          "input": 322654,
+          "output": 6295,
+          "cacheRead": 255660,
+          "cacheWrite": 66975,
+          "cost": 0.8223679999999999,
+          "contextTokens": 28258,
+          "contextWindowBreakdown": {
+            "total": 8310,
+            "reportedTotal": 28258,
+            "breakdown": {
+              "roleDefinition": 130,
+              "staticSections": 546,
+              "skills": 485,
+              "baseRules": 197,
+              "projectRules": 0,
+              "customInstructions": 135,
+              "environment": 76,
+              "toolSystemPrompts": 1392,
+              "toolDefinitions": 5349,
+              "mcpToolDefinitions": 0
+            },
+            "loadedSkills": [],
+            "key": "a0adb444b7a129354ffdfe036e9d35f7|style-extractor|3640790744|2989025291|5381"
+          }
+        },
+        "messageQueue": null,
+        "approvalConfig": {
+          "autoApprovalEnabled": true,
+          "outsideWorkspaceAllowed": false,
+          "allowed_permissions": [
+            "read"
+          ],
+          "permissionOptions": [],
+          "allowedExecutors": [
+            {
+              "toolId": "execute_command",
+              "approvedCommands": [
+                "cat",
+                "git diff",
+                "git log",
+                "git rev-parse",
+                "git show",
+                "git status",
+                "grep",
+                "head",
+                "tail",
+                "ls",
+                "sort",
+                "wc",
+                "which",
+                "du",
+                "df"
+              ],
+              "deniedCommands": []
+            }
+          ],
+          "editApprovalPreviewMode": "editor",
+          "taskAllowedMcpTools": []
+        },
+        "lastError": null,
+        "isPinned": false,
+        "createdAt": 1783504343317,
+        "updatedAt": 1783507423844
+      },
+      "messages": [
+        {
+          "id": "1854243613455118d2154a61ce7c8d5b",
+          "role": "system",
+          "data": {
+            "role": "system",
+            "content": "<role_definition>\nYou are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.\n</role_definition>\n\n<investigate_before_answering>\nNever speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Investigate and read relevant files before answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.\n</investigate_before_answering>\n\n<engineering_discipline>\nProduce the minimal change that solves the problem. Do not add features, refactors, or abstractions beyond what was asked. Do not add error handling for scenarios that cannot happen. Do not clean up surrounding code that is unrelated to the task. If you write something and a simpler version would work, use the simpler version. Every changed line should trace directly to the user's request.\n</engineering_discipline>\n\n<tool_use>\n- Choose the most appropriate tool for each step.\n- Tools can be called in parallel when independent, but avoid running operations together that have dependencies (e.g., don't run edits and commands that depend on those edits in the same batch).\n- If a tool fails, address the error before continuing.\n- MCP server tools use IDs formatted as `mcp__<server>__<tool>`. Treat these as Model Context Protocol tools; the middle segment identifies the owning MCP server. Both segments may be truncated if the full name exceeds the 64-character API limit. Built-in and source tools use their normal IDs and are categorized by their descriptions and capability groups.\n- Prefer native file tools (read_file, write_file, search_and_replace, insert_content, list_files) over shell commands for file operations — they need no additional user permissions. Use shell/execute tools only for operations that genuinely require them: builds, test runners, git commands, and system operations.\n</tool_use>\n\n<markdown_rules>\nAll responses should show any language construct or filename reference as a clickable link, exactly as [`filename OR language.declaration()`](relative/file/path.ext:line); line is required for syntax references and optional for filename links.\n</markdown_rules>\n\n<auto_appended_context>\nEach user message may contain an auto-appended <environment_details> section that includes potentially relevant information such as git status, active file, and relevant files modified externally since your last interaction. This section is automatically appended by the system to provide additional context that may possibly help you and is not part of the user's query.\n\nPay close attention to the <external_changes> sub-section — it lists files that were modified, deleted, or created outside of your actions. Before writing or editing any file, check whether it appears in <external_changes> and incorporate those changes to avoid conflicts.\n</auto_appended_context>\n\n<base_rules>\n- Prefer editing tools (apply_diff, search_and_replace, insert_content) over write_file for existing files.\n- When using write_file, provide the COMPLETE file content. Partial updates or placeholders are not acceptable.\n- Be direct and technical. Do not start messages with \"Great\", \"Certainly\", \"Okay\", or \"Sure\".\n- Follow existing code style and project conventions.\n- Use available tools to accomplish tasks efficiently. Do not ask unnecessary follow-up questions.\n- Do not stop when implementation looks complete. Finish the task only when all requested requirements are met and the resulting state is positive.\n- Before reporting final completion, run the relevant validation for your changes. Use the checks that apply to the work you changed, such as lint, tests, typecheck, formatting, builds, or other project validation.\n- Work is done when the changed work and any affected project state pass the required validation with no new warnings, failures, or unfinished requirements.\n</base_rules>\n\nYou have access to skills that provide specialized instructions for specific tasks. Review the available skills below. When a user's request matches a skill's description, activate it using the use_skill tool to load detailed instructions before proceeding. Only activate skills that are clearly relevant to the current task. Activate each skill once per current context window. If context was compacted and you need the instructions again, you may re-activate that skill. Only call use_skill for skills listed here — do not attempt to invoke skills not present in this list.\n<available_skills>\n  <skill>\n    <name>create-skill</name>\n    <description>Guide for creating a new Bob skill (SKILL.md) — covers the frontmatter schema, name rules, file location, and gotchas. Use when the user wants to author, create, or scaffold a skill.</description>\n  </skill>\n  <skill>\n    <name>create-mode</name>\n    <description>Guide for creating a new custom Bob mode (custom_modes.yaml) — covers the schema, permission groups, roleDefinition, and file location. Use when the user wants to author, create, or scaffold a mode or persona.</description>\n  </skill>\n  <skill>\n    <name>configure-mcp</name>\n    <description>Add a new MCP server or diagnose an existing one — covers local vs remote transport, system dependency checks (node, docker, podman, python, uv), config schema validation, secrets handling, and scope. Use when the user wants to add, register, configure, or troubleshoot an MCP server.</description>\n  </skill>\n  <skill>\n    <name>build-mcp-server</name>\n    <description>Guide for building a custom MCP server from scratch — covers project scaffolding, the v2 registerTool/registerResource/registerPrompt API, API key and OAuth authentication patterns, building and registering the server. Use when the user wants to create, build, or write a custom MCP server.</description>\n  </skill>\n  <skill>\n    <name>xlsx-insights</name>\n    <description>Use this skill when the user asks for analysis, extraction, or insights from an Excel (.xlsx) workbook. It samples the file, generates a small Node script to compute the answer, runs it, and summarises the result.</description>\n  </skill>\n</available_skills>\n\n<user_custom_instructions>\nThe following additional instructions are provided by the user, and should be followed to the best of your ability without interfering with the TOOL USE guidelines.\n\nLanguage Preference:\nYou should always speak and think in the \"English\" (en) language unless the user gives you instructions below to do otherwise.\n\nMode-specific Instructions:\nDo not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.\n</user_custom_instructions>\n\n<environment_info>\n## Workspace Info\nThe currently active workspace folder is c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\nUse file paths relative to this directory.\n## Command Execution Environment\nPlatform: win32\nRelease: 10.0.26200\nArchitecture: x64\nShell: powershell.exe\n</environment_info>\n\nYou can get information about available symbols by using the `GetSymbolsOverview` tool for finding top-level symbols in a file,\nor by using `FindSymbol` if you already know the symbol's name path. You generally try to read as little code as possible\nwhile still solving your task, meaning you only read the bodies when you need to, and after you have found the symbol you want to edit.\nFor example, if you are working with python code and already know that you need to read the body of the constructor of the class Foo, you can directly\nuse `FindSymbol` with the name path `Foo/__init__` and `include_body: true`. If you don't know yet which methods in `Foo` you need to read or edit,\nyou can use `FindSymbol` with the name path `Foo`, `include_body: false` and `depth: 1` to get all (top-level) methods of `Foo` before proceeding\nto read the desired methods with `include_body: true`\nYou can understand relationships between symbols by using the `FindReferencingSymbols` tool.\n\n# Mode Switching\n\nYou can switch between different modes using the switch_mode tool. Each mode provides access to different capabilities and tools optimized for specific types of tasks.\n\n<available_modes>\n  <mode>\n    <name>Agent</name>\n    <id>agent</id>\n    <when_to_use>Use this mode when you need to write, modify, or refactor code. Ideal for implementing features, fixing bugs, creating new files, or making code improvements across any programming language or framework.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, apply_diff, create_html_artifact, insert_content, list_files, read_file, read_xlsx, search_and_replace, update_todo_list, switch_mode, write_file, execute_command, glob, grep, spawn_subagent, ask_followup_question, start_subtask, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>Plan</name>\n    <id>plan</id>\n    <when_to_use>Use this mode when you need to plan, design, or strategize before implementation. Perfect for breaking down complex problems, creating technical specifications, designing system architecture, or brainstorming solutions before coding.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, glob, grep, spawn_subagent, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>Ask</name>\n    <id>ask</id>\n    <when_to_use>Use this mode when you need explanations, documentation, or answers to technical questions. Best for understanding concepts, analyzing existing code, getting recommendations, or learning about technologies without making changes.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, list_files, read_file, read_xlsx, switch_mode, glob, grep, spawn_subagent, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>StyleExtractor</name>\n    <id>style-extractor</id>\n    <when_to_use>Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>GenerationConductor</name>\n    <id>generation-conductor</id>\n    <when_to_use>RAG retrieval, conditioned-prompt design, Watsonx orchestration, and fit_score work.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>StudioComposer</name>\n    <id>studio-composer</id>\n    <when_to_use>Style DNA charts, side-by-side generation UI, /verify layout, API client and TS types, and i18n.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>PassportAuditor</name>\n    <id>passport-auditor</id>\n    <when_to_use>JWS signing and verification, the JWKS endpoint, and adversarial review of crypto edge cases.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n</available_modes>\n\n# glob — file search\nUse `glob` to find files by name pattern (e.g. \"**/*.ts\", \"src/**/*.test.ts\"). Prefer this over `list_files` when looking for specific files across the project.\nOnly fall back to `list_files` when you need to browse a single directory's structure.\n\n# grep — content search\nUse `grep` to find code by content using regex patterns. Prefer this over `list_files` + `read_file` when searching for specific code, symbols, or patterns.\nUse `read_file` only after grep tells you which file and lines to look at.\n\nYou have access to workflows that provide specialized multi-step processes for specific tasks. Review the available workflows below. When a user's request matches a workflow's purpose, use the start_workflow tool. Run the workflow only if you are sure the workflow description will provide appropriate assistance. When suggesting workflows to users, provide the title and description, never the internal ID.\nAvailable workflows:\n* create_pr_workflow: Create Pull Request - Generates description from git diff using PR templates, allows review and editing, then creates the pull request on GitHub.",
+            "_meta": {
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1783506007693
+            },
+            "id": "1854243613455118d2154a61ce7c8d5b"
+          },
+          "createdAt": 1783506166801
+        },
+        {
+          "id": "a1875bc2b08eb4cad0e53c556a5cfe25",
+          "role": "user",
+          "data": {
+            "role": "user",
+            "content": "<environment_details>\n<active_file>\nActive file: c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\docs\\erd.md\n</active_file>\n<git_status_snapshot>\n## Git Status at start of this conversation. This is a point-in-time snapshot and does not reflect subsequent changes.\nBranch: feat/api_contract_modified\n```\nNo uncommitted changes\n```\n</git_status_snapshot>\n</environment_details>\n\n\n<user_query>\nI am building the AutorIA ai_pipeline module. I need to implement two functions:\n\n1. `ai_pipeline/autoria_ai/extractor/cleaner.py` — a `clean_text(text: str) -> str` function that:\n   - Strips Project Gutenberg headers (everything before `*** START OF THE PROJECT GUTENBERG EBOOK`) and footers (everything after `*** END OF THE PROJECT GUTENBERG EBOOK`)\n   - Normalizes curly quotes (`\"` `\"`) to straight ASCII quotes (`\"`)\n   - Normalizes double dashes (`--`) to em-dashes (`—`)\n   - Collapses multiple consecutive blank lines into one\n\n2. `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n   - Uses tiktoken `cl100k_base` encoding\n   - Splits the full text into chunks of `chunk_size` tokens\n   - Uses a sliding window with `overlap` tokens between consecutive chunks\n   - Returns a list of decoded strings (not token ids)\n\nRequirements:\n- Both functions are stateless, no side effects\n- Type hints required (Python 3.11+)\n- One-line docstring per function\n- Do NOT load any model inside the functions\n- Add a happy-path test for each function in `ai_pipeline/tests/test_smoke.py`\n\nStart with `cleaner.py` only. Show me the full file.\n</user_query>",
+            "availableTools": [
+              "GetSymbolsOverview",
+              "FindSymbol",
+              "FindReferencingSymbols",
+              "apply_diff",
+              "insert_content",
+              "list_files",
+              "read_file",
+              "read_xlsx",
+              "search_and_replace",
+              "switch_mode",
+              "write_file",
+              "execute_command",
+              "glob",
+              "grep",
+              "ask_followup_question",
+              "start_workflow"
+            ],
+            "_meta": {
+              "mentionEditorState": {
+                "root": {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "type": "pasted-text",
+                          "text": "I am building the AutorIA ai_pipeline module. I need to implement two functions:\n\n1. `ai_pipeline/autoria_ai/extractor/cleaner.py` — a `clean_text(text: str) -> str` function that:\n   - Strips Project Gutenberg headers (everything before `*** START OF THE PROJECT GUTENBERG EBOOK`) and footers (everything after `*** END OF THE PROJECT GUTENBERG EBOOK`)\n   - Normalizes curly quotes (`\"` `\"`) to straight ASCII quotes (`\"`)\n   - Normalizes double dashes (`--`) to em-dashes (`—`)\n   - Collapses multiple consecutive blank lines into one\n\n2. `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n   - Uses tiktoken `cl100k_base` encoding\n   - Splits the full text into chunks of `chunk_size` tokens\n   - Uses a sliding window with `overlap` tokens between consecutive chunks\n   - Returns a list of decoded strings (not token ids)\n\nRequirements:\n- Both functions are stateless, no side effects\n- Type hints required (Python 3.11+)\n- One-line docstring per function\n- Do NOT load any model inside the functions\n- Add a happy-path test for each function in `ai_pipeline/tests/test_smoke.py`\n\nStart with `cleaner.py` only. Show me the full file.",
+                          "index": 1,
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 0,
+                      "textStyle": ""
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "root",
+                  "version": 1
+                }
+              },
+              "mask": "I am building the AutorIA ai_pipeline module. I need to implement two functions:\n\n1. `ai_pipeline/autoria_ai/extractor/cleaner.py` — a `clean_text(text: str) -> str` function that:\n   - Strips Project Gutenberg headers (everything before `*** START OF THE PROJECT GUTENBERG EBOOK`) and footers (everything after `*** END OF THE PROJECT GUTENBERG EBOOK`)\n   - Normalizes curly quotes (`\"` `\"`) to straight ASCII quotes (`\"`)\n   - Normalizes double dashes (`--`) to em-dashes (`—`)\n   - Collapses multiple consecutive blank lines into one\n\n2. `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n   - Uses tiktoken `cl100k_base` encoding\n   - Splits the full text into chunks of `chunk_size` tokens\n   - Uses a sliding window with `overlap` tokens between consecutive chunks\n   - Returns a list of decoded strings (not token ids)\n\nRequirements:\n- Both functions are stateless, no side effects\n- Type hints required (Python 3.11+)\n- One-line docstring per function\n- Do NOT load any model inside the functions\n- Add a happy-path test for each function in `ai_pipeline/tests/test_smoke.py`\n\nStart with `cleaner.py` only. Show me the full file.",
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1783506007693
+            },
+            "id": "a1875bc2b08eb4cad0e53c556a5cfe25"
+          },
+          "createdAt": 1783506166801
+        },
+        {
+          "id": "40fda38f7c7df6ab61bc42676ac367e0",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Let me first investigate the existing project structure before writing anything.",
+            "id": "40fda38f7c7df6ab61bc42676ac367e0",
+            "_meta": {
+              "timestamp": 1783506010743,
+              "spend": {
+                "input": 17369,
+                "output": 157,
+                "cacheRead": 9345,
+                "cacheWrite": 8023,
+                "cost": 0.043815,
+                "contextTokens": 17526,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_MyczAcLNwdQJynkA6SQSH0",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline",
+                  "recursive": true
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_sUNuXYPwhcpW1leeufIQgQ",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/style_features.md"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_d6a45An1gToe90p8sSZvu0",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/pyproject.toml"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_DjG2UwWj1LmYa7MSf1A2ko",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_dzz0eBalx7sGoEBgbxE1Ba",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/__init__.py"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506166801
+        },
+        {
+          "id": "c704590062d401bdbee319022a0238db",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Directory listing for ai_pipeline:\n\nai_pipeline\\autoria_ai\\\nai_pipeline\\autoria_ai.egg-info\\\nai_pipeline\\pyproject.toml\nai_pipeline\\README.md\nai_pipeline\\tests\\\nai_pipeline\\autoria_ai\\extractor\\\nai_pipeline\\autoria_ai\\passport\\\nai_pipeline\\autoria_ai\\schemas\\\nai_pipeline\\autoria_ai\\__init__.py\nai_pipeline\\autoria_ai\\extractor\\__init__.py\nai_pipeline\\autoria_ai\\passport\\__init__.py\nai_pipeline\\autoria_ai\\schemas\\passport.json\nai_pipeline\\autoria_ai\\schemas\\style_profile.json\nai_pipeline\\autoria_ai.egg-info\\dependency_links.txt\nai_pipeline\\autoria_ai.egg-info\\PKG-INFO\nai_pipeline\\autoria_ai.egg-info\\requires.txt\nai_pipeline\\autoria_ai.egg-info\\SOURCES.txt\nai_pipeline\\autoria_ai.egg-info\\top_level.txt\nai_pipeline\\tests\\test_smoke.py\nai_pipeline\\tests\\__init__.py",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_MyczAcLNwdQJynkA6SQSH0",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline",
+                  "recursive": true
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "List Files in {path}",
+                "error": "Failed to list files in {path}",
+                "running": "Listing files in {path} recursively",
+                "success": "Listed files in {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 6,
+              "timestamp": 1783506011155
+            },
+            "id": "c704590062d401bdbee319022a0238db"
+          },
+          "createdAt": 1783506166801
+        },
+        {
+          "id": "f37c42e9a0bb37cdeb260bf75f41d958",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file docs/style_features.md:\n\n1 | # AutorIA — Style Feature Definitions\n2 | \n3 | > **Owner**: P2 · **Status**: Sprint 0 draft · **Last updated**: 2026-06-29\n4 | > **Schema version this document describes**: `StyleProfile v1.0`\n5 | > **Stack**: spaCy `en_core_web_lg` · sentence-transformers `all-mpnet-base-v2`\n6 | \n7 | This document is the authoritative reference for every metric stored in a `StyleProfile`. For each feature it defines: what it measures, how it is computed, why it was chosen, and the expected range per preloaded author (Austen / Dickens / Poe). These ranges serve as sanity-check thresholds during extraction and as reference values in the demo.\n8 | \n9 | Features not listed here are **out of scope for v1.0** and must go through a Decision Log entry before being added.\n10 | \n11 | ---\n12 | \n13 | ## Table of Contents\n14 | \n15 | 1. [Lexical features](#1-lexical-features)\n16 | 2. [Syntactic features](#2-syntactic-features)\n17 | 3. [Stylistic features](#3-stylistic-features)\n18 | 4. [Distinctive vocabulary](#4-distinctive-vocabulary)\n19 | 5. [Semantic features](#5-semantic-features)\n20 | 6. [fit\\_score — composite metric](#6-fit_score--composite-metric)\n21 | 7. [Expected ranges per author](#7-expected-ranges-per-author)\n22 | 8. [Computation pipeline](#8-computation-pipeline)\n23 | 9. [Known limitations](#9-known-limitations)\n24 | \n25 | ---\n26 | \n27 | ## 1. Lexical features\n28 | \n29 | Lexical features capture **vocabulary richness and word-level choices** — how varied and how complex the author's word selection is, independently of grammar.\n30 | \n31 | ### 1.1 `mattr_500` — Moving Average Type-Token Ratio\n32 | \n33 | **What it measures**: vocabulary richness, stabilized across corpus length.\n34 | \n35 | **Why not plain TTR**: plain Type-Token Ratio (unique tokens / total tokens) decreases monotonically as text length grows, making it useless for comparing corpora of different sizes (Austen ~330k words vs Poe ~70k words). MATTR fixes this by computing TTR over a sliding window of 500 tokens and averaging across all windows.\n36 | \n37 | **How it is computed**:\n38 | ```\n39 | mattr_500 = mean( TTR(window_i) for each window of 500 tokens )\n40 | where TTR(window_i) = unique_tokens(window_i) / 500\n41 | ```\n42 | \n43 | **Tool**: computed with the `lexical_diversity` Python package or manually with a sliding window over `doc` tokens.\n44 | \n45 | **Interpretation**: higher = richer vocabulary per 500-token block.\n46 | \n47 | **Expected ranges**:\n48 | | Author | Range |\n49 | |---|---|\n50 | | Austen | 0.62 – 0.68 |\n51 | | Dickens | 0.58 – 0.64 |\n52 | | Poe | 0.66 – 0.73 |\n53 | \n54 | ---\n55 | \n56 | ### 1.2 `avg_word_length` — Average Word Length\n57 | \n58 | **What it measures**: the mean number of characters per word, excluding punctuation tokens.\n59 | \n60 | **Why it matters**: Poe deliberately uses long Latinate and archaic words (*phantasm*, *physiognomy*, *luminousness*) to create a Gothic, elevated register. Austen's prose is conversational and prefers shorter words. This single number is immediately interpretable by a non-technical judge.\n61 | \n62 | **How it is computed**:\n63 | ```python\n64 | words = [t.text for t in doc if t.is_alpha]\n65 | avg_word_length = sum(len(w) for w in words) / len(words)\n66 | ```\n67 | \n68 | **Expected ranges**:\n69 | | Author | Range |\n70 | |---|---|\n71 | | Austen | 4.0 – 4.5 |\n72 | | Dickens | 4.6 – 5.1 |\n73 | | Poe | 5.0 – 5.6 |\n74 | \n75 | ---\n76 | \n77 | ### 1.3 `hapax_ratio` — Hapax Legomena Ratio\n78 | \n79 | **What it measures**: the proportion of word types that appear **exactly once** in the corpus.\n80 | \n81 | **Why it matters**: a high hapax ratio signals an author who actively avoids repetition and draws from a wide, exotic vocabulary — a hallmark of Poe. It is complementary to `mattr_500`: MATTR measures local richness per window; hapax ratio measures global uniqueness across the full corpus.\n82 | \n83 | **How it is computed**:\n84 | ```python\n85 | from collections import Counter\n86 | freq = Counter(t.lemma_.lower() for t in doc if t.is_alpha)\n87 | hapax_ratio = sum(1 for v in freq.values() if v == 1) / len(freq)\n88 | ```\n89 | \n90 | Note: computed over **lemmas**, not raw forms, to avoid counting inflections as separate types.\n91 | \n92 | **Expected ranges**:\n93 | | Author | Range |\n94 | |---|---|\n95 | | Austen | 0.38 – 0.44 |\n96 | | Dickens | 0.40 – 0.46 |\n97 | | Poe | 0.48 – 0.56 |\n98 | \n99 | ---\n100 | \n101 | ## 2. Syntactic features\n102 | \n103 | Syntactic features capture **sentence architecture** — how sentences are structured, how complex they are, and what grammatical patterns dominate. All syntactic analysis is performed with spaCy's dependency parser (`en_core_web_lg`).\n104 | \n105 | ### 2.1 `avg_sentence_length_tokens` and `std_sentence_length_tokens`\n106 | \n107 | **What they measure**: mean and standard deviation of sentence length in tokens.\n108 | \n109 | **Why both matter**: the mean tells you how long Dickens's sentences are on average (~28 tokens); the standard deviation tells you how much they vary. Dickens has both very long, sprawling sentences and short, punchy ones — high std. Austen is more controlled. These two numbers appear directly in the demo side-by-side comparison.\n110 | \n111 | **How they are computed**:\n112 | ```python\n113 | import statistics\n114 | lengths = [len(sent) for sent in doc.sents]\n115 | avg = statistics.mean(lengths)\n116 | std = statistics.stdev(lengths)\n117 | ```\n118 | \n119 | **Expected ranges**:\n120 | | Author | avg | std |\n121 | |---|---|---|\n122 | | Austen | 22 – 28 | 10 – 14 |\n123 | | Dickens | 25 – 32 | 13 – 17 |\n124 | | Poe | 24 – 34 | 14 – 20 |\n125 | \n126 | ---\n127 | \n128 | ### 2.2 `subordination_ratio` — Subordination Ratio\n129 | \n130 | **What it measures**: the proportion of tokens that are the root of a subordinate clause.\n131 | \n132 | **Why it matters**: subordination is the primary driver of syntactic complexity. Dickens constructs long, nested sentences where one clause depends on another. This ratio captures that tendency directly from the dependency tree.\n133 | \n134 | **How it is computed**:\n135 | ```python\n136 | SUBORDINATE_DEPS = {\"advcl\", \"relcl\", \"ccomp\", \"xcomp\"}\n137 | subordinate = sum(1 for t in doc if t.dep_ in SUBORDINATE_DEPS)\n138 | subordination_ratio = subordinate / len(list(doc.sents))\n139 | ```\n140 | \n141 | Normalized per sentence (not per token) so it is not confounded by sentence length.\n142 | \n143 | **Expected ranges**:\n144 | | Author | Range |\n145 | |---|---|\n146 | | Austen | 0.28 – 0.36 |\n147 | | Dickens | 0.34 – 0.44 |\n148 | | Poe | 0.22 – 0.32 |\n149 | \n150 | ---\n151 | \n152 | ### 2.3 `noun_to_verb_ratio` — Noun-to-Verb Ratio\n153 | \n154 | **What it measures**: the ratio of NOUN tokens to VERB tokens across the corpus.\n155 | \n156 | **Why it matters**: a high ratio indicates a **nominal style** — descriptive, scene-setting, rich in objects and characters. A low ratio indicates a more **verbal style** — action-oriented, dynamic. Austen and Dickens are more nominal (they describe scenes and characters at length); Poe's Gothic action sequences are more verbal.\n157 | \n158 | **How it is computed**:\n159 | ```python\n160 | nouns = sum(1 for t in doc if t.pos_ == \"NOUN\")\n161 | verbs = sum(1 for t in doc if t.pos_ == \"VERB\")\n162 | noun_to_verb_ratio = nouns / verbs\n163 | ```\n164 | \n165 | **Expected ranges**:\n166 | | Author | Range |\n167 | |---|---|\n168 | | Austen | 1.6 – 2.0 |\n169 | | Dickens | 1.7 – 2.1 |\n170 | | Poe | 1.2 – 1.6 |\n171 | \n172 | ---\n173 | \n174 | ### 2.4 `passive_voice_ratio` — Passive Voice Ratio\n175 | \n176 | **What it measures**: the proportion of sentences containing at least one passive construction.\n177 | \n178 | **Why it matters**: Poe systematically uses the passive voice to create psychological distance between narrator and event — \"it was heard\", \"the door was opened\" — amplifying dread without agency. This is one of the most **author-discriminating** features in the syntactic block.\n179 | \n180 | **How it is computed**:\n181 | ```python\n182 | passive_sentences = sum(\n183 |     1 for sent in doc.sents\n184 |     if any(t.dep_ == \"nsubjpass\" for t in sent)\n185 | )\n186 | passive_voice_ratio = passive_sentences / len(list(doc.sents))\n187 | ```\n188 | \n189 | **Expected ranges**:\n190 | | Author | Range |\n191 | |---|---|\n192 | | Austen | 0.06 – 0.12 |\n193 | | Dickens | 0.08 – 0.14 |\n194 | | Poe | 0.18 – 0.28 |\n195 | \n196 | ---\n197 | \n198 | ## 3. Stylistic features\n199 | \n200 | Stylistic features capture **surface patterns** — punctuation habits, part-of-speech distributions, and narrator perspective. These are fast to compute and highly stable across works by the same author.\n201 | \n202 | ### 3.1 `punct_distribution` — Punctuation Distribution\n203 | \n204 | **What it measures**: the relative frequency of each punctuation mark, normalized over all punctuation tokens.\n205 | \n206 | **Why it matters**: punctuation is the author's \"breath marks\" — it encodes rhythm and pacing at the surface level. The semicolon (`;`) is Dickens's signature pause for dramatic elaboration. The em-dash (`—`) is Poe's interruption and intensification. Austen's high quotation mark frequency (`\"`) reflects her dialogue-heavy social novels.\n207 | \n208 | **How it is computed**:\n209 | ```python\n210 | from collections import Counter\n211 | PUNCT_MARKS = {\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", '\"'}\n212 | counts = Counter(t.text for t in doc if t.text in PUNCT_MARKS)\n213 | total = sum(counts.values())\n214 | punct_distribution = {k: v / total for k, v in counts.items()}\n215 | ```\n216 | \n217 | **Stored as**: a dict with keys `[\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", \"\\\"\"]`.\n218 | \n219 | **Key signals**:\n220 | | Mark | Dickens | Poe | Austen |\n221 | |---|---|---|---|\n222 | | `;` | High | Low | Medium |\n223 | | `—` | Low | High | Low |\n224 | | `\"` | Medium | Low | High |\n225 | \n226 | ---\n227 | \n228 | ### 3.2 `pos_distribution` — Part-of-Speech Distribution\n229 | \n230 | **What it measures**: the relative frequency of each universal POS tag across all tokens (excluding punctuation).\n231 | \n232 | **Why it matters**: POS distribution captures the grammatical texture of prose — how much the author relies on adjectives, adverbs, pronouns, etc. It is one of the five components of `fit_score` (Jaccard similarity between generated text and profile distributions).\n233 | \n234 | **How it is computed**:\n235 | ```python\n236 | TRACKED_POS = {\"NOUN\",\"VERB\",\"ADJ\",\"ADV\",\"DET\",\"ADP\",\"PRON\",\"CONJ\",\"SCONJ\"}\n237 | counts = Counter(t.pos_ for t in doc if not t.is_punct)\n238 | total = sum(counts[p] for p in TRACKED_POS)\n239 | pos_distribution = {p: counts[p] / total for p in TRACKED_POS}\n240 | pos_distribution[\"OTHER\"] = 1 - sum(pos_distribution.values())\n241 | ```\n242 | \n243 | **Stored as**: a dict with 10 keys (9 POS tags + `OTHER`).\n244 | \n245 | ---\n246 | \n247 | ### 3.3 `dialogue_ratio` — Dialogue Ratio\n248 | \n249 | **What it measures**: the proportion of tokens that appear inside quotation marks (direct speech).\n250 | \n251 | **Why it matters**: this single number cleanly separates Austen from the other two. Her novels are driven by dialogue — social sparring, misunderstandings, wit — while Poe is almost entirely first-person interior monologue with minimal direct speech.\n252 | \n253 | **How it is computed**:\n254 | ```python\n255 | in_dialogue = False\n256 | dialogue_tokens = 0\n257 | total_tokens = 0\n258 | for token in doc:\n259 |     if token.text == '\"':\n260 |         in_dialogue = not in_dialogue\n261 |         continue\n262 |     total_tokens += 1\n263 |     if in_dialogue:\n264 |         dialogue_tokens += 1\n265 | dialogue_ratio = dialogue_tokens / total_tokens\n266 | ```\n267 | \n268 | **Expected ranges**:\n269 | | Author | Range |\n270 | |---|---|\n271 | | Austen | 0.28 – 0.38 |\n272 | | Dickens | 0.20 – 0.28 |\n273 | | Poe | 0.05 – 0.14 |\n274 | \n275 | ---\n276 | \n277 | ### 3.4 `first_person_ratio` — First-Person Pronoun Ratio\n278 | \n279 | **What it measures**: the frequency of first-person singular pronouns (*I, me, my, mine, myself*) per 1,000 tokens.\n280 | \n281 | **Why it matters**: Poe almost exclusively writes in close first-person — the narrator *is* the protagonist, confessing, spiraling, obsessing. Austen writes in third-person omniscient and never uses \"I\" in narration. This is the sharpest Poe discriminator in the stylistic block.\n282 | \n283 | **How it is computed**:\n284 | ```python\n285 | FIRST_PERSON = {\"i\", \"me\", \"my\", \"mine\", \"myself\"}\n286 | fp_count = sum(1 for t in doc if t.lower_ in FIRST_PERSON)\n287 | first_person_ratio = (fp_count / len(doc)) * 1000  # per 1k tokens\n288 | ```\n289 | \n290 | **Expected ranges**:\n291 | | Author | Range (per 1k tokens) |\n292 | |---|---|\n293 | | Austen | 0.5 – 3.0 |\n294 | | Dickens | 4.0 – 9.0 |\n295 | | Poe | 18.0 – 30.0 |\n296 | \n297 | ---\n298 | \n299 | ## 4. Distinctive vocabulary\n300 | \n301 | ### 4.1 `distinctive_vocab` — TF-IDF Signature Words\n302 | \n303 | **What it measures**: the words that are **most characteristic of one author relative to the others** — not just frequent words, but words that are unusually concentrated in that author's corpus.\n304 | \n305 | **Why it matters**: this is the feature the audience *sees* in the demo. When the AutorIA output contains \"countenance\", \"physiognomy\", and \"presently\" for Dickens, the jury can read and feel the difference without understanding a single number.\n306 | \n307 | **How it is computed**: standard TF-IDF where each author's full corpus is one \"document\" and the collection is all three authors combined.\n308 | \n309 | ```python\n310 | from sklearn.feature_extraction.text import TfidfVectorizer\n311 | \n312 | corpora = {\n313 |     \"austen\": \"<full austen corpus>\",\n314 |     \"dickens\": \"<full dickens corpus>\",\n315 |     \"poe\": \"<full poe corpus>\"\n316 | }\n317 | \n318 | vectorizer = TfidfVectorizer(\n319 |     stop_words=\"english\",\n320 |     ngram_range=(1, 1),\n321 |     max_features=50000,\n322 |     token_pattern=r\"(?u)\\b[a-zA-Z]{3,}\\b\"  # min 3 chars, alpha only\n323 | )\n324 | \n325 | tfidf_matrix = vectorizer.fit_transform(corpora.values())\n326 | # For each author: sort features by TF-IDF score descending\n327 | # Store top-N as distinctive_vocab list\n328 | ```\n329 | \n330 | **Stored as**: a list of `{ \"term\": str, \"score\": float }` objects, sorted by score descending. Top 30 terms per author.\n331 | \n332 | **Preprocessing**: lemmatize before TF-IDF, exclude stopwords, exclude tokens shorter than 3 characters.\n333 | \n334 | ---\n335 | \n336 | ## 5. Semantic features\n337 | \n338 | Semantic features capture **what the author writes about and the meaning-space they inhabit**, independently of surface form. They are computed with sentence-transformers `all-mpnet-base-v2` (768-dimensional embeddings).\n339 | \n340 | ### 5.1 `semantic_centroid` — Author Semantic Centroid\n341 | \n342 | **What it measures**: the mean embedding vector across all ~500-token chunks of the author's corpus. It represents the author's \"average semantic position\" in the 768-dim embedding space.\n343 | \n344 | **Why it matters**: it is the single most important feature for `fit_score` (35% weight). When the model generates a text conditioned on Dickens, the generated text's embedding should land close to this centroid.\n345 | \n346 | **How it is computed**:\n347 | ```python\n348 | from sentence_transformers import SentenceTransformer\n349 | model = SentenceTransformer(\"all-mpnet-base-v2\")\n350 | \n351 | chunk_embeddings = model.encode(chunks)  # chunks: list of ~500-token strings\n352 | semantic_centroid = chunk_embeddings.mean(axis=0)  # shape: (768,)\n353 | ```\n354 | \n355 | **Stored as**: a list of 768 floats in the `StyleProfile` JSON.\n356 | \n357 | ---\n358 | \n359 | ### 5.2 `embedding_umap_2d` — UMAP 2D Projection\n360 | \n361 | **What it measures**: a 2-dimensional projection of the `semantic_centroid`, used exclusively for the demo visualization (the scatter plot showing authors as clusters).\n362 | \n363 | **Why UMAP**: UMAP (Uniform Manifold Approximation and Projection) preserves local and global structure better than PCA for high-dimensional embeddings. The three authors should form clearly separated clusters at 2D.\n364 | \n365 | **How it is computed**: UMAP is fit once on all chunk embeddings from all three authors combined, then the centroid of each author is projected.\n366 | \n367 | ```python\n368 | import umap\n369 | reducer = umap.UMAP(n_components=2, random_state=42)\n370 | all_embeddings = [...]  # all chunks from all authors\n371 | reducer.fit(all_embeddings)\n372 | \n373 | centroid_2d = reducer.transform([semantic_centroid])[0]\n374 | embedding_umap_2d = {\n375 |     \"centroid\": centroid_2d.tolist(),   # [x, y]\n376 |     \"spread\": float(chunk_embeddings.std())  # intra-author spread\n377 | }\n378 | ```\n379 | \n380 | **Stored as**: `{ \"centroid\": [float, float], \"spread\": float }`.\n381 | \n382 | ---\n383 | \n384 | ## 6. `fit_score` — Composite Metric\n385 | \n386 | The `fit_score` measures how closely a **generated text** matches a target author's `StyleProfile`. It is computed for both the vanilla and AutorIA outputs so the gap is always visible.\n387 | \n388 | ```\n389 | fit_score (0–1, then ×100) = weighted sum of:\n390 | \n391 |   cosine_sim(embed_generated, semantic_centroid)           × 0.35\n392 |   (1 − |asl_generated − asl_profile| / asl_profile)       × 0.20\n393 |   (1 − |ttr_generated − mattr_profile| / mattr_profile)   × 0.15\n394 |   jaccard(pos_dist_generated, pos_dist_profile)            × 0.15\n395 |   vocab_overlap(generated_vocab, distinctive_vocab_top30)  × 0.15\n396 | ```\n397 | \n398 | Where:\n399 | - `asl` = average sentence length in tokens\n400 | - `jaccard(A, B)` = sum of min(A[k], B[k]) / sum of max(A[k], B[k]) over all POS tags\n401 | - `vocab_overlap` = |generated_lemmas ∩ top30_distinctive| / 30\n402 | \n403 | Output is clipped to [0, 1] and multiplied by 100. Displayed as e.g. **\"87% Dickens-fit\"**.\n404 | \n405 | ---\n406 | \n407 | ## 7. Expected ranges per author\n408 | \n409 | Reference table for sanity checks during extraction. Flag any value outside these ranges for manual review.\n410 | \n411 | | Feature | Austen | Dickens | Poe |\n412 | |---|---|---|---|\n413 | | `mattr_500` | 0.62–0.68 | 0.58–0.64 | 0.66–0.73 |\n414 | | `avg_word_length` | 4.0–4.5 | 4.6–5.1 | 5.0–5.6 |\n415 | | `hapax_ratio` | 0.38–0.44 | 0.40–0.46 | 0.48–0.56 |\n416 | | `avg_sentence_length_tokens` | 22–28 | 25–32 | 24–34 |\n417 | | `std_sentence_length_tokens` | 10–14 | 13–17 | 14–20 |\n418 | | `subordination_ratio` | 0.28–0.36 | 0.34–0.44 | 0.22–0.32 |\n419 | | `noun_to_verb_ratio` | 1.6–2.0 | 1.7–2.1 | 1.2–1.6 |\n420 | | `passive_voice_ratio` | 0.06–0.12 | 0.08–0.14 | 0.18–0.28 |\n421 | | `dialogue_ratio` | 0.28–0.38 | 0.20–0.28 | 0.05–0.14 |\n422 | | `first_person_ratio` (per 1k) | 0.5–3.0 | 4.0–9.0 | 18.0–30.0 |\n423 | \n424 | > **Note**: these ranges are informed estimates based on stylometric literature and manual corpus inspection. They will be updated after Sprint 1 extraction runs on the actual Gutenberg corpora.\n425 | \n426 | ---\n427 | \n428 | ## 8. Computation pipeline\n429 | \n430 | All features are computed in a single pass through the corpus by `ai_pipeline/extractor.py`. The pipeline runs in this order to minimize redundant tokenization:\n431 | \n432 | ```\n433 | raw .txt files\n434 |     → cleaner.py          (strip Gutenberg headers, normalize quotes/whitespace)\n435 |     → chunker.py          (500-token chunks, 50-token overlap, tiktoken cl100k_base)\n436 |     → spaCy en_core_web_lg (tokenization, POS, dependency parsing — batch mode)\n437 |          ├── lexical_features()     §1.1 – §1.3\n438 |          ├── syntactic_features()   §2.1 – §2.4\n439 |          └── stylistic_features()   §3.1 – §3.4\n440 |     → TfidfVectorizer (sklearn)\n441 |          └── distinctive_vocab()    §4.1\n442 |     → SentenceTransformer all-mpnet-base-v2\n443 |          └── semantic_features()    §5.1 – §5.2\n444 |     → StyleProfile JSON (persisted to Postgres)\n445 | ```\n446 | \n447 | spaCy processing is run in **batch mode** (`nlp.pipe(chunks, batch_size=64)`) to avoid loading the model once per chunk.\n448 | \n449 | ---\n450 | \n451 | ## 9. Known limitations\n452 | \n453 | **MATTR window size**: 500 tokens is a reasonable default but has not been tuned for 19th-century English. If Austen and Dickens score too similarly, consider reducing to 300.\n454 | \n455 | **Passive voice detection**: spaCy's `nsubjpass` label works well for canonical passives (\"it was seen\") but misses some complex or inverted passive constructions common in Victorian prose. Acceptable for v1.0.\n456 | \n457 | **Dialogue detection**: the `dialogue_ratio` algorithm assumes straight ASCII quotation marks (`\"`). Gutenberg texts sometimes use curly quotes (`\"` `\"`) — the cleaner must normalize these before extraction.\n458 | \n459 | **UMAP non-determinism**: UMAP results vary slightly across runs even with `random_state=42` if the input data changes. The 2D coordinates are for visualization only and are not used in `fit_score`.\n460 | \n461 | **Corpus size imbalance**: Poe's corpus (~70k words) is 4–5× smaller than Austen and Dickens. Features computed over the full corpus (hapax\\_ratio, distinctive\\_vocab) may be slightly less stable for Poe. Monitor the Sprint 2 extraction results.\n462 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_sUNuXYPwhcpW1leeufIQgQ",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/style_features.md"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/docs/style_features.md": 1783268352328
+              },
+              "durationMs": 21,
+              "timestamp": 1783506011169
+            },
+            "id": "f37c42e9a0bb37cdeb260bf75f41d958"
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "1240acdc489726caadf3e99cd6c854e4",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/pyproject.toml:\n\n1 | [build-system]\n2 | requires = [\"setuptools>=68\", \"wheel\"]\n3 | build-backend = \"setuptools.build_meta\"\n4 | \n5 | [project]\n6 | name = \"autoria-ai\"\n7 | version = \"0.1.0\"\n8 | requires-python = \">=3.11\"\n9 | dependencies = [\n10 |     \"spacy>=3.7\",\n11 |     \"sentence-transformers>=2.7\",\n12 |     \"scikit-learn>=1.4\",\n13 |     \"umap-learn>=0.5\",\n14 |     \"tiktoken>=0.7\",\n15 |     \"numpy>=1.26\",\n16 |     \"pydantic>=2.7\",\n17 |     \"python-jose>=3.3\",\n18 |     \"ibm-watsonx-ai>=1.0\",\n19 | ]\n20 | \n21 | [project.optional-dependencies]\n22 | dev = [\"pytest>=8\", \"ruff>=0.4\", \"black>=24\"]\n23 | \n24 | [tool.black]\n25 | line-length = 100\n26 | target-version = [\"py311\"]\n27 | \n28 | [tool.pytest.ini_options]\n29 | testpaths = [\"tests\"]",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_d6a45An1gToe90p8sSZvu0",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/pyproject.toml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/pyproject.toml": 1783268352316
+              },
+              "durationMs": 6,
+              "timestamp": 1783506014023
+            },
+            "id": "1240acdc489726caadf3e99cd6c854e4"
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "20cfe407263591b0911b51beebfffd52",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/tests/test_smoke.py:\n\n1 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_DjG2UwWj1LmYa7MSf1A2ko",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py": 1783268352318
+              },
+              "durationMs": 7,
+              "timestamp": 1783506014024
+            },
+            "id": "20cfe407263591b0911b51beebfffd52"
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "5be4f42cb5b4e7a728b6b467d71e16e2",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/extractor/__init__.py:\n\n1 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_dzz0eBalx7sGoEBgbxE1Ba",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/__init__.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/__init__.py": 1783268352314
+              },
+              "durationMs": 7,
+              "timestamp": 1783506014025
+            },
+            "id": "5be4f42cb5b4e7a728b6b467d71e16e2"
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "e8b6994db2b2c137a9d6c26fe2aae80e",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Good. The `extractor/` package exists but is empty, `test_smoke.py` is blank, and `tiktoken` is already in `pyproject.toml`. Now I have everything I need.\n\nKey constraints confirmed from the investigation:\n- `docs/style_features.md` §8 specifies `cleaner.py` strips Gutenberg headers, normalizes quotes/whitespace\n- §9 explicitly calls out curly-quote normalization as a requirement\n- `dialogue_ratio` algorithm in §3.3 assumes straight ASCII `\"` — so curly quotes **must** be normalized\n- `tiktoken>=0.7` is already a declared dependency\n- No new dependencies needed\n\nHere is [`cleaner.py`](ai_pipeline/autoria_ai/extractor/cleaner.py):",
+            "id": "e8b6994db2b2c137a9d6c26fe2aae80e",
+            "_meta": {
+              "timestamp": 1783506016134,
+              "spend": {
+                "input": 17977,
+                "output": 898,
+                "cacheRead": 9345,
+                "cacheWrite": 8631,
+                "cost": 0.047187,
+                "contextTokens": 18875,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_JidFpjXavNhZOHIXvZdlOy",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/cleaner.py",
+                  "line_count": 46,
+                  "content": "\"\"\"Text cleaning utilities: strips Gutenberg boilerplate and normalizes surface noise.\"\"\"\n\nimport re\n\n# Anchors used by Project Gutenberg edition headers and footers.\n# The patterns are case-insensitive and allow for trailing edition text\n# such as \"*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\".\n_PG_START = re.compile(\n    r\"\\*{3}\\s*START OF THE PROJECT GUTENBERG EBOOK.*\",\n    re.IGNORECASE,\n)\n_PG_END = re.compile(\n    r\"\\*{3}\\s*END OF THE PROJECT GUTENBERG EBOOK.*\",\n    re.IGNORECASE,\n)\n\n# Two or more consecutive blank lines (any mix of spaces/tabs between newlines).\n_MULTI_BLANK = re.compile(r\"\\n{3,}\")\n\n\ndef clean_text(text: str) -> str:\n    \"\"\"Strip Gutenberg boilerplate, normalize quotes and dashes, collapse blank lines.\"\"\"\n\n    # ── 1. Strip Project Gutenberg header ────────────────────────────────────\n    # Everything up to AND including the START sentinel line is discarded.\n    match = _PG_START.search(text)\n    if match:\n        text = text[match.end():]\n\n    # ── 2. Strip Project Gutenberg footer ────────────────────────────────────\n    # Everything from the END sentinel line onwards is discarded.\n    match = _PG_END.search(text)\n    if match:\n        text = text[: match.start()]\n\n    # ── 3. Normalize curly / typographic quotation marks → straight ASCII \" ──\n    # Required so dialogue_ratio (§3.3) and punct_distribution (§3.1) work\n    # correctly on raw Gutenberg text that ships with Unicode curly quotes.\n    text = text.replace(\"\\u201c\", '\"').replace(\"\\u201d\", '\"')  # \" \"\n\n    # ── 4. Normalize double-dash → em-dash ───────────────────────────────────\n    # Gutenberg texts often encode em-dashes as \"--\"; convert before spaCy so\n    # the punct_distribution em-dash bucket (§3.1) captures them.\n    text = text.replace(\"--\", \"\\u2014\")  # — (U+2014 EM DASH)\n\n    # ── 5. Collapse multiple consecutive blank lines → single blank line ──────\n    text = _MULTI_BLANK.sub(\"\\n\\n\", text)\n\n    return text.strip()\n"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "d7fcfbf985e0e55234d34b3ae425e7a9",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Created file: ai_pipeline/autoria_ai/extractor/cleaner.py\n\n<result>\n\"\"\"Text cleaning utilities: strips Gutenberg boilerplate and normalizes surface noise.\"\"\"\n\nimport re\n\n# Anchors used by Project Gutenberg edition headers and footers.\n\n...45 lines truncated. You do not need to re-read the file. The complete file was written successfully. Use read_file if you need to see the full contents.\n</result>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_JidFpjXavNhZOHIXvZdlOy",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/cleaner.py",
+                  "line_count": 46,
+                  "content": "\"\"\"Text cleaning utilities: strips Gutenberg boilerplate and normalizes surface noise.\"\"\"\n\nimport re\n\n# Anchors used by Project Gutenberg edition headers and footers.\n# The patterns are case-insensitive and allow for trailing edition text\n# such as \"*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\".\n_PG_START = re.compile(\n    r\"\\*{3}\\s*START OF THE PROJECT GUTENBERG EBOOK.*\",\n    re.IGNORECASE,\n)\n_PG_END = re.compile(\n    r\"\\*{3}\\s*END OF THE PROJECT GUTENBERG EBOOK.*\",\n    re.IGNORECASE,\n)\n\n# Two or more consecutive blank lines (any mix of spaces/tabs between newlines).\n_MULTI_BLANK = re.compile(r\"\\n{3,}\")\n\n\ndef clean_text(text: str) -> str:\n    \"\"\"Strip Gutenberg boilerplate, normalize quotes and dashes, collapse blank lines.\"\"\"\n\n    # ── 1. Strip Project Gutenberg header ────────────────────────────────────\n    # Everything up to AND including the START sentinel line is discarded.\n    match = _PG_START.search(text)\n    if match:\n        text = text[match.end():]\n\n    # ── 2. Strip Project Gutenberg footer ────────────────────────────────────\n    # Everything from the END sentinel line onwards is discarded.\n    match = _PG_END.search(text)\n    if match:\n        text = text[: match.start()]\n\n    # ── 3. Normalize curly / typographic quotation marks → straight ASCII \" ──\n    # Required so dialogue_ratio (§3.3) and punct_distribution (§3.1) work\n    # correctly on raw Gutenberg text that ships with Unicode curly quotes.\n    text = text.replace(\"\\u201c\", '\"').replace(\"\\u201d\", '\"')  # \" \"\n\n    # ── 4. Normalize double-dash → em-dash ───────────────────────────────────\n    # Gutenberg texts often encode em-dashes as \"--\"; convert before spaCy so\n    # the punct_distribution em-dash bucket (§3.1) captures them.\n    text = text.replace(\"--\", \"\\u2014\")  # — (U+2014 EM DASH)\n\n    # ── 5. Collapse multiple consecutive blank lines → single blank line ──────\n    text = _MULTI_BLANK.sub(\"\\n\\n\", text)\n\n    return text.strip()\n"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Write File {path}",
+                "error": "Failed to write file {path}",
+                "running": "Writing file {path}",
+                "success": "Wrote file {path}",
+                "runningLong": [
+                  "Still writing...",
+                  "Writing takes time...",
+                  "Nearly written...",
+                  "A lot of content to write...",
+                  "Committing every character...",
+                  "Writing like my life depends on it..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/cleaner.py": {
+                  "before": "",
+                  "after": "\"\"\"Text cleaning utilities: strips Gutenberg boilerplate and normalizes surface noise.\"\"\"\n\nimport re\n\n# Anchors used by Project Gutenberg edition headers and footers.\n# The patterns are case-insensitive and allow for trailing edition text\n# such as \"*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\".\n_PG_START = re.compile(\n    r\"\\*{3}\\s*START OF THE PROJECT GUTENBERG EBOOK.*\",\n    re.IGNORECASE,\n)\n_PG_END = re.compile(\n    r\"\\*{3}\\s*END OF THE PROJECT GUTENBERG EBOOK.*\",\n    re.IGNORECASE,\n)\n\n# Two or more consecutive blank lines (any mix of spaces/tabs between newlines).\n_MULTI_BLANK = re.compile(r\"\\n{3,}\")\n\n\ndef clean_text(text: str) -> str:\n    \"\"\"Strip Gutenberg boilerplate, normalize quotes and dashes, collapse blank lines.\"\"\"\n\n    # ── 1. Strip Project Gutenberg header ────────────────────────────────────\n    # Everything up to AND including the START sentinel line is discarded.\n    match = _PG_START.search(text)\n    if match:\n        text = text[match.end():]\n\n    # ── 2. Strip Project Gutenberg footer ────────────────────────────────────\n    # Everything from the END sentinel line onwards is discarded.\n    match = _PG_END.search(text)\n    if match:\n        text = text[: match.start()]\n\n    # ── 3. Normalize curly / typographic quotation marks → straight ASCII \" ──\n    # Required so dialogue_ratio (§3.3) and punct_distribution (§3.1) work\n    # correctly on raw Gutenberg text that ships with Unicode curly quotes.\n    text = text.replace(\"\\u201c\", '\"').replace(\"\\u201d\", '\"')  # \" \"\n\n    # ── 4. Normalize double-dash → em-dash ───────────────────────────────────\n    # Gutenberg texts often encode em-dashes as \"--\"; convert before spaCy so\n    # the punct_distribution em-dash bucket (§3.1) captures them.\n    text = text.replace(\"--\", \"\\u2014\")  # — (U+2014 EM DASH)\n\n    # ── 5. Collapse multiple consecutive blank lines → single blank line ──────\n    text = _MULTI_BLANK.sub(\"\\n\\n\", text)\n\n    return text.strip()\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/cleaner.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/cleaner.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/cleaner.py\n@@ -0,0 +1,49 @@\n+\"\"\"Text cleaning utilities: strips Gutenberg boilerplate and normalizes surface noise.\"\"\"\n+\n+import re\n+\n+# Anchors used by Project Gutenberg edition headers and footers.\n+# The patterns are case-insensitive and allow for trailing edition text\n+# such as \"*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\".\n+_PG_START = re.compile(\n+    r\"\\*{3}\\s*START OF THE PROJECT GUTENBERG EBOOK.*\",\n+    re.IGNORECASE,\n+)\n+_PG_END = re.compile(\n+    r\"\\*{3}\\s*END OF THE PROJECT GUTENBERG EBOOK.*\",\n+    re.IGNORECASE,\n+)\n+\n+# Two or more consecutive blank lines (any mix of spaces/tabs between newlines).\n+_MULTI_BLANK = re.compile(r\"\\n{3,}\")\n+\n+\n+def clean_text(text: str) -> str:\n+    \"\"\"Strip Gutenberg boilerplate, normalize quotes and dashes, collapse blank lines.\"\"\"\n+\n+    # ── 1. Strip Project Gutenberg header ────────────────────────────────────\n+    # Everything up to AND including the START sentinel line is discarded.\n+    match = _PG_START.search(text)\n+    if match:\n+        text = text[match.end():]\n+\n+    # ── 2. Strip Project Gutenberg footer ────────────────────────────────────\n+    # Everything from the END sentinel line onwards is discarded.\n+    match = _PG_END.search(text)\n+    if match:\n+        text = text[: match.start()]\n+\n+    # ── 3. Normalize curly / typographic quotation marks → straight ASCII \" ──\n+    # Required so dialogue_ratio (§3.3) and punct_distribution (§3.1) work\n+    # correctly on raw Gutenberg text that ships with Unicode curly quotes.\n+    text = text.replace(\"\\u201c\", '\"').replace(\"\\u201d\", '\"')  # \" \"\n+\n+    # ── 4. Normalize double-dash → em-dash ───────────────────────────────────\n+    # Gutenberg texts often encode em-dashes as \"--\"; convert before spaCy so\n+    # the punct_distribution em-dash bucket (§3.1) captures them.\n+    text = text.replace(\"--\", \"\\u2014\")  # — (U+2014 EM DASH)\n+\n+    # ── 5. Collapse multiple consecutive blank lines → single blank line ──────\n+    text = _MULTI_BLANK.sub(\"\\n\\n\", text)\n+\n+    return text.strip()\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/cleaner.py": 1783506077376
+              },
+              "durationMs": 49234,
+              "timestamp": 1783506078381
+            },
+            "id": "d7fcfbf985e0e55234d34b3ae425e7a9"
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "fc0f0e77e01b765efe1951f6e519f0d7",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now add the happy-path tests to [`test_smoke.py`](ai_pipeline/tests/test_smoke.py):",
+            "id": "fc0f0e77e01b765efe1951f6e519f0d7",
+            "_meta": {
+              "timestamp": 1783506080467,
+              "spend": {
+                "input": 18991,
+                "output": 628,
+                "cacheRead": 17976,
+                "cacheWrite": 1014,
+                "cost": 0.049047,
+                "contextTokens": 19619,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_8TSPAuo8xvTrS9hUbflUu1",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py",
+                  "content": "\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\n\n\n# ── cleaner ──────────────────────────────────────────────────────────────────\n\n_PG_SAMPLE = \"\"\"\\\nThis is a Project Gutenberg header that should be removed.\nSome licensing blurb that nobody wants.\n\n*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nIt is a truth universally acknowledged.\n\nShe had a lively, playful disposition.\n\n\"What a fine thing for our girls!\"\n\nThe door was opened--and a tall man entered.\n\n*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nProducer notes and end matter that should be removed.\n\"\"\"\n\n\ndef test_clean_text_strips_pg_header_and_footer() -> None:\n    result = clean_text(_PG_SAMPLE)\n    assert \"universally acknowledged\" in result\n    assert \"START OF THE PROJECT GUTENBERG\" not in result\n    assert \"END OF THE PROJECT GUTENBERG\" not in result\n    assert \"Producer notes\" not in result\n    assert \"licensing blurb\" not in result\n\n\ndef test_clean_text_normalizes_curly_quotes() -> None:\n    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n    assert '\"Hello,\"' in result\n    assert \"\\u201c\" not in result\n    assert \"\\u201d\" not in result\n\n\ndef test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n    result = clean_text(\"He paused--then spoke.\")\n    assert \"\\u2014\" in result  # em-dash present\n    assert \"--\" not in result\n\n\ndef test_clean_text_collapses_multiple_blank_lines() -> None:\n    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n    # At most one blank line between paragraphs (two consecutive \\n characters).\n    assert \"\\n\\n\\n\" not in result\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n",
+                  "line_count": 54
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "715c4f2ebfe1f80ddd7c78246cef255c",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Edited file: ai_pipeline/tests/test_smoke.py\n\nYou do not need to re-read the file, as you have seen all changes.\nProceed with the task using these changes as the new baseline.\n\nIf the user's edits have addressed part of the task or changed the requirements, adjust your approach accordingly.\n\nPatch of edit:\n\n<patch>\n@@ -0,0 +1,55 @@\n+\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n+\n+from autoria_ai.extractor.cleaner import clean_text\n+\n+\n+# ── cleaner ──────────────────────────────────────────────────────────────────\n+\n+_PG_SAMPLE = \"\"\"\\\n+This is a Project Gutenberg header that should be removed.\n+Some licensing blurb that nobody wants.\n+\n+*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n+\n+It is a truth universally acknowledged.\n+\n+She had a lively, playful disposition.\n+\n+\"What a fine thing for our girls!\"\n+\n+The door was opened--and a tall man entered.\n+\n+*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n+\n+Producer notes and end matter that should be removed.\n+\"\"\"\n+\n+\n+def test_clean_text_strips_pg_header_and_footer() -> None:\n+    result = clean_text(_PG_SAMPLE)\n+    assert \"universally acknowledged\" in result\n+    assert \"START OF THE PROJECT GUTENBERG\" not in result\n+    assert \"END OF THE PROJECT GUTENBERG\" not in result\n+    assert \"Producer notes\" not in result\n+    assert \"licensing blurb\" not in result\n+\n+\n+def test_clean_text_normalizes_curly_quotes() -> None:\n+    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n+    assert '\"Hello,\"' in result\n+    assert \"\\u201c\" not in result\n+    assert \"\\u201d\" not in result\n+\n+\n+def test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n+    result = clean_text(\"He paused--then spoke.\")\n+    assert \"\\u2014\" in result  # em-dash present\n+    assert \"--\" not in result\n+\n+\n+def test_clean_text_collapses_multiple_blank_lines() -> None:\n+    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n+    # At most one blank line between paragraphs (two consecutive \\n characters).\n+    assert \"\\n\\n\\n\" not in result\n+    assert \"Line one.\" in result\n+    assert \"Line two.\" in result\n\n</patch>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_8TSPAuo8xvTrS9hUbflUu1",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py",
+                  "content": "\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\n\n\n# ── cleaner ──────────────────────────────────────────────────────────────────\n\n_PG_SAMPLE = \"\"\"\\\nThis is a Project Gutenberg header that should be removed.\nSome licensing blurb that nobody wants.\n\n*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nIt is a truth universally acknowledged.\n\nShe had a lively, playful disposition.\n\n\"What a fine thing for our girls!\"\n\nThe door was opened--and a tall man entered.\n\n*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nProducer notes and end matter that should be removed.\n\"\"\"\n\n\ndef test_clean_text_strips_pg_header_and_footer() -> None:\n    result = clean_text(_PG_SAMPLE)\n    assert \"universally acknowledged\" in result\n    assert \"START OF THE PROJECT GUTENBERG\" not in result\n    assert \"END OF THE PROJECT GUTENBERG\" not in result\n    assert \"Producer notes\" not in result\n    assert \"licensing blurb\" not in result\n\n\ndef test_clean_text_normalizes_curly_quotes() -> None:\n    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n    assert '\"Hello,\"' in result\n    assert \"\\u201c\" not in result\n    assert \"\\u201d\" not in result\n\n\ndef test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n    result = clean_text(\"He paused--then spoke.\")\n    assert \"\\u2014\" in result  # em-dash present\n    assert \"--\" not in result\n\n\ndef test_clean_text_collapses_multiple_blank_lines() -> None:\n    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n    # At most one blank line between paragraphs (two consecutive \\n characters).\n    assert \"\\n\\n\\n\" not in result\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n",
+                  "line_count": 54
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Write File {path}",
+                "error": "Failed to write file {path}",
+                "running": "Writing file {path}",
+                "success": "Wrote file {path}",
+                "runningLong": [
+                  "Still writing...",
+                  "Writing takes time...",
+                  "Nearly written...",
+                  "A lot of content to write...",
+                  "Committing every character...",
+                  "Writing like my life depends on it..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py": {
+                  "before": "",
+                  "after": "\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\n\n\n# ── cleaner ──────────────────────────────────────────────────────────────────\n\n_PG_SAMPLE = \"\"\"\\\nThis is a Project Gutenberg header that should be removed.\nSome licensing blurb that nobody wants.\n\n*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nIt is a truth universally acknowledged.\n\nShe had a lively, playful disposition.\n\n\"What a fine thing for our girls!\"\n\nThe door was opened--and a tall man entered.\n\n*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nProducer notes and end matter that should be removed.\n\"\"\"\n\n\ndef test_clean_text_strips_pg_header_and_footer() -> None:\n    result = clean_text(_PG_SAMPLE)\n    assert \"universally acknowledged\" in result\n    assert \"START OF THE PROJECT GUTENBERG\" not in result\n    assert \"END OF THE PROJECT GUTENBERG\" not in result\n    assert \"Producer notes\" not in result\n    assert \"licensing blurb\" not in result\n\n\ndef test_clean_text_normalizes_curly_quotes() -> None:\n    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n    assert '\"Hello,\"' in result\n    assert \"\\u201c\" not in result\n    assert \"\\u201d\" not in result\n\n\ndef test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n    result = clean_text(\"He paused--then spoke.\")\n    assert \"\\u2014\" in result  # em-dash present\n    assert \"--\" not in result\n\n\ndef test_clean_text_collapses_multiple_blank_lines() -> None:\n    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n    # At most one blank line between paragraphs (two consecutive \\n characters).\n    assert \"\\n\\n\\n\" not in result\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py\n@@ -0,0 +1,55 @@\n+\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n+\n+from autoria_ai.extractor.cleaner import clean_text\n+\n+\n+# ── cleaner ──────────────────────────────────────────────────────────────────\n+\n+_PG_SAMPLE = \"\"\"\\\n+This is a Project Gutenberg header that should be removed.\n+Some licensing blurb that nobody wants.\n+\n+*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n+\n+It is a truth universally acknowledged.\n+\n+She had a lively, playful disposition.\n+\n+\"What a fine thing for our girls!\"\n+\n+The door was opened--and a tall man entered.\n+\n+*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n+\n+Producer notes and end matter that should be removed.\n+\"\"\"\n+\n+\n+def test_clean_text_strips_pg_header_and_footer() -> None:\n+    result = clean_text(_PG_SAMPLE)\n+    assert \"universally acknowledged\" in result\n+    assert \"START OF THE PROJECT GUTENBERG\" not in result\n+    assert \"END OF THE PROJECT GUTENBERG\" not in result\n+    assert \"Producer notes\" not in result\n+    assert \"licensing blurb\" not in result\n+\n+\n+def test_clean_text_normalizes_curly_quotes() -> None:\n+    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n+    assert '\"Hello,\"' in result\n+    assert \"\\u201c\" not in result\n+    assert \"\\u201d\" not in result\n+\n+\n+def test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n+    result = clean_text(\"He paused--then spoke.\")\n+    assert \"\\u2014\" in result  # em-dash present\n+    assert \"--\" not in result\n+\n+\n+def test_clean_text_collapses_multiple_blank_lines() -> None:\n+    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n+    # At most one blank line between paragraphs (two consecutive \\n characters).\n+    assert \"\\n\\n\\n\" not in result\n+    assert \"Line one.\" in result\n+    assert \"Line two.\" in result\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py": 1783506101463
+              },
+              "durationMs": 14852,
+              "timestamp": 1783506102473
+            },
+            "id": "715c4f2ebfe1f80ddd7c78246cef255c"
+          },
+          "createdAt": 1783506166802
+        },
+        {
+          "id": "3eaf2a2ce7a707650564bc5e5d208b66",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now run the tests to verify:",
+            "id": "3eaf2a2ce7a707650564bc5e5d208b66",
+            "_meta": {
+              "timestamp": 1783506104508,
+              "spend": {
+                "input": 20556,
+                "output": 95,
+                "cacheRead": 20303,
+                "cacheWrite": 252,
+                "cost": 0.051627,
+                "contextTokens": 20651,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_I4vFodmsgAY00yUQvNOUdb",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m pytest tests/test_smoke.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              {
+                "id": "tooluse_fpmKy38AeF6DBFuG0zi13Q",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "pip install --quiet pytest; python -m pytest tests/test_smoke.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506166803
+        },
+        {
+          "id": "ecd16c623bb76478bd440fb60391797d",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Error from tool execute_command: Exit code: 1\n\nStderr:\npython : C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.venv\\Scripts\\python.exe: No module named pytest\r\nEn l�nea: 1 Car�cter: 1\r\n+ python -m pytest tests/test_smoke.py -v 2>&1\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (C:\\Users\\spide\\...le named pytest:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_I4vFodmsgAY00yUQvNOUdb",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m pytest tests/test_smoke.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m pytest tests/test_smoke.py -v 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m pytest tests/test_smoke.py -v 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 12536,
+              "timestamp": 1783506117053
+            },
+            "id": "ecd16c623bb76478bd440fb60391797d"
+          },
+          "createdAt": 1783506166803
+        },
+        {
+          "id": "ad5ce7f47cc89eef6a7c56d05b9f63e0",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "============================= test session starts =============================\r\nplatform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.venv\\Scripts\\python.exe\r\ncachedir: .pytest_cache\r\nrootdir: C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\ai_pipeline\r\nconfigfile: pyproject.toml\r\nplugins: anyio-4.14.1\r\ncollecting ... collected 4 items\r\n\r\ntests/test_smoke.py::test_clean_text_strips_pg_header_and_footer PASSED  [ 25%]\r\ntests/test_smoke.py::test_clean_text_normalizes_curly_quotes PASSED      [ 50%]\r\ntests/test_smoke.py::test_clean_text_normalizes_double_dash_to_em_dash PASSED [ 75%]\r\ntests/test_smoke.py::test_clean_text_collapses_multiple_blank_lines PASSED [100%]\r\n\r\n============================== 4 passed in 0.04s ==============================\n\nStderr:\n[notice] A new release of pip is available: 25.3 -> 26.1.2\r\n[notice] To update, run: python.exe -m pip install --upgrade pip",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_fpmKy38AeF6DBFuG0zi13Q",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "pip install --quiet pytest; python -m pytest tests/test_smoke.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "pip install --quiet pytest",
+                  "python -m pytest tests/test_smoke.py -v 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "pip install --quiet pytest",
+                  "pip",
+                  "python -m pytest tests/test_smoke.py -v 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 27990,
+              "timestamp": 1783506151803
+            },
+            "id": "ad5ce7f47cc89eef6a7c56d05b9f63e0"
+          },
+          "createdAt": 1783506166803
+        },
+        {
+          "id": "66fdefd86a2c8dda88076bcbd0f72d1a",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "All 4 tests pass. Here is a precise account of every decision made.\n\n---\n\n## What was built\n\n### [`cleaner.py`](ai_pipeline/autoria_ai/extractor/cleaner.py)\n\nThe file has exactly one public symbol — `clean_text(text: str) -> str` — with five sequential, stateless transformations:\n\n| Step | What | Why |\n|---|---|---|\n| **1. Strip header** | `_PG_START` regex discards everything **up to and including** the `*** START OF THE PROJECT GUTENBERG EBOOK` line | Text before that line is copyright legalese, not prose |\n| **2. Strip footer** | `_PG_END` regex discards everything **from** the `*** END OF THE PROJECT GUTENBERG EBOOK` line onwards | Producer notes after that line are not authorial text |\n| **3. Curly quotes → `\"`** | `\\u201c` and `\\u201d` replaced with ASCII `\"` | Directly required by [`docs/style_features.md` §9](docs/style_features.md:456) — `dialogue_ratio` (§3.3) and `punct_distribution` (§3.1) both count only the straight ASCII `\"` character |\n| **4. `--` → `—`** | Double-dash replaced with U+2014 EM DASH | Gutenberg texts encode em-dashes as `--`; `punct_distribution` tracks the `—` bucket (§3.1) |\n| **5. Collapse blank lines** | 3+ consecutive `\\n` → `\\n\\n` | Prevents accidental large empty gaps from inflating whitespace-sensitive metrics |\n\nThe two compiled regexes ([`_PG_START`](ai_pipeline/autoria_ai/extractor/cleaner.py:8), [`_PG_END`](ai_pipeline/autoria_ai/extractor/cleaner.py:13), [`_MULTI_BLANK`](ai_pipeline/autoria_ai/extractor/cleaner.py:18)) are module-level constants — compiled once at import time, never per call.\n\n### [`test_smoke.py`](ai_pipeline/tests/test_smoke.py)\n\nFour focused tests, one per transformation category:\n\n| Test | Assertion |\n|---|---|\n| `test_clean_text_strips_pg_header_and_footer` | Body text is preserved; sentinel lines and surrounding boilerplate are gone |\n| `test_clean_text_normalizes_curly_quotes` | Unicode `\\u201c`/`\\u201d` become `\"` and no longer appear in output |\n| `test_clean_text_normalizes_double_dash_to_em_dash` | `--` becomes `\\u2014`; no `--` remains |\n| `test_clean_text_collapses_multiple_blank_lines` | Five consecutive newlines compress to at most two; content lines survive |",
+            "id": "66fdefd86a2c8dda88076bcbd0f72d1a",
+            "_meta": {
+              "timestamp": 1783506156118,
+              "spend": {
+                "input": 21013,
+                "output": 703,
+                "cacheRead": 20303,
+                "cacheWrite": 709,
+                "cost": 0.05429,
+                "contextTokens": 21716,
+                "reasoningTokens": 0
+              }
+            },
+            "stop": true
+          },
+          "createdAt": 1783506166803
+        },
+        {
+          "id": "e543b0517f5dc29db12341c3bea212d9",
+          "role": "user",
+          "data": {
+            "role": "user",
+            "content": "<environment_details>\n<active_file>\nActive file: c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\ai_pipeline\\tests\\test_smoke.py\n</active_file>\n</environment_details>\n\n\n<user_query>\nNow implement `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n- Uses tiktoken `cl100k_base` encoding\n- Splits the full text into chunks of `chunk_size` tokens\n- Uses a sliding window with `overlap` tokens between consecutive chunks\n- Returns a list of decoded strings (not token ids)\n- Loads the encoder once at module level (not inside the function)\n\nAdd happy-path tests to `test_smoke.py`:\n- A test that verifies chunk count is correct for a known input length\n- A test that verifies overlap exists between consecutive chunks\n\nShow me the full chunker.py file first, then the new tests.\n</user_query>",
+            "availableTools": [
+              "GetSymbolsOverview",
+              "FindSymbol",
+              "FindReferencingSymbols",
+              "apply_diff",
+              "insert_content",
+              "list_files",
+              "read_file",
+              "read_xlsx",
+              "search_and_replace",
+              "switch_mode",
+              "write_file",
+              "execute_command",
+              "glob",
+              "grep",
+              "ask_followup_question",
+              "start_workflow"
+            ],
+            "_meta": {
+              "mentionEditorState": {
+                "root": {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "type": "pasted-text",
+                          "text": "Now implement `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n- Uses tiktoken `cl100k_base` encoding\n- Splits the full text into chunks of `chunk_size` tokens\n- Uses a sliding window with `overlap` tokens between consecutive chunks\n- Returns a list of decoded strings (not token ids)\n- Loads the encoder once at module level (not inside the function)\n\nAdd happy-path tests to `test_smoke.py`:\n- A test that verifies chunk count is correct for a known input length\n- A test that verifies overlap exists between consecutive chunks\n\nShow me the full chunker.py file first, then the new tests.",
+                          "index": 1,
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 0,
+                      "textStyle": ""
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "root",
+                  "version": 1
+                }
+              },
+              "mask": "Now implement `ai_pipeline/autoria_ai/extractor/chunker.py` — a `chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]` function that:\n- Uses tiktoken `cl100k_base` encoding\n- Splits the full text into chunks of `chunk_size` tokens\n- Uses a sliding window with `overlap` tokens between consecutive chunks\n- Returns a list of decoded strings (not token ids)\n- Loads the encoder once at module level (not inside the function)\n\nAdd happy-path tests to `test_smoke.py`:\n- A test that verifies chunk count is correct for a known input length\n- A test that verifies overlap exists between consecutive chunks\n\nShow me the full chunker.py file first, then the new tests.",
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1783506787311
+            },
+            "id": "e543b0517f5dc29db12341c3bea212d9"
+          },
+          "createdAt": 1783506787098
+        },
+        {
+          "id": "cd1066ad5bc244ccfcdaa6cb1f2dd3b3",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Let me read the existing test file and verify the tiktoken API before writing anything.",
+            "id": "cd1066ad5bc244ccfcdaa6cb1f2dd3b3",
+            "_meta": {
+              "timestamp": 1783506792278,
+              "spend": {
+                "input": 21980,
+                "output": 181,
+                "cacheRead": 8533,
+                "cacheWrite": 13444,
+                "cost": 0.055402,
+                "contextTokens": 22161,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_L5kH8cQgIbR1tZni05Gm2R",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_ojWfs2nKlBy8PWOgfhq6o5",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"import tiktoken; enc = tiktoken.get_encoding('cl100k_base'); tokens = enc.encode('hello world'); print(tokens); print(enc.decode(tokens))\"",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506803305
+        },
+        {
+          "id": "ef63591a41607580c94a1ce3cdf2adc7",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/tests/test_smoke.py:\n\n1 | \"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n2 | \n3 | from autoria_ai.extractor.cleaner import clean_text\n4 | \n5 | \n6 | # ── cleaner ──────────────────────────────────────────────────────────────────\n7 | \n8 | _PG_SAMPLE = \"\"\"\\\n9 | This is a Project Gutenberg header that should be removed.\n10 | Some licensing blurb that nobody wants.\n11 | \n12 | *** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n13 | \n14 | It is a truth universally acknowledged.\n15 | \n16 | She had a lively, playful disposition.\n17 | \n18 | \"What a fine thing for our girls!\"\n19 | \n20 | The door was opened--and a tall man entered.\n21 | \n22 | *** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n23 | \n24 | Producer notes and end matter that should be removed.\n25 | \"\"\"\n26 | \n27 | \n28 | def test_clean_text_strips_pg_header_and_footer() -> None:\n29 |     result = clean_text(_PG_SAMPLE)\n30 |     assert \"universally acknowledged\" in result\n31 |     assert \"START OF THE PROJECT GUTENBERG\" not in result\n32 |     assert \"END OF THE PROJECT GUTENBERG\" not in result\n33 |     assert \"Producer notes\" not in result\n34 |     assert \"licensing blurb\" not in result\n35 | \n36 | \n37 | def test_clean_text_normalizes_curly_quotes() -> None:\n38 |     result = clean_text(\"\\u201cHello,\\u201d she said.\")\n39 |     assert '\"Hello,\"' in result\n40 |     assert \"\\u201c\" not in result\n41 |     assert \"\\u201d\" not in result\n42 | \n43 | \n44 | def test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n45 |     result = clean_text(\"He paused--then spoke.\")\n46 |     assert \"\\u2014\" in result  # em-dash present\n47 |     assert \"--\" not in result\n48 | \n49 | \n50 | def test_clean_text_collapses_multiple_blank_lines() -> None:\n51 |     result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n52 |     # At most one blank line between paragraphs (two consecutive \\n characters).\n53 |     assert \"\\n\\n\\n\" not in result\n54 |     assert \"Line one.\" in result\n55 |     assert \"Line two.\" in result\n56 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_L5kH8cQgIbR1tZni05Gm2R",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py": 1783506101463
+              },
+              "durationMs": 4,
+              "timestamp": 1783506792707
+            },
+            "id": "ef63591a41607580c94a1ce3cdf2adc7"
+          },
+          "createdAt": 1783506803308
+        },
+        {
+          "id": "ca711ccdd6f87b72c1d5caad551c3be3",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "[15339, 1917]\r\nhello world",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_ojWfs2nKlBy8PWOgfhq6o5",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"import tiktoken; enc = tiktoken.get_encoding('cl100k_base'); tokens = enc.encode('hello world'); print(tokens); print(enc.decode(tokens))\"",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -c \"import tiktoken; enc = tiktoken.get_encoding('cl100k_base'); tokens = enc.encode('hello world'); print(tokens); print(enc.decode(tokens))\""
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -c \"import tiktoken; enc = tiktoken.get_encoding('cl100k_base'); tokens = enc.encode('hello world'); print(tokens); print(enc.decode(tokens))\"",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 10597,
+              "timestamp": 1783506803305
+            },
+            "id": "ca711ccdd6f87b72c1d5caad551c3be3"
+          },
+          "createdAt": 1783506803311
+        },
+        {
+          "id": "eb18e4ee4314774cc499b4e6e50685ce",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Good. Now I need to pin down the exact chunk-count arithmetic before coding, so the test uses a provably correct expected value rather than a magic number:",
+            "id": "eb18e4ee4314774cc499b4e6e50685ce",
+            "_meta": {
+              "timestamp": 1783506805690,
+              "spend": {
+                "input": 23584,
+                "output": 375,
+                "cacheRead": 22958,
+                "cacheWrite": 625,
+                "cost": 0.059897,
+                "contextTokens": 23959,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_Ho9uPUcQJguN5k0CJnReuo",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\n# Build a reproducible synthetic text: repeat a fixed phrase enough times\n# to produce a known token count we can reason about.\n# We need total tokens > chunk_size so at least 2 chunks are produced.\n# Target: exactly 1 100 tokens  (chunk_size=500, overlap=50 would give 3 chunks)\n# Let's use chunk_size=10, overlap=3 for the test to keep the input small.\n# First measure how many tokens one repetition of our phrase costs.\nphrase = 'The quick brown fox '\ntokens_per_rep = len(enc.encode(phrase))\nprint('tokens per phrase rep:', tokens_per_rep)\n\n# Build text with exactly 25 tokens (phrase repeated enough times)\n# chunk_size=10, overlap=3  ->  step=7\n# windows: [0..9], [7..16], [14..23]  -> 3 chunks  (last window [14..23] fits if total>=24)\n# formula: n_chunks = ceil((total - overlap) / (chunk_size - overlap))\n#        = ceil((25-3)/(10-3)) = ceil(22/7) = ceil(3.14) = 4\n# Let's verify with 25 tokens\nimport math\ntotal = 25\nchunk_size = 10\noverlap = 3\nstep = chunk_size - overlap\nn = math.ceil((total - overlap) / step)\nprint('expected chunks for total=25, size=10, overlap=3:', n)\n\n# confirm with a few more values\nfor total in [10, 17, 24, 25]:\n    n = math.ceil((total - overlap) / step)\n    print(f'  total={total} -> {n} chunks')\n\"\n",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_cFZ2E64pEiVkGstHHlhbfs",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"\nimport tiktoken, math\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '   # 5 tokens per rep\n# Build text of exactly 25 tokens = 5 reps\ntext = phrase * 5\ntokens = enc.encode(text)\nprint('actual token count:', len(tokens))\n\nchunk_size, overlap = 10, 3\nstep = chunk_size - overlap\n\n# Simulate the sliding window\nchunks_tok = []\nstart = 0\nwhile start < len(tokens):\n    end = start + chunk_size\n    chunks_tok.append(tokens[start:end])\n    if end >= len(tokens):\n        break\n    start += step\n\nprint('chunk count:', len(chunks_tok))\nprint('chunk lengths:', [len(c) for c in chunks_tok])\n\n# Verify overlap: last `overlap` tokens of chunk[i] == first `overlap` tokens of chunk[i+1]\nfor i in range(len(chunks_tok) - 1):\n    tail = chunks_tok[i][-overlap:]\n    head = chunks_tok[i+1][:overlap]\n    print(f'chunk {i} tail == chunk {i+1} head:', tail == head)\n\"\n",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506830136
+        },
+        {
+          "id": "b86e64b7c1a97a71ec1574baaa9876ed",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "tokens per phrase rep: 5\r\nexpected chunks for total=25, size=10, overlap=3: 4\r\n  total=10 -> 1 chunks\r\n  total=17 -> 2 chunks\r\n  total=24 -> 3 chunks\r\n  total=25 -> 4 chunks",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_Ho9uPUcQJguN5k0CJnReuo",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\n# Build a reproducible synthetic text: repeat a fixed phrase enough times\n# to produce a known token count we can reason about.\n# We need total tokens > chunk_size so at least 2 chunks are produced.\n# Target: exactly 1 100 tokens  (chunk_size=500, overlap=50 would give 3 chunks)\n# Let's use chunk_size=10, overlap=3 for the test to keep the input small.\n# First measure how many tokens one repetition of our phrase costs.\nphrase = 'The quick brown fox '\ntokens_per_rep = len(enc.encode(phrase))\nprint('tokens per phrase rep:', tokens_per_rep)\n\n# Build text with exactly 25 tokens (phrase repeated enough times)\n# chunk_size=10, overlap=3  ->  step=7\n# windows: [0..9], [7..16], [14..23]  -> 3 chunks  (last window [14..23] fits if total>=24)\n# formula: n_chunks = ceil((total - overlap) / (chunk_size - overlap))\n#        = ceil((25-3)/(10-3)) = ceil(22/7) = ceil(3.14) = 4\n# Let's verify with 25 tokens\nimport math\ntotal = 25\nchunk_size = 10\noverlap = 3\nstep = chunk_size - overlap\nn = math.ceil((total - overlap) / step)\nprint('expected chunks for total=25, size=10, overlap=3:', n)\n\n# confirm with a few more values\nfor total in [10, 17, 24, 25]:\n    n = math.ceil((total - overlap) / step)\n    print(f'  total={total} -> {n} chunks')\n\"\n",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\n# Build a reproducible synthetic text: repeat a fixed phrase enough times\n# to produce a known token count we can reason about.\n# We need total tokens > chunk_size so at least 2 chunks are produced.\n# Target: exactly 1 100 tokens  (chunk_size=500, overlap=50 would give 3 chunks)\n# Let's use chunk_size=10, overlap=3 for the test to keep the input small.\n# First measure how many tokens one repetition of our phrase costs.\nphrase = 'The quick brown fox '\ntokens_per_rep = len(enc.encode(phrase))\nprint('tokens per phrase rep:', tokens_per_rep)\n\n# Build text with exactly 25 tokens (phrase repeated enough times)\n# chunk_size=10, overlap=3  ->  step=7\n# windows: [0..9], [7..16], [14..23]  -> 3 chunks  (last window [14..23] fits if total>=24)\n# formula: n_chunks = ceil((total - overlap) / (chunk_size - overlap))\n#        = ceil((25-3)/(10-3)) = ceil(22/7) = ceil(3.14) = 4\n# Let's verify with 25 tokens\nimport math\ntotal = 25\nchunk_size = 10\noverlap = 3\nstep = chunk_size - overlap\nn = math.ceil((total - overlap) / step)\nprint('expected chunks for total=25, size=10, overlap=3:', n)\n\n# confirm with a few more values\nfor total in [10, 17, 24, 25]:\n    n = math.ceil((total - overlap) / step)\n    print(f'  total={total} -> {n} chunks')\n\""
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\n# Build a reproducible synthetic text: repeat a fixed phrase enough times\n# to produce a known token count we can reason about.\n# We need total tokens > chunk_size so at least 2 chunks are produced.\n# Target: exactly 1 100 tokens  (chunk_size=500, overlap=50 would give 3 chunks)\n# Let's use chunk_size=10, overlap=3 for the test to keep the input small.\n# First measure how many tokens one repetition of our phrase costs.\nphrase = 'The quick brown fox '\ntokens_per_rep = len(enc.encode(phrase))\nprint('tokens per phrase rep:', tokens_per_rep)\n\n# Build text with exactly 25 tokens (phrase repeated enough times)\n# chunk_size=10, overlap=3  ->  step=7\n# windows: [0..9], [7..16], [14..23]  -> 3 chunks  (last window [14..23] fits if total>=24)\n# formula: n_chunks = ceil((total - overlap) / (chunk_size - overlap))\n#        = ceil((25-3)/(10-3)) = ceil(22/7) = ceil(3.14) = 4\n# Let's verify with 25 tokens\nimport math\ntotal = 25\nchunk_size = 10\noverlap = 3\nstep = chunk_size - overlap\nn = math.ceil((total - overlap) / step)\nprint('expected chunks for total=25, size=10, overlap=3:', n)\n\n# confirm with a few more values\nfor total in [10, 17, 24, 25]:\n    n = math.ceil((total - overlap) / step)\n    print(f'  total={total} -> {n} chunks')\n\"",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 15709,
+              "timestamp": 1783506830136
+            },
+            "id": "b86e64b7c1a97a71ec1574baaa9876ed"
+          },
+          "createdAt": 1783506830139
+        },
+        {
+          "id": "203e11f0c0021757e003af39797547b5",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "actual token count: 21\r\nchunk count: 3\r\nchunk lengths: [10, 10, 7]\r\nchunk 0 tail == chunk 1 head: True\r\nchunk 1 tail == chunk 2 head: True",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_cFZ2E64pEiVkGstHHlhbfs",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"\nimport tiktoken, math\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '   # 5 tokens per rep\n# Build text of exactly 25 tokens = 5 reps\ntext = phrase * 5\ntokens = enc.encode(text)\nprint('actual token count:', len(tokens))\n\nchunk_size, overlap = 10, 3\nstep = chunk_size - overlap\n\n# Simulate the sliding window\nchunks_tok = []\nstart = 0\nwhile start < len(tokens):\n    end = start + chunk_size\n    chunks_tok.append(tokens[start:end])\n    if end >= len(tokens):\n        break\n    start += step\n\nprint('chunk count:', len(chunks_tok))\nprint('chunk lengths:', [len(c) for c in chunks_tok])\n\n# Verify overlap: last `overlap` tokens of chunk[i] == first `overlap` tokens of chunk[i+1]\nfor i in range(len(chunks_tok) - 1):\n    tail = chunks_tok[i][-overlap:]\n    head = chunks_tok[i+1][:overlap]\n    print(f'chunk {i} tail == chunk {i+1} head:', tail == head)\n\"\n",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -c \"\nimport tiktoken, math\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '   # 5 tokens per rep\n# Build text of exactly 25 tokens = 5 reps\ntext = phrase * 5\ntokens = enc.encode(text)\nprint('actual token count:', len(tokens))\n\nchunk_size, overlap = 10, 3\nstep = chunk_size - overlap\n\n# Simulate the sliding window\nchunks_tok = []\nstart = 0\nwhile start < len(tokens):\n    end = start + chunk_size\n    chunks_tok.append(tokens[start:end])\n    if end >= len(tokens):\n        break\n    start += step\n\nprint('chunk count:', len(chunks_tok))\nprint('chunk lengths:', [len(c) for c in chunks_tok])\n\n# Verify overlap: last `overlap` tokens of chunk[i] == first `overlap` tokens of chunk[i+1]\nfor i in range(len(chunks_tok) - 1):\n    tail = chunks_tok[i][-overlap:]\n    head = chunks_tok[i+1][:overlap]\n    print(f'chunk {i} tail == chunk {i+1} head:', tail == head)\n\""
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -c \"\nimport tiktoken, math\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '   # 5 tokens per rep\n# Build text of exactly 25 tokens = 5 reps\ntext = phrase * 5\ntokens = enc.encode(text)\nprint('actual token count:', len(tokens))\n\nchunk_size, overlap = 10, 3\nstep = chunk_size - overlap\n\n# Simulate the sliding window\nchunks_tok = []\nstart = 0\nwhile start < len(tokens):\n    end = start + chunk_size\n    chunks_tok.append(tokens[start:end])\n    if end >= len(tokens):\n        break\n    start += step\n\nprint('chunk count:', len(chunks_tok))\nprint('chunk lengths:', [len(c) for c in chunks_tok])\n\n# Verify overlap: last `overlap` tokens of chunk[i] == first `overlap` tokens of chunk[i+1]\nfor i in range(len(chunks_tok) - 1):\n    tail = chunks_tok[i][-overlap:]\n    head = chunks_tok[i+1][:overlap]\n    print(f'chunk {i} tail == chunk {i+1} head:', tail == head)\n\"",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 9298,
+              "timestamp": 1783506845539
+            },
+            "id": "203e11f0c0021757e003af39797547b5"
+          },
+          "createdAt": 1783506845539
+        },
+        {
+          "id": "05d45b48dc2c7f80f1107dca98b18191",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "The phrase is actually 5 tokens for 4 words (tiktoken merges the trailing space), so `phrase * 5 = 21 tokens`. Let me nail the exact count the tests will use:",
+            "id": "05d45b48dc2c7f80f1107dca98b18191",
+            "_meta": {
+              "timestamp": 1783506847591,
+              "spend": {
+                "input": 24046,
+                "output": 415,
+                "cacheRead": 22958,
+                "cacheWrite": 1087,
+                "cost": 0.061152,
+                "contextTokens": 24461,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_O7IXkpa2N3wERAOHSkH0Ec",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '\nprint([enc.decode([t]) for t in enc.encode(phrase)])  # inspect per-token\n\n# Find a multiplier that gives total > chunk_size + step so we get >= 3 chunks,\n# keeping the arithmetic verifiable in the test.\n# chunk_size=10, overlap=3, step=7\n# We want total such that we can assert n_chunks exactly.\n# total=21: chunks cover [0..9],[7..16],[14..20]  -> 3 chunks\nfor reps in range(1, 10):\n    text = phrase * reps\n    total = len(enc.encode(text))\n    chunk_size, overlap = 10, 3\n    step = chunk_size - overlap\n    # simulate\n    tokens = enc.encode(text)\n    n = 0; start = 0\n    while start < len(tokens):\n        end = start + chunk_size\n        n += 1\n        if end >= len(tokens): break\n        start += step\n    print(f'reps={reps}  total_tokens={total}  chunks={n}')\n\"\n",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783506862133
+        },
+        {
+          "id": "b61563aec2615c27e6ffdebbadec8b45",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "['The', ' quick', ' brown', ' fox', ' ']\r\nreps=1  total_tokens=5  chunks=1\r\nreps=2  total_tokens=9  chunks=1\r\nreps=3  total_tokens=13  chunks=2\r\nreps=4  total_tokens=17  chunks=2\r\nreps=5  total_tokens=21  chunks=3\r\nreps=6  total_tokens=25  chunks=4\r\nreps=7  total_tokens=29  chunks=4\r\nreps=8  total_tokens=33  chunks=5\r\nreps=9  total_tokens=37  chunks=5",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_O7IXkpa2N3wERAOHSkH0Ec",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '\nprint([enc.decode([t]) for t in enc.encode(phrase)])  # inspect per-token\n\n# Find a multiplier that gives total > chunk_size + step so we get >= 3 chunks,\n# keeping the arithmetic verifiable in the test.\n# chunk_size=10, overlap=3, step=7\n# We want total such that we can assert n_chunks exactly.\n# total=21: chunks cover [0..9],[7..16],[14..20]  -> 3 chunks\nfor reps in range(1, 10):\n    text = phrase * reps\n    total = len(enc.encode(text))\n    chunk_size, overlap = 10, 3\n    step = chunk_size - overlap\n    # simulate\n    tokens = enc.encode(text)\n    n = 0; start = 0\n    while start < len(tokens):\n        end = start + chunk_size\n        n += 1\n        if end >= len(tokens): break\n        start += step\n    print(f'reps={reps}  total_tokens={total}  chunks={n}')\n\"\n",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '\nprint([enc.decode([t]) for t in enc.encode(phrase)])  # inspect per-token\n\n# Find a multiplier that gives total > chunk_size + step so we get >= 3 chunks,\n# keeping the arithmetic verifiable in the test.\n# chunk_size=10, overlap=3, step=7\n# We want total such that we can assert n_chunks exactly.\n# total=21: chunks cover [0..9],[7..16],[14..20]  -> 3 chunks\nfor reps in range(1, 10):\n    text = phrase * reps\n    total = len(enc.encode(text))\n    chunk_size, overlap = 10, 3\n    step = chunk_size - overlap\n    # simulate\n    tokens = enc.encode(text)\n    n = 0; start = 0\n    while start < len(tokens):\n        end = start + chunk_size\n        n += 1\n        if end >= len(tokens): break\n        start += step\n    print(f'reps={reps}  total_tokens={total}  chunks={n}')\n\""
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -c \"\nimport tiktoken\nenc = tiktoken.get_encoding('cl100k_base')\n\nphrase = 'The quick brown fox '\nprint([enc.decode([t]) for t in enc.encode(phrase)])  # inspect per-token\n\n# Find a multiplier that gives total > chunk_size + step so we get >= 3 chunks,\n# keeping the arithmetic verifiable in the test.\n# chunk_size=10, overlap=3, step=7\n# We want total such that we can assert n_chunks exactly.\n# total=21: chunks cover [0..9],[7..16],[14..20]  -> 3 chunks\nfor reps in range(1, 10):\n    text = phrase * reps\n    total = len(enc.encode(text))\n    chunk_size, overlap = 10, 3\n    step = chunk_size - overlap\n    # simulate\n    tokens = enc.encode(text)\n    n = 0; start = 0\n    while start < len(tokens):\n        end = start + chunk_size\n        n += 1\n        if end >= len(tokens): break\n        start += step\n    print(f'reps={reps}  total_tokens={total}  chunks={n}')\n\"",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 9686,
+              "timestamp": 1783506862133
+            },
+            "id": "b61563aec2615c27e6ffdebbadec8b45"
+          },
+          "createdAt": 1783506862137
+        },
+        {
+          "id": "2e419b116ccbaf7d76b6c6e1f612da5c",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "The arithmetic is now fully nailed down. `phrase * 5 = 21 tokens → 3 chunks`; `phrase * 6 = 25 tokens → 4 chunks`. Both are clean and verifiable. Writing the files now:",
+            "id": "2e419b116ccbaf7d76b6c6e1f612da5c",
+            "_meta": {
+              "timestamp": 1783506864122,
+              "spend": {
+                "input": 24623,
+                "output": 457,
+                "cacheRead": 24045,
+                "cacheWrite": 577,
+                "cost": 0.0627,
+                "contextTokens": 25080,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_CO7z6ofRHLeU9qs9YORFD1",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/chunker.py",
+                  "content": "\"\"\"Token-based sliding-window chunker using tiktoken cl100k_base encoding.\"\"\"\n\nimport tiktoken\n\n# Encoder is loaded once at module import — never inside chunk_text.\n_ENCODER: tiktoken.Encoding = tiktoken.get_encoding(\"cl100k_base\")\n\n\ndef chunk_text(\n    text: str,\n    chunk_size: int = 500,\n    overlap: int = 50,\n) -> list[str]:\n    \"\"\"Split *text* into overlapping token windows and return decoded strings.\"\"\"\n    if chunk_size <= overlap:\n        raise ValueError(f\"chunk_size ({chunk_size}) must be greater than overlap ({overlap})\")\n\n    tokens: list[int] = _ENCODER.encode(text)\n    total: int = len(tokens)\n\n    if total == 0:\n        return []\n\n    step: int = chunk_size - overlap\n    chunks: list[str] = []\n    start: int = 0\n\n    while start < total:\n        window = tokens[start : start + chunk_size]\n        chunks.append(_ENCODER.decode(window))\n        # Stop after the window that reached or passed the end of the token list.\n        if start + chunk_size >= total:\n            break\n        start += step\n\n    return chunks\n",
+                  "line_count": 31
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783507356417
+        },
+        {
+          "id": "f26a1447cb1b857872815d3deb609720",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Created file: ai_pipeline/autoria_ai/extractor/chunker.py\n\n<result>\n\"\"\"Token-based sliding-window chunker using tiktoken cl100k_base encoding.\"\"\"\n\nimport tiktoken\n\n# Encoder is loaded once at module import — never inside chunk_text.\n\n...32 lines truncated. You do not need to re-read the file. The complete file was written successfully. Use read_file if you need to see the full contents.\n</result>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_CO7z6ofRHLeU9qs9YORFD1",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/chunker.py",
+                  "content": "\"\"\"Token-based sliding-window chunker using tiktoken cl100k_base encoding.\"\"\"\n\nimport tiktoken\n\n# Encoder is loaded once at module import — never inside chunk_text.\n_ENCODER: tiktoken.Encoding = tiktoken.get_encoding(\"cl100k_base\")\n\n\ndef chunk_text(\n    text: str,\n    chunk_size: int = 500,\n    overlap: int = 50,\n) -> list[str]:\n    \"\"\"Split *text* into overlapping token windows and return decoded strings.\"\"\"\n    if chunk_size <= overlap:\n        raise ValueError(f\"chunk_size ({chunk_size}) must be greater than overlap ({overlap})\")\n\n    tokens: list[int] = _ENCODER.encode(text)\n    total: int = len(tokens)\n\n    if total == 0:\n        return []\n\n    step: int = chunk_size - overlap\n    chunks: list[str] = []\n    start: int = 0\n\n    while start < total:\n        window = tokens[start : start + chunk_size]\n        chunks.append(_ENCODER.decode(window))\n        # Stop after the window that reached or passed the end of the token list.\n        if start + chunk_size >= total:\n            break\n        start += step\n\n    return chunks\n",
+                  "line_count": 31
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Write File {path}",
+                "error": "Failed to write file {path}",
+                "running": "Writing file {path}",
+                "success": "Wrote file {path}",
+                "runningLong": [
+                  "Still writing...",
+                  "Writing takes time...",
+                  "Nearly written...",
+                  "A lot of content to write...",
+                  "Committing every character...",
+                  "Writing like my life depends on it..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/chunker.py": {
+                  "before": "",
+                  "after": "\"\"\"Token-based sliding-window chunker using tiktoken cl100k_base encoding.\"\"\"\n\nimport tiktoken\n\n# Encoder is loaded once at module import — never inside chunk_text.\n_ENCODER: tiktoken.Encoding = tiktoken.get_encoding(\"cl100k_base\")\n\n\ndef chunk_text(\n    text: str,\n    chunk_size: int = 500,\n    overlap: int = 50,\n) -> list[str]:\n    \"\"\"Split *text* into overlapping token windows and return decoded strings.\"\"\"\n    if chunk_size <= overlap:\n        raise ValueError(f\"chunk_size ({chunk_size}) must be greater than overlap ({overlap})\")\n\n    tokens: list[int] = _ENCODER.encode(text)\n    total: int = len(tokens)\n\n    if total == 0:\n        return []\n\n    step: int = chunk_size - overlap\n    chunks: list[str] = []\n    start: int = 0\n\n    while start < total:\n        window = tokens[start : start + chunk_size]\n        chunks.append(_ENCODER.decode(window))\n        # Stop after the window that reached or passed the end of the token list.\n        if start + chunk_size >= total:\n            break\n        start += step\n\n    return chunks\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/chunker.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/chunker.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/chunker.py\n@@ -0,0 +1,36 @@\n+\"\"\"Token-based sliding-window chunker using tiktoken cl100k_base encoding.\"\"\"\n+\n+import tiktoken\n+\n+# Encoder is loaded once at module import — never inside chunk_text.\n+_ENCODER: tiktoken.Encoding = tiktoken.get_encoding(\"cl100k_base\")\n+\n+\n+def chunk_text(\n+    text: str,\n+    chunk_size: int = 500,\n+    overlap: int = 50,\n+) -> list[str]:\n+    \"\"\"Split *text* into overlapping token windows and return decoded strings.\"\"\"\n+    if chunk_size <= overlap:\n+        raise ValueError(f\"chunk_size ({chunk_size}) must be greater than overlap ({overlap})\")\n+\n+    tokens: list[int] = _ENCODER.encode(text)\n+    total: int = len(tokens)\n+\n+    if total == 0:\n+        return []\n+\n+    step: int = chunk_size - overlap\n+    chunks: list[str] = []\n+    start: int = 0\n+\n+    while start < total:\n+        window = tokens[start : start + chunk_size]\n+        chunks.append(_ENCODER.decode(window))\n+        # Stop after the window that reached or passed the end of the token list.\n+        if start + chunk_size >= total:\n+            break\n+        start += step\n+\n+    return chunks\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/chunker.py": 1783507355399
+              },
+              "durationMs": 486773,
+              "timestamp": 1783507356417
+            },
+            "id": "f26a1447cb1b857872815d3deb609720"
+          },
+          "createdAt": 1783507356420
+        },
+        {
+          "id": "072a0e62a4c8db4cb44d0d4199c9df21",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now append the chunker tests to [`test_smoke.py`](ai_pipeline/tests/test_smoke.py):",
+            "id": "072a0e62a4c8db4cb44d0d4199c9df21",
+            "_meta": {
+              "timestamp": 1783507369185,
+              "spend": {
+                "input": 27065,
+                "output": 95,
+                "cacheRead": 25197,
+                "cacheWrite": 1867,
+                "cost": 0.0679,
+                "contextTokens": 27160,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_xhY1KJ831P1nQ2R2QJsBj2",
+                "name": "apply_diff",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py",
+                  "diff": "<<<<<<< SEARCH\n:start_line:1\n-------\n\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\n=======\n\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\nfrom autoria_ai.extractor.chunker import chunk_text\n>>>>>>> REPLACE\n\n<<<<<<< SEARCH\n:start_line:55\n-------\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n=======\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n\n\n# ── chunker ──────────────────────────────────────────────────────────────────\n#\n# Test corpus: \"The quick brown fox \" repeated N times.\n# tiktoken cl100k_base tokenizes this phrase as exactly 5 tokens per repetition:\n#   [\"The\", \" quick\", \" brown\", \" fox\", \" \"]\n# So:\n#   5 reps  → 21 tokens  → chunk_size=10, overlap=3, step=7\n#             windows: [0..9], [7..16], [14..20]  → 3 chunks\n#   6 reps  → 25 tokens  → windows: [0..9],[7..16],[14..23],[21..24] → 4 chunks\n\n_PHRASE = \"The quick brown fox \"  # 5 tokens/rep (cl100k_base)\n\n\ndef test_chunk_text_correct_chunk_count() -> None:\n    # 5 reps × 5 tokens = 21 total tokens; chunk_size=10, overlap=3 → 3 chunks.\n    text = _PHRASE * 5\n    chunks = chunk_text(text, chunk_size=10, overlap=3)\n    assert len(chunks) == 3\n\n\ndef test_chunk_text_overlap_between_consecutive_chunks() -> None:\n    # 6 reps × 5 tokens = 25 total tokens → 4 chunks.\n    # The last `overlap` decoded tokens of chunk[i] must equal\n    # the first `overlap` decoded tokens of chunk[i+1].\n    import tiktoken\n\n    enc = tiktoken.get_encoding(\"cl100k_base\")\n    text = _PHRASE * 6\n    overlap = 3\n    chunks = chunk_text(text, chunk_size=10, overlap=overlap)\n\n    assert len(chunks) == 4  # verifies the test corpus is correctly constructed\n\n    for i in range(len(chunks) - 1):\n        tail_tokens = enc.encode(chunks[i])[-overlap:]\n        head_tokens = enc.encode(chunks[i + 1])[:overlap]\n        assert tail_tokens == head_tokens, (\n            f\"Overlap mismatch between chunk {i} and chunk {i + 1}\"\n        )\n\n\ndef test_chunk_text_returns_strings_not_token_ids() -> None:\n    chunks = chunk_text(_PHRASE * 3, chunk_size=10, overlap=3)\n    for chunk in chunks:\n        assert isinstance(chunk, str)\n\n\ndef test_chunk_text_empty_input_returns_empty_list() -> None:\n    assert chunk_text(\"\") == []\n>>>>>>> REPLACE\n"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_fWJJGIXQ4j1a9OcL1TMApk",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "pip install --quiet pytest; python -m pytest tests/test_smoke.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1783507393955
+        },
+        {
+          "id": "a13ba3e5c295df525947628e65d40e56",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Edited file: ai_pipeline/tests/test_smoke.py\n\nYou do not need to re-read the file, as you have seen all changes.\nProceed with the task using these changes as the new baseline.\n\nIf the user's edits have addressed part of the task or changed the requirements, adjust your approach accordingly.\n\nPatch of edit:\n\n<patch>\n@@ -1,7 +1,8 @@\n \"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n \n from autoria_ai.extractor.cleaner import clean_text\n+from autoria_ai.extractor.chunker import chunk_text\n \n \n # ── cleaner ──────────────────────────────────────────────────────────────────\n \n@@ -52,4 +53,55 @@\n     # At most one blank line between paragraphs (two consecutive \\n characters).\n     assert \"\\n\\n\\n\" not in result\n     assert \"Line one.\" in result\n     assert \"Line two.\" in result\n+\n+\n+# ── chunker ──────────────────────────────────────────────────────────────────\n+#\n+# Test corpus: \"The quick brown fox \" repeated N times.\n+# tiktoken cl100k_base tokenizes this phrase as exactly 5 tokens per repetition:\n+#   [\"The\", \" quick\", \" brown\", \" fox\", \" \"]\n+# So:\n+#   5 reps  → 21 tokens  → chunk_size=10, overlap=3, step=7\n+#             windows: [0..9], [7..16], [14..20]  → 3 chunks\n+#   6 reps  → 25 tokens  → windows: [0..9],[7..16],[14..23],[21..24] → 4 chunks\n+\n+_PHRASE = \"The quick brown fox \"  # 5 tokens/rep (cl100k_base)\n+\n+\n+def test_chunk_text_correct_chunk_count() -> None:\n+    # 5 reps × 5 tokens = 21 total tokens; chunk_size=10, overlap=3 → 3 chunks.\n+    text = _PHRASE * 5\n+    chunks = chunk_text(text, chunk_size=10, overlap=3)\n+    assert len(chunks) == 3\n+\n+\n+def test_chunk_text_overlap_between_consecutive_chunks() -> None:\n+    # 6 reps × 5 tokens = 25 total tokens → 4 chunks.\n+    # The last `overlap` decoded tokens of chunk[i] must equal\n+    # the first `overlap` decoded tokens of chunk[i+1].\n+    import tiktoken\n+\n+    enc = tiktoken.get_encoding(\"cl100k_base\")\n+    text = _PHRASE * 6\n+    overlap = 3\n+    chunks = chunk_text(text, chunk_size=10, overlap=overlap)\n+\n+    assert len(chunks) == 4  # verifies the test corpus is correctly constructed\n+\n+    for i in range(len(chunks) - 1):\n+        tail_tokens = enc.encode(chunks[i])[-overlap:]\n+        head_tokens = enc.encode(chunks[i + 1])[:overlap]\n+        assert tail_tokens == head_tokens, (\n+            f\"Overlap mismatch between chunk {i} and chunk {i + 1}\"\n+        )\n+\n+\n+def test_chunk_text_returns_strings_not_token_ids() -> None:\n+    chunks = chunk_text(_PHRASE * 3, chunk_size=10, overlap=3)\n+    for chunk in chunks:\n+        assert isinstance(chunk, str)\n+\n+\n+def test_chunk_text_empty_input_returns_empty_list() -> None:\n+    assert chunk_text(\"\") == []\n\n</patch>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_xhY1KJ831P1nQ2R2QJsBj2",
+                "name": "apply_diff",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py",
+                  "diff": "<<<<<<< SEARCH\n:start_line:1\n-------\n\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\n=======\n\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\nfrom autoria_ai.extractor.chunker import chunk_text\n>>>>>>> REPLACE\n\n<<<<<<< SEARCH\n:start_line:55\n-------\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n=======\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n\n\n# ── chunker ──────────────────────────────────────────────────────────────────\n#\n# Test corpus: \"The quick brown fox \" repeated N times.\n# tiktoken cl100k_base tokenizes this phrase as exactly 5 tokens per repetition:\n#   [\"The\", \" quick\", \" brown\", \" fox\", \" \"]\n# So:\n#   5 reps  → 21 tokens  → chunk_size=10, overlap=3, step=7\n#             windows: [0..9], [7..16], [14..20]  → 3 chunks\n#   6 reps  → 25 tokens  → windows: [0..9],[7..16],[14..23],[21..24] → 4 chunks\n\n_PHRASE = \"The quick brown fox \"  # 5 tokens/rep (cl100k_base)\n\n\ndef test_chunk_text_correct_chunk_count() -> None:\n    # 5 reps × 5 tokens = 21 total tokens; chunk_size=10, overlap=3 → 3 chunks.\n    text = _PHRASE * 5\n    chunks = chunk_text(text, chunk_size=10, overlap=3)\n    assert len(chunks) == 3\n\n\ndef test_chunk_text_overlap_between_consecutive_chunks() -> None:\n    # 6 reps × 5 tokens = 25 total tokens → 4 chunks.\n    # The last `overlap` decoded tokens of chunk[i] must equal\n    # the first `overlap` decoded tokens of chunk[i+1].\n    import tiktoken\n\n    enc = tiktoken.get_encoding(\"cl100k_base\")\n    text = _PHRASE * 6\n    overlap = 3\n    chunks = chunk_text(text, chunk_size=10, overlap=overlap)\n\n    assert len(chunks) == 4  # verifies the test corpus is correctly constructed\n\n    for i in range(len(chunks) - 1):\n        tail_tokens = enc.encode(chunks[i])[-overlap:]\n        head_tokens = enc.encode(chunks[i + 1])[:overlap]\n        assert tail_tokens == head_tokens, (\n            f\"Overlap mismatch between chunk {i} and chunk {i + 1}\"\n        )\n\n\ndef test_chunk_text_returns_strings_not_token_ids() -> None:\n    chunks = chunk_text(_PHRASE * 3, chunk_size=10, overlap=3)\n    for chunk in chunks:\n        assert isinstance(chunk, str)\n\n\ndef test_chunk_text_empty_input_returns_empty_list() -> None:\n    assert chunk_text(\"\") == []\n>>>>>>> REPLACE\n"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Apply Diff to {path}",
+                "error": "Failed to apply diff to {path}",
+                "running": "Applying diff to {path}",
+                "success": "Applied diff to {path}",
+                "runningLong": [
+                  "Still applying...",
+                  "Working through the diff...",
+                  "Nearly patched...",
+                  "Lots of changes to apply...",
+                  "Surgically applying edits...",
+                  "This diff is no small feat..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py": {
+                  "before": "\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\n\n\n# ── cleaner ──────────────────────────────────────────────────────────────────\n\n_PG_SAMPLE = \"\"\"\\\nThis is a Project Gutenberg header that should be removed.\nSome licensing blurb that nobody wants.\n\n*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nIt is a truth universally acknowledged.\n\nShe had a lively, playful disposition.\n\n\"What a fine thing for our girls!\"\n\nThe door was opened--and a tall man entered.\n\n*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nProducer notes and end matter that should be removed.\n\"\"\"\n\n\ndef test_clean_text_strips_pg_header_and_footer() -> None:\n    result = clean_text(_PG_SAMPLE)\n    assert \"universally acknowledged\" in result\n    assert \"START OF THE PROJECT GUTENBERG\" not in result\n    assert \"END OF THE PROJECT GUTENBERG\" not in result\n    assert \"Producer notes\" not in result\n    assert \"licensing blurb\" not in result\n\n\ndef test_clean_text_normalizes_curly_quotes() -> None:\n    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n    assert '\"Hello,\"' in result\n    assert \"\\u201c\" not in result\n    assert \"\\u201d\" not in result\n\n\ndef test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n    result = clean_text(\"He paused--then spoke.\")\n    assert \"\\u2014\" in result  # em-dash present\n    assert \"--\" not in result\n\n\ndef test_clean_text_collapses_multiple_blank_lines() -> None:\n    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n    # At most one blank line between paragraphs (two consecutive \\n characters).\n    assert \"\\n\\n\\n\" not in result\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n",
+                  "after": "\"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n\nfrom autoria_ai.extractor.cleaner import clean_text\nfrom autoria_ai.extractor.chunker import chunk_text\n\n\n# ── cleaner ──────────────────────────────────────────────────────────────────\n\n_PG_SAMPLE = \"\"\"\\\nThis is a Project Gutenberg header that should be removed.\nSome licensing blurb that nobody wants.\n\n*** START OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nIt is a truth universally acknowledged.\n\nShe had a lively, playful disposition.\n\n\"What a fine thing for our girls!\"\n\nThe door was opened--and a tall man entered.\n\n*** END OF THE PROJECT GUTENBERG EBOOK EMMA ***\n\nProducer notes and end matter that should be removed.\n\"\"\"\n\n\ndef test_clean_text_strips_pg_header_and_footer() -> None:\n    result = clean_text(_PG_SAMPLE)\n    assert \"universally acknowledged\" in result\n    assert \"START OF THE PROJECT GUTENBERG\" not in result\n    assert \"END OF THE PROJECT GUTENBERG\" not in result\n    assert \"Producer notes\" not in result\n    assert \"licensing blurb\" not in result\n\n\ndef test_clean_text_normalizes_curly_quotes() -> None:\n    result = clean_text(\"\\u201cHello,\\u201d she said.\")\n    assert '\"Hello,\"' in result\n    assert \"\\u201c\" not in result\n    assert \"\\u201d\" not in result\n\n\ndef test_clean_text_normalizes_double_dash_to_em_dash() -> None:\n    result = clean_text(\"He paused--then spoke.\")\n    assert \"\\u2014\" in result  # em-dash present\n    assert \"--\" not in result\n\n\ndef test_clean_text_collapses_multiple_blank_lines() -> None:\n    result = clean_text(\"Line one.\\n\\n\\n\\n\\nLine two.\")\n    # At most one blank line between paragraphs (two consecutive \\n characters).\n    assert \"\\n\\n\\n\" not in result\n    assert \"Line one.\" in result\n    assert \"Line two.\" in result\n\n\n# ── chunker ──────────────────────────────────────────────────────────────────\n#\n# Test corpus: \"The quick brown fox \" repeated N times.\n# tiktoken cl100k_base tokenizes this phrase as exactly 5 tokens per repetition:\n#   [\"The\", \" quick\", \" brown\", \" fox\", \" \"]\n# So:\n#   5 reps  → 21 tokens  → chunk_size=10, overlap=3, step=7\n#             windows: [0..9], [7..16], [14..20]  → 3 chunks\n#   6 reps  → 25 tokens  → windows: [0..9],[7..16],[14..23],[21..24] → 4 chunks\n\n_PHRASE = \"The quick brown fox \"  # 5 tokens/rep (cl100k_base)\n\n\ndef test_chunk_text_correct_chunk_count() -> None:\n    # 5 reps × 5 tokens = 21 total tokens; chunk_size=10, overlap=3 → 3 chunks.\n    text = _PHRASE * 5\n    chunks = chunk_text(text, chunk_size=10, overlap=3)\n    assert len(chunks) == 3\n\n\ndef test_chunk_text_overlap_between_consecutive_chunks() -> None:\n    # 6 reps × 5 tokens = 25 total tokens → 4 chunks.\n    # The last `overlap` decoded tokens of chunk[i] must equal\n    # the first `overlap` decoded tokens of chunk[i+1].\n    import tiktoken\n\n    enc = tiktoken.get_encoding(\"cl100k_base\")\n    text = _PHRASE * 6\n    overlap = 3\n    chunks = chunk_text(text, chunk_size=10, overlap=overlap)\n\n    assert len(chunks) == 4  # verifies the test corpus is correctly constructed\n\n    for i in range(len(chunks) - 1):\n        tail_tokens = enc.encode(chunks[i])[-overlap:]\n        head_tokens = enc.encode(chunks[i + 1])[:overlap]\n        assert tail_tokens == head_tokens, (\n            f\"Overlap mismatch between chunk {i} and chunk {i + 1}\"\n        )\n\n\ndef test_chunk_text_returns_strings_not_token_ids() -> None:\n    chunks = chunk_text(_PHRASE * 3, chunk_size=10, overlap=3)\n    for chunk in chunks:\n        assert isinstance(chunk, str)\n\n\ndef test_chunk_text_empty_input_returns_empty_list() -> None:\n    assert chunk_text(\"\") == []\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py\n@@ -1,7 +1,8 @@\n \"\"\"Smoke tests: happy-path coverage for cleaner and chunker.\"\"\"\n \n from autoria_ai.extractor.cleaner import clean_text\n+from autoria_ai.extractor.chunker import chunk_text\n \n \n # ── cleaner ──────────────────────────────────────────────────────────────────\n \n@@ -52,4 +53,55 @@\n     # At most one blank line between paragraphs (two consecutive \\n characters).\n     assert \"\\n\\n\\n\" not in result\n     assert \"Line one.\" in result\n     assert \"Line two.\" in result\n+\n+\n+# ── chunker ──────────────────────────────────────────────────────────────────\n+#\n+# Test corpus: \"The quick brown fox \" repeated N times.\n+# tiktoken cl100k_base tokenizes this phrase as exactly 5 tokens per repetition:\n+#   [\"The\", \" quick\", \" brown\", \" fox\", \" \"]\n+# So:\n+#   5 reps  → 21 tokens  → chunk_size=10, overlap=3, step=7\n+#             windows: [0..9], [7..16], [14..20]  → 3 chunks\n+#   6 reps  → 25 tokens  → windows: [0..9],[7..16],[14..23],[21..24] → 4 chunks\n+\n+_PHRASE = \"The quick brown fox \"  # 5 tokens/rep (cl100k_base)\n+\n+\n+def test_chunk_text_correct_chunk_count() -> None:\n+    # 5 reps × 5 tokens = 21 total tokens; chunk_size=10, overlap=3 → 3 chunks.\n+    text = _PHRASE * 5\n+    chunks = chunk_text(text, chunk_size=10, overlap=3)\n+    assert len(chunks) == 3\n+\n+\n+def test_chunk_text_overlap_between_consecutive_chunks() -> None:\n+    # 6 reps × 5 tokens = 25 total tokens → 4 chunks.\n+    # The last `overlap` decoded tokens of chunk[i] must equal\n+    # the first `overlap` decoded tokens of chunk[i+1].\n+    import tiktoken\n+\n+    enc = tiktoken.get_encoding(\"cl100k_base\")\n+    text = _PHRASE * 6\n+    overlap = 3\n+    chunks = chunk_text(text, chunk_size=10, overlap=overlap)\n+\n+    assert len(chunks) == 4  # verifies the test corpus is correctly constructed\n+\n+    for i in range(len(chunks) - 1):\n+        tail_tokens = enc.encode(chunks[i])[-overlap:]\n+        head_tokens = enc.encode(chunks[i + 1])[:overlap]\n+        assert tail_tokens == head_tokens, (\n+            f\"Overlap mismatch between chunk {i} and chunk {i + 1}\"\n+        )\n+\n+\n+def test_chunk_text_returns_strings_not_token_ids() -> None:\n+    chunks = chunk_text(_PHRASE * 3, chunk_size=10, overlap=3)\n+    for chunk in chunks:\n+        assert isinstance(chunk, str)\n+\n+\n+def test_chunk_text_empty_input_returns_empty_list() -> None:\n+    assert chunk_text(\"\") == []\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_smoke.py": 1783507392937
+              },
+              "durationMs": 24504,
+              "timestamp": 1783507393954
+            },
+            "id": "a13ba3e5c295df525947628e65d40e56"
+          },
+          "createdAt": 1783507393958
+        },
+        {
+          "id": "51d352e8c0a38964cad15d4aeca5e273",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "============================= test session starts =============================\r\nplatform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.venv\\Scripts\\python.exe\r\ncachedir: .pytest_cache\r\nrootdir: C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\ai_pipeline\r\nconfigfile: pyproject.toml\r\nplugins: anyio-4.14.1\r\ncollecting ... collected 8 items\r\n\r\ntests/test_smoke.py::test_clean_text_strips_pg_header_and_footer PASSED  [ 12%]\r\ntests/test_smoke.py::test_clean_text_normalizes_curly_quotes PASSED      [ 25%]\r\ntests/test_smoke.py::test_clean_text_normalizes_double_dash_to_em_dash PASSED [ 37%]\r\ntests/test_smoke.py::test_clean_text_collapses_multiple_blank_lines PASSED [ 50%]\r\ntests/test_smoke.py::test_chunk_text_correct_chunk_count PASSED          [ 62%]\r\ntests/test_smoke.py::test_chunk_text_overlap_between_consecutive_chunks PASSED [ 75%]\r\ntests/test_smoke.py::test_chunk_text_returns_strings_not_token_ids PASSED [ 87%]\r\ntests/test_smoke.py::test_chunk_text_empty_input_returns_empty_list PASSED [100%]\r\n\r\n============================== 8 passed in 0.17s ==============================\n\nStderr:\n[notice] A new release of pip is available: 25.3 -> 26.1.2\r\n[notice] To update, run: python.exe -m pip install --upgrade pip",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_fWJJGIXQ4j1a9OcL1TMApk",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "pip install --quiet pytest; python -m pytest tests/test_smoke.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "pip install --quiet pytest",
+                  "python -m pytest tests/test_smoke.py -v 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "pip install --quiet pytest",
+                  "pip",
+                  "python -m pytest tests/test_smoke.py -v 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 13997,
+              "timestamp": 1783507410227
+            },
+            "id": "51d352e8c0a38964cad15d4aeca5e273"
+          },
+          "createdAt": 1783507410227
+        },
+        {
+          "id": "019b1e14f6be3bf85f00d43a5bbee108",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "8/8 pass. Here is a precise account of every decision.\n\n---\n\n## [`chunker.py`](ai_pipeline/autoria_ai/extractor/chunker.py) — design decisions\n\n### Module-level encoder\n\n```python\n_ENCODER: tiktoken.Encoding = tiktoken.get_encoding(\"cl100k_base\")\n```\n\n`get_encoding` downloads the vocabulary on first call and caches it on disk. Calling it at module import (not inside the function) means it runs once per Python process — a hard requirement from the spec and mirroring how spaCy's model is loaded.\n\n### Sliding-window loop\n\n```\nstep = chunk_size - overlap          # e.g. 500 − 50 = 450\nwindow = tokens[start : start + chunk_size]\nstart += step                        # only if not at end\n```\n\nThe termination condition `if start + chunk_size >= total: break` is checked **after** appending the window, not before. This guarantees the final (possibly short) tail chunk is always included and the loop doesn't overshoot by adding one empty window after the end.\n\nThe guard `if chunk_size <= overlap` fails fast with a `ValueError` — the only configuration that would produce an infinite loop (step ≤ 0), and the only place defensive code is warranted.\n\n---\n\n## Tests added to [`test_smoke.py`](ai_pipeline/tests/test_smoke.py)\n\nThe test corpus was chosen by running tiktoken interactively first. `\"The quick brown fox \"` tokenizes as exactly **5 tokens** per repetition under `cl100k_base`, making the arithmetic derivable from first principles:\n\n| Test | Corpus | Tokens | Expected | What it proves |\n|---|---|---|---|---|\n| `test_chunk_text_correct_chunk_count` | phrase × 5 | 21 | 3 chunks | Sliding window produces the mathematically correct number of windows |\n| `test_chunk_text_overlap_between_consecutive_chunks` | phrase × 6 | 25 | 4 chunks; tail[i] == head[i+1] | The `overlap` tokens at the seam are byte-for-byte identical — verified by re-encoding each decoded chunk |\n| `test_chunk_text_returns_strings_not_token_ids` | phrase × 3 | — | all `str` | `_ENCODER.decode()` was called, not just token ids returned |\n| `test_chunk_text_empty_input_returns_empty_list` | `\"\"` | 0 | `[]` | Zero-length edge case doesn't crash |",
+            "id": "019b1e14f6be3bf85f00d43a5bbee108",
+            "_meta": {
+              "timestamp": 1783507412591,
+              "spend": {
+                "input": 27641,
+                "output": 617,
+                "cacheRead": 25197,
+                "cacheWrite": 2443,
+                "cost": 0.070645,
+                "contextTokens": 28258,
+                "reasoningTokens": 0
+              }
+            },
+            "stop": true
+          },
+          "createdAt": 1783507423796
+        }
+      ]
+    }
+  ]
+}

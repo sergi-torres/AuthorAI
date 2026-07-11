@@ -519,11 +519,8 @@ components:
 
     LexicalFeatures:
       type: object
-      required: [ttr, mattr_500, avg_word_length, hapax_ratio]
+      required: [mattr_500, avg_word_length, hapax_ratio]
       properties:
-        ttr:
-          type: number
-          description: Type-Token Ratio
         mattr_500:
           type: number
           description: Moving Average TTR (window 500)
@@ -538,7 +535,7 @@ components:
         - avg_sentence_length_tokens
         - std_sentence_length_tokens
         - subordination_ratio
-        - avg_dep_tree_depth
+        - passive_voice_ratio
         - noun_to_verb_ratio
       properties:
         avg_sentence_length_tokens:
@@ -547,14 +544,19 @@ components:
           type: number
         subordination_ratio:
           type: number
-        avg_dep_tree_depth:
-          type: number
         noun_to_verb_ratio:
           type: number
-
+        passive_voice_ratio:
+          type: number
     StylisticFeatures:
       type: object
-      required: [punct_distribution, pos_distribution, discourse_markers]
+      required:
+        [
+          punct_distribution,
+          pos_distribution,
+          dialogue_ratio,
+          first_person_ratio,
+        ]
       properties:
         punct_distribution:
           type: object
@@ -566,11 +568,12 @@ components:
           additionalProperties:
             type: number
           description: Relative frequency per POS tag (spaCy labels)
-        discourse_markers:
-          type: array
-          items:
-            type: string
-
+        dialogue_ratio:
+          type: number
+          description: Fraction of sentences that are dialogue (heuristic)
+        first_person_ratio:
+          type: number
+          description: Fraction of sentences with first-person pronouns (heuristic)
     DistinctiveTerm:
       type: object
       required: [term, score]
