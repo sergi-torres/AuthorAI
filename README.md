@@ -153,7 +153,7 @@ Prerequisites: **Python 3.11**, **Node 20+**, **Docker Desktop**.
 
 ```bash
 # 1. Clone
-git clone https://github.com/<owner>/autorIA.git
+git clone https://github.com/sergi-torres/AuthorAI.git
 cd autorIA
 
 # 2. Copy env template and fill in real values (Watsonx API key, etc.)
