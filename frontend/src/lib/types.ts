@@ -18,3 +18,25 @@ export interface AuthorCardData extends AuthorSummary {
   /** Short public-domain bio snippet shown on the selector card. */
   bio: string;
 }
+
+/** Mirrors DocumentUploadAccepted in api_contract.yaml — 202 from document upload. */
+export interface DocumentUploadAccepted {
+  document_id: string;
+  /** Async pipeline state; poll style-profile until recomputed. */
+  status: "processing";
+}
+
+/** Mirrors GenerationOutput in api_contract.yaml — one branch of POST /generate. */
+export interface GenerationOutput {
+  text: string;
+  /** Style fit vs target StyleProfile, integer 0–100. */
+  fit_score: number;
+  latency_ms: number;
+}
+
+/** Mirrors DistinctiveTerm in api_contract.yaml (StyleProfile.distinctive_vocab items). */
+export interface DistinctiveTerm {
+  term: string;
+  /** TF-IDF score vs reference corpus. */
+  score: number;
+}

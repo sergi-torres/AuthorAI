@@ -1,3 +1,4 @@
+import { AddAuthorCard } from "@/components/AddAuthorCard";
 import { AuthorCard } from "@/components/AuthorCard";
 import type { AuthorCardData } from "@/lib/types";
 
@@ -16,6 +17,9 @@ export function AuthorGrid({ authors }: AuthorGridProps) {
           <AuthorCard author={author} />
         </li>
       ))}
+      <li>
+        <AddAuthorCard />
+      </li>
     </ul>
   );
 }

@@ -1,3 +1,5 @@
+import { listAuthors } from "@/lib/api";
+import { en } from "@/lib/i18n/en";
 import type { AuthorCardData } from "@/lib/types";
 
 /**
@@ -34,3 +36,20 @@ export const AUTHORS: AuthorCardData[] = [
 /** Indexed by id for fast lookup in dynamic route pages. */
 export const AUTHORS_BY_ID: Readonly<Record<string, AuthorCardData>> =
   Object.fromEntries(AUTHORS.map((a) => [a.id, a]));
+
+/**
+ * Live author list: GET /api/authors merged with seed bios, falling back to
+ * the seed constant when the API is unreachable (demo-safe — the selector
+ * must never render empty because the backend is down).
+ */
+export async function getAuthorCards(): Promise<AuthorCardData[]> {
+  try {
+    const summaries = await listAuthors();
+    return summaries.map((summary) => ({
+      ...summary,
+      bio: AUTHORS_BY_ID[summary.id]?.bio ?? en.addAuthor.customBio,
+    }));
+  } catch {
+    return AUTHORS;
+  }
+}
