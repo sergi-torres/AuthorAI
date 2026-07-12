@@ -1,8 +1,11 @@
 """Smoke tests: happy-path coverage for cleaner and chunker."""
 
-from autoria_ai.extractor.cleaner import clean_text
-from autoria_ai.extractor.chunker import chunk_text
+import pytest
+import spacy
 
+from autoria_ai.extractor.chunker import chunk_text
+from autoria_ai.extractor.cleaner import clean_text
+from autoria_ai.extractor.lexical import compute_lexical
 
 # ── cleaner ──────────────────────────────────────────────────────────────────
 
@@ -70,14 +73,14 @@ _PHRASE = "The quick brown fox "  # 5 tokens/rep (cl100k_base)
 
 
 def test_chunk_text_correct_chunk_count() -> None:
-    # 5 reps × 5 tokens = 21 total tokens; chunk_size=10, overlap=3 → 3 chunks.
+    # 5 reps x 5 tokens = 21 total tokens; chunk_size=10, overlap=3 -> 3 chunks.
     text = _PHRASE * 5
     chunks = chunk_text(text, chunk_size=10, overlap=3)
     assert len(chunks) == 3
 
 
 def test_chunk_text_overlap_between_consecutive_chunks() -> None:
-    # 6 reps × 5 tokens = 25 total tokens → 4 chunks.
+    # 6 reps x 5 tokens = 25 total tokens -> 4 chunks.
     # The last `overlap` decoded tokens of chunk[i] must equal
     # the first `overlap` decoded tokens of chunk[i+1].
     import tiktoken  # type: ignore[import-untyped]
@@ -92,9 +95,7 @@ def test_chunk_text_overlap_between_consecutive_chunks() -> None:
     for i in range(len(chunks) - 1):
         tail_tokens = enc.encode(chunks[i])[-overlap:]
         head_tokens = enc.encode(chunks[i + 1])[:overlap]
-        assert tail_tokens == head_tokens, (
-            f"Overlap mismatch between chunk {i} and chunk {i + 1}"
-        )
+        assert tail_tokens == head_tokens, f"Overlap mismatch between chunk {i} and chunk {i + 1}"
 
 
 def test_chunk_text_returns_strings_not_token_ids() -> None:
@@ -112,11 +113,6 @@ def test_chunk_text_empty_input_returns_empty_list() -> None:
 # Lemmatization requires a real model.  We load en_core_web_lg (already a
 # project dependency) once at module level.  Tests that do NOT need lemmas use
 # spacy.blank("en") so they remain fast even if the large model is unavailable.
-
-import pytest
-import spacy
-
-from autoria_ai.extractor.lexical import compute_lexical
 
 _NLP_BLANK = spacy.blank("en")
 _NLP_FULL = spacy.load("en_core_web_lg")  # needed for lemma_ tests
@@ -155,8 +151,8 @@ def test_lexical_short_doc_under_500_tokens() -> None:
     # Use full model so lemma_ is populated and hapax_ratio is meaningful.
     text = "alpha bravo charlie delta echo foxtrot golf hotel india juliet"
     result = compute_lexical(_doc_full(text))
-    assert REQUIRED_KEYS == result.keys()
-    # All 10 lemmas appear once → hapax_ratio == 1.0
+    assert result.keys() == REQUIRED_KEYS
+    # All 10 lemmas appear once -> hapax_ratio == 1.0
     assert result["hapax_ratio"] == pytest.approx(1.0)
     # Single window → plain TTR == 1.0 (all unique)
     assert result["mattr_500"] == pytest.approx(1.0)
@@ -170,7 +166,7 @@ def test_lexical_short_doc_under_500_tokens() -> None:
 def test_lexical_return_type_is_dict_of_floats() -> None:
     result = compute_lexical(_doc("The quick brown fox jumps over the lazy dog."))
     assert isinstance(result, dict)
-    assert REQUIRED_KEYS == result.keys()
+    assert result.keys() == REQUIRED_KEYS
     for v in result.values():
         assert isinstance(v, float)
 
