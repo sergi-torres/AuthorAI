@@ -198,11 +198,11 @@ Stroke width default. Icons always accompany, never replace, a label. Canonical 
 | `AuthorGrid` | 1 | `/` | populated, empty | 3-col desktop; last slot = `AddAuthorCard` |
 | `AddAuthorCard` | 1 ✅ | `/` | idle, editing, submitting, success, error | Dashed card → inline name + .txt/.md upload form |
 | `ThemeToggle` | 1 ✅ | all (header) | light, dark | CSS-only icon swap; pre-paint init script in layout |
-| `StyleDnaPanel` | 1 | studio | loading, error, ready, collapsed | Collapsible wrapper; owns fetch states |
-| `StyleRadarChart` | 1 | studio | ready | Recharts radar, 6 axes normalized [0,1], series = `--chart-*` |
-| `StyleScatter2D` | 1 | studio | ready | UMAP clusters; selected author's cluster in its voice color, others muted |
-| `MetricChip` | 1 | studio | ready | `font-mono` value + sans label |
-| `EmptyState` | 1 | all | — | Icon + one line + optional action |
+| `StyleDnaPanel` | 1 ✅ | studio | loading, empty, error, ready, collapsed | Collapsible wrapper; owns fetch states |
+| `StyleRadarChart` | 1 ✅ | studio | ready | Recharts radar, 6 axes normalized [0,1], series = `--chart-*` |
+| `StyleScatter2D` | 1 ✅ | studio | ready | UMAP clusters; selected author's cluster in its voice color, others muted |
+| `MetricChip` | 1 ✅ | studio | ready | `font-mono` value + sans label |
+| `EmptyState` | 1 ✅ | all | — | Icon + one line + optional action |
 | `LoadingSkeleton` | 1 | all | — | Pulsing muted bars; pattern shown in `AuthorColumn` |
 | `PromptComposer` | 2 | studio | idle, submitting, disabled | Textarea + Generate (primary button) |
 | `AuthorColumn` | 2 ✅ | studio | loading, success, error, timeout | Built — the reference implementation |
@@ -271,3 +271,6 @@ The devices that make vanilla vs AutorIA legible without reading a word, in prio
 | 2026-07-12 | Hand-rolled dark-mode toggle (no next-themes) | One class + localStorage + a 3-line pre-paint script; not worth a dependency |
 | 2026-07-12 | Author list fetches `GET /api/authors` with seed fallback | Live-uploaded authors appear; selector never renders empty if the API is down |
 | 2026-07-12 | **Contract gap flagged:** no create-author endpoint | Add-author flow posts to `/api/authors/{new-slug}/documents` and expects backend auto-create; contract's 404 contradicts this — resolve in contract pairing session |
+| 2026-07-13 | **Radar axes + normalization domains (Style DNA panel):** 6 axes normalized to the *plausible literary range* of each metric (not theoretical bounds): vocab richness (MATTR-500 [0.4, 0.85]), rare words (hapax_ratio [0.05, 0.5]), word length ([3.5, 6] chars), sentence length ([8, 40] tokens), subordination ([0.1, 0.5]), dialogue ratio ([0, 0.5]). Radial axis pinned to `domain={[0,1]}`. Thresholds live only in `lib/style-dna.ts::RADAR_AXES`. | Six axes cover lexical richness, syntactic complexity, and stylistic register. Native-[0,1] fields (hapax, dialogue, subordination) never use their full theoretical range in real prose, so a [0,1] domain pinned every author near the centre ("radar too short"). Scaling to the observed literary spread fills the frame and makes authors visibly differ; the fixed radial axis keeps shapes comparable across authors. Honest presentation scalings, clamped not hidden. |
+| 2026-07-13 | **Centroid-only scatter (contract limitation):** `GET /api/authors/{id}/style-profile` exposes only `embedding_umap_2d.centroid + spread` — no per-chunk points. The scatter plots one point per author with a dispersion ring. Per-chunk scatter flagged as contract gap; no data invented. | Honesty rule (§8.6): do not fabricate points the contract does not provide. Address when per-chunk embeddings are available from the backend. |
+| 2026-07-13 | **StyleProfile fixture fallback:** On network failure only (not a real 404), `StyleDnaPanel` falls back to `lib/fixtures/style-profiles.ts` typed fixtures for the 3 seed authors. Fixtures are presentation seed data — not faked quality signals. Fallback logged to console. | API-with-seed-fallback pattern (mirrors `getAuthorCards`). Demo reliability without inventing API responses. |
