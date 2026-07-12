@@ -1,0 +1,19 @@
+# Railway service config for the AutorIA FastAPI backend.
+#
+# In the Railway dashboard, set this service's Root Directory to `backend/`
+# so these paths resolve. Secrets (WATSONX_API_KEY, SUPABASE_URL,
+# SUPABASE_KEY, DATABASE_URL, AUTORIA_CORS_ORIGINS) are configured under
+# Service → Variables — never committed here.
+#
+# Nixpacks auto-detects Python and installs from requirements.txt, then runs
+# the start command below. Verify env wiring post-deploy: GET /internal/env-check
+
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
