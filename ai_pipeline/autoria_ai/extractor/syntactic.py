@@ -13,7 +13,7 @@ import statistics
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import spacy.tokens
+    import spacy.tokens  # type: ignore[import-untyped]
 
 _SUBORDINATE_DEPS: frozenset[str] = frozenset({"advcl", "relcl", "ccomp", "xcomp"})
 

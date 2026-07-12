@@ -3,8 +3,8 @@
 import statistics
 import string
 
-import pytest
-import spacy
+import pytest  # type: ignore[import-untyped]
+import spacy  # type: ignore[import-untyped]
 import tiktoken  # type: ignore[import-untyped]
 
 from autoria_ai.extractor.chunker import chunk_text
