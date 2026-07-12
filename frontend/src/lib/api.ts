@@ -2,7 +2,25 @@
  * Typed client for the AutorIA REST API (docs/api_contract.yaml).
  * All response shapes mirror the contract via lib/types.ts — never invent fields here.
  */
-import type { AuthorSummary, DocumentUploadAccepted } from "@/lib/types";
+import type {
+  AuthorSummary,
+  DocumentUploadAccepted,
+  StyleProfile,
+} from "@/lib/types";
+
+/**
+ * Thrown when a style-profile request returns HTTP 404.
+ * Per contract: 404 means "author unknown OR StyleProfile not yet computed"
+ * — this is an EMPTY state, not a server error. Callers must distinguish it
+ * from NetworkError / 5xx (which are error states with retry).
+ */
+export class NotFoundError extends Error {
+  readonly status = 404 as const;
+  constructor(label: string) {
+    super(`${label} returned 404 (not found or not yet computed)`);
+    this.name = "NotFoundError";
+  }
+}
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -43,6 +61,26 @@ export async function uploadAuthorDocument(
   return parseOrThrow<DocumentUploadAccepted>(
     res,
     "POST /api/authors/{id}/documents",
+  );
+}
+
+/**
+ * GET /api/authors/{author_id}/style-profile — Style DNA fingerprint v1.0.
+ *
+ * Throws NotFoundError for HTTP 404 (author unknown or profile not yet computed).
+ * Throws a plain Error for any other non-ok status (5xx, network failure, etc.).
+ */
+export async function getStyleProfile(authorId: string): Promise<StyleProfile> {
+  const res = await fetch(
+    `${API_BASE}/api/authors/${encodeURIComponent(authorId)}/style-profile`,
+    { cache: "no-store" },
+  );
+  if (res.status === 404) {
+    throw new NotFoundError(`GET /api/authors/${authorId}/style-profile`);
+  }
+  return parseOrThrow<StyleProfile>(
+    res,
+    `GET /api/authors/${authorId}/style-profile`,
   );
 }
 
