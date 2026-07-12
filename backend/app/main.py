@@ -10,22 +10,16 @@ later sprints.
 
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.routes import authors, health
+from app.config import settings
+from app.routes import authors, diagnostics, health
 
-# Comma-separated list of allowed frontend origins. Defaults to the local
-# Next.js dev server; override in prod (e.g. the Vercel URL) via env.
-_DEFAULT_ORIGINS = "http://localhost:3000"
-ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("AUTORIA_CORS_ORIGINS", _DEFAULT_ORIGINS).split(",")
-    if origin.strip()
-]
+# Allowed frontend origins come from AUTORIA_CORS_ORIGINS (see app.config).
+# Defaults to the local Next.js dev server; set the Vercel URL in prod.
+ALLOWED_ORIGINS = list(settings.cors_origins)
 
 app = FastAPI(
     title="AutorIA API",
@@ -46,3 +40,4 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(authors.router)
+app.include_router(diagnostics.router)
