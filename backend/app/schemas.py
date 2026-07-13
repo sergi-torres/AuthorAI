@@ -33,3 +33,13 @@ class AuthorSummary(BaseModel):
         description="True when a StyleProfile v1.0 exists and is served by GET style-profile"
     )
     n_documents: int = Field(ge=0, description="Number of ingested documents in the corpus")
+
+
+class DocumentUploadAccepted(BaseModel):
+    """Mirrors `DocumentUploadAccepted` — 202 response for uploadAuthorDocument.
+
+    Fields MUST match docs/api_contract.yaml §DocumentUploadAccepted exactly.
+    """
+
+    document_id: str = Field(description="UUID of the newly created document row")
+    status: Literal["processing"] = "processing"
