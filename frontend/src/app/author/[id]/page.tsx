@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
+import { StyleDnaPanel } from "@/components/StyleDnaPanel";
 import { getAuthorCards } from "@/lib/authors";
 import { en } from "@/lib/i18n/en";
 
@@ -30,7 +31,7 @@ export default async function AuthorPage({ params }: AuthorPageProps) {
         {author.name}
       </h1>
 
-      <p className="text-muted-foreground">{en.authorDetail.comingSoon}</p>
+      <StyleDnaPanel authorId={author.id} authorName={author.name} />
     </div>
   );
 }

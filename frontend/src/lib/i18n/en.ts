@@ -84,6 +84,45 @@ export const en = {
       `Highlights mark ${author}'s signature vocabulary`,
   },
 
+  styleDna: {
+    sectionTitle: "Style DNA",
+    collapseToggle: "Toggle Style DNA panel",
+    computedAt: (date: string) => `Computed ${date}`,
+
+    // MetricChip labels
+    metricDocuments: "documents",
+    metricTokens: "tokens",
+    metricSentences: "sentences",
+
+    // Radar chart
+    radarSectionTitle: "Style signature",
+    radarCaption:
+      "Normalized to [0–1]; axis ends represent the extremes of the training corpus range.",
+    radarAriaLabel:
+      "Radar chart showing six normalized style metrics for this author.",
+    radarAxes: {
+      vocabRichness: "Vocab richness",
+      rareWords: "Rare words",
+      wordLength: "Word length",
+      sentenceLength: "Sentence length",
+      subordination: "Subordination",
+      dialogue: "Dialogue",
+    },
+
+    // Scatter chart
+    scatterSectionTitle: "Semantic map",
+    scatterCaption:
+      "Each point is an author's corpus centroid in UMAP space. The ring shows cluster spread.",
+
+    // Async states
+    loading: "Loading Style DNA…",
+    empty: "Style DNA not yet computed",
+    emptyBody:
+      "Upload corpus documents to start the analysis pipeline. This panel will populate automatically once the profile is ready.",
+    error: "Could not load Style DNA — check the API and try again.",
+    retry: "Retry",
+  },
+
   verify: {
     verifiedTitle: "Verified",
     verifiedSubtitle: "This Authorship Passport is authentic and untampered.",
