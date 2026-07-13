@@ -226,7 +226,7 @@ SYNTACTIC_KEYS = {
 def test_syntactic_empty_doc_returns_zeros() -> None:
     doc = _NLP_FULL("")
     result = compute_syntactic(doc)
-    assert result == {k: 0.0 for k in SYNTACTIC_KEYS}
+    assert result == dict.fromkeys(SYNTACTIC_KEYS, 0.0)
 
 
 def test_syntactic_single_sentence_std_is_zero() -> None:

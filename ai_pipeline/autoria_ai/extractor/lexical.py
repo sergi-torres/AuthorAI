@@ -12,7 +12,7 @@ from collections import Counter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import spacy.tokens
+    import spacy.tokens  # type: ignore[import-untyped]
 
 
 def compute_lexical(doc: spacy.tokens.Doc) -> dict:
@@ -27,6 +27,9 @@ def compute_lexical(doc: spacy.tokens.Doc) -> dict:
     Returns
     -------
     dict with keys:
+        ``mattr_500``     - Moving Average TTR, window = 500, over alpha tokens.
+        ``hapax_ratio``   - Proportion of lemma types that appear exactly once.
+        ``avg_word_length`` - Mean character length of alpha tokens.
         ``mattr_500``     - Moving Average TTR, window = 500, over alpha tokens.
         ``hapax_ratio``   - Proportion of lemma types that appear exactly once.
         ``avg_word_length`` - Mean character length of alpha tokens.
