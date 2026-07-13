@@ -1,0 +1,6 @@
+# Runtime dependencies for the Railway/Nixpacks deploy.
+# Source of truth is pyproject.toml ([project].dependencies) — keep in sync.
+# Nixpacks installs this file automatically during the build phase.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7

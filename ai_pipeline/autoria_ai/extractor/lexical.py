@@ -12,10 +12,10 @@ from collections import Counter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import spacy.tokens  # noqa: F401 — type hint only, not imported at runtime
+    import spacy.tokens
 
 
-def compute_lexical(doc: "spacy.tokens.Doc") -> dict:
+def compute_lexical(doc: spacy.tokens.Doc) -> dict:
     """Return lexical metrics for *doc*.
 
     Parameters
@@ -27,9 +27,9 @@ def compute_lexical(doc: "spacy.tokens.Doc") -> dict:
     Returns
     -------
     dict with keys:
-        ``mattr_500``     – Moving Average TTR, window = 500, over alpha tokens.
-        ``hapax_ratio``   – Proportion of lemma types that appear exactly once.
-        ``avg_word_length`` – Mean character length of alpha tokens.
+        ``mattr_500``     - Moving Average TTR, window = 500, over alpha tokens.
+        ``hapax_ratio``   - Proportion of lemma types that appear exactly once.
+        ``avg_word_length`` - Mean character length of alpha tokens.
 
     All three values are ``float``.  An empty doc returns ``0.0`` for every key.
     """

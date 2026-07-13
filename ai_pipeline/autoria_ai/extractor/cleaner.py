@@ -25,7 +25,7 @@ def clean_text(text: str) -> str:
     # Everything up to AND including the START sentinel line is discarded.
     match = _PG_START.search(text)
     if match:
-        text = text[match.end():]
+        text = text[match.end() :]
 
     # ── 2. Strip Project Gutenberg footer ────────────────────────────────────
     # Everything from the END sentinel line onwards is discarded.

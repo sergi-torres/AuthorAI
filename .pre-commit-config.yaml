@@ -21,6 +21,8 @@ repos:
     hooks:
       - id: prettier
         files: ^frontend/.*\.(ts|tsx|js|jsx|json|css)$
+        # Generated shadcn/ui primitives — leave them as the shadcn CLI emits them.
+        exclude: ^frontend/src/components/ui/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
