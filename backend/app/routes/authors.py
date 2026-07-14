@@ -2,6 +2,7 @@
 
 Implements:
   GET  /api/authors                          — list all authors
+  GET  /api/authors/{author_id}/style-profile — getAuthorStyleProfile (operationId)
   POST /api/authors/{author_id}/documents    — uploadAuthorDocument (operationId)
 
 The GET handler returns the three preloaded authors as static mocks; once the
@@ -133,6 +134,63 @@ def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
 async def list_authors() -> list[AuthorSummary]:
     """Return all authors (3 preloaded + any added via document upload)."""
     return _PRELOADED_AUTHORS
+
+
+@router.get(
+    "/authors/{author_id}/style-profile",
+    response_model=None,
+    summary="Get StyleProfile (Style DNA)",
+    operation_id="getAuthorStyleProfile",
+    responses={
+        404: {"description": "Author unknown or StyleProfile not yet computed"},
+    },
+)
+async def get_author_style_profile(author_id: str) -> JSONResponse:
+    """Return the latest StyleProfile v1.0 JSON for *author_id* (slug).
+
+    Resolves the slug to an authors.id UUID, then fetches the single
+    style_profiles row with the greatest computed_at.  The stored json_data
+    is returned verbatim — no re-serialisation through a Pydantic model.
+
+    404 is raised for both an unknown author slug and an author that exists
+    but has no computed profile yet (error: "not_found" in both cases,
+    per docs/api_contract.yaml §getAuthorStyleProfile).
+    """
+    sb = get_client()
+
+    # ------------------------------------------------------------------
+    # 1. Resolve slug → UUID  (same pattern as upload_author_document)
+    # ------------------------------------------------------------------
+    author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
+    if author_result.data is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": f"Author '{author_id}' not found"},
+        )
+
+    author_uuid: str = author_result.data["id"]
+
+    # ------------------------------------------------------------------
+    # 2. Fetch latest style_profiles row  (max computed_at via ORDER+LIMIT)
+    # ------------------------------------------------------------------
+    profile_result = (
+        sb.table("style_profiles")
+        .select("json_data")
+        .eq("author_id", author_uuid)
+        .order("computed_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not profile_result.data:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": "not_found",
+                "message": f"StyleProfile not yet computed for '{author_id}'",
+            },
+        )
+
+    return JSONResponse(status_code=200, content=profile_result.data[0]["json_data"])
 
 
 @router.post(
