@@ -161,9 +161,7 @@ async def get_author_style_profile(author_id: str) -> JSONResponse:
     # ------------------------------------------------------------------
     # 1. Resolve slug → UUID  (same pattern as upload_author_document)
     # ------------------------------------------------------------------
-    author_result = (
-        sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
-    )
+    author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
     if author_result.data is None:
         raise HTTPException(
             status_code=404,
