@@ -1,4 +1,4 @@
-"""Smoke tests: happy-path coverage for cleaner and chunker."""
+"""Smoke tests: happy-path coverage for cleaner, chunker, lexical, syntactic, and stylistic."""
 
 import statistics
 import string
@@ -10,6 +10,7 @@ import tiktoken  # type: ignore[import-untyped]
 from autoria_ai.extractor.chunker import chunk_text
 from autoria_ai.extractor.cleaner import clean_text
 from autoria_ai.extractor.lexical import compute_lexical
+from autoria_ai.extractor.stylistic import compute_stylistic
 from autoria_ai.extractor.syntactic import compute_syntactic
 
 # ── spaCy models (loaded once at module level) ────────────────────────────────
@@ -337,3 +338,231 @@ def test_syntactic_all_active_passive_ratio_is_zero() -> None:
     doc = _NLP_FULL("She ran fast. He laughed loudly. They cheered.")
     result = compute_syntactic(doc)
     assert result["passive_voice_ratio"] == pytest.approx(0.0)
+
+
+# ── stylistic ─────────────────────────────────────────────────────────────────
+
+_PUNCT_MARKS = {",", ".", ";", ":", "—", "?", "!", '"'}
+_TRACKED_POS = {"NOUN", "VERB", "ADJ", "ADV", "DET", "ADP", "PRON", "CONJ", "SCONJ"}
+_STYLISTIC_TOP_KEYS = {
+    "punct_distribution",
+    "pos_distribution",
+    "dialogue_ratio",
+    "first_person_ratio",
+}
+
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+
+def _sdoc(text: str):
+    """Blank-model doc — sufficient for punctuation, dialogue, and first-person tests."""
+    return _NLP_BLANK(text)
+
+
+def _sdoc_full(text: str):
+    """Full-model doc — required for POS tests."""
+    return _NLP_FULL(text)
+
+
+# ── top-level shape ───────────────────────────────────────────────────────────
+
+
+def test_stylistic_keys_are_exactly_four() -> None:
+    result = compute_stylistic(_sdoc("Hello world."))
+    assert set(result.keys()) == _STYLISTIC_TOP_KEYS
+
+
+def test_stylistic_empty_doc_returns_zeros() -> None:
+    result = compute_stylistic(_sdoc(""))
+    assert result["dialogue_ratio"] == pytest.approx(0.0)
+    assert result["first_person_ratio"] == pytest.approx(0.0)
+    assert result["punct_distribution"] == dict.fromkeys(_PUNCT_MARKS, 0.0)
+    assert result["pos_distribution"] == {tag: 0.0 for tag in _TRACKED_POS} | {"OTHER": 0.0}
+
+
+def test_stylistic_return_types() -> None:
+    result = compute_stylistic(_sdoc('She said, "Hello." He smiled!'))
+    assert isinstance(result["punct_distribution"], dict)
+    assert isinstance(result["pos_distribution"], dict)
+    assert isinstance(result["dialogue_ratio"], float)
+    assert isinstance(result["first_person_ratio"], float)
+
+
+# ── punct_distribution ────────────────────────────────────────────────────────
+
+
+def test_stylistic_punct_distribution_has_all_eight_keys() -> None:
+    result = compute_stylistic(_sdoc("Hello, world!"))
+    assert set(result["punct_distribution"].keys()) == _PUNCT_MARKS
+
+
+def test_stylistic_punct_distribution_absent_marks_are_zero() -> None:
+    # Only "." is present — all other tracked marks must be 0.0.
+    result = compute_stylistic(_sdoc("Hello world."))
+    pd = result["punct_distribution"]
+    assert pd["."] == pytest.approx(1.0)
+    for mark in _PUNCT_MARKS - {"."}:
+        assert pd[mark] == pytest.approx(0.0)
+
+
+def test_stylistic_punct_distribution_sums_to_one() -> None:
+    result = compute_stylistic(_sdoc("Wait, really? Yes! Fine; done: go—go."))
+    total = sum(result["punct_distribution"].values())
+    assert total == pytest.approx(1.0, abs=1e-9)
+
+
+def test_stylistic_punct_distribution_no_punctuation() -> None:
+    # No tracked marks → all values 0.0.
+    result = compute_stylistic(_sdoc("hello world"))
+    assert all(v == pytest.approx(0.0) for v in result["punct_distribution"].values())
+
+
+def test_stylistic_punct_distribution_exact_counts() -> None:
+    # "," appears twice, "." once → comma = 2/3, period = 1/3.
+    result = compute_stylistic(_sdoc("one, two, three."))
+    pd = result["punct_distribution"]
+    assert pd[","] == pytest.approx(2 / 3)
+    assert pd["."] == pytest.approx(1 / 3)
+    for mark in _PUNCT_MARKS - {",", "."}:
+        assert pd[mark] == pytest.approx(0.0)
+
+
+def test_stylistic_punct_distribution_quote_counted() -> None:
+    # Text contains one '"' on each side of dialogue = 2 quote tokens.
+    result = compute_stylistic(_sdoc('"Hello."'))
+    pd = result["punct_distribution"]
+    # Tokens: '"', 'Hello', '.', '"'  → punct marks: '"', '.', '"' → 2 quotes, 1 period.
+    assert pd['"'] == pytest.approx(2 / 3)
+    assert pd["."] == pytest.approx(1 / 3)
+
+
+# ── pos_distribution ──────────────────────────────────────────────────────────
+
+
+def test_stylistic_pos_distribution_has_ten_keys() -> None:
+    result = compute_stylistic(_sdoc_full("The cat sat on the mat."))
+    assert set(result["pos_distribution"].keys()) == _TRACKED_POS | {"OTHER"}
+
+
+def test_stylistic_pos_distribution_sums_to_one() -> None:
+    result = compute_stylistic(_sdoc_full("She laughed loudly and he smiled."))
+    total = sum(result["pos_distribution"].values())
+    assert total == pytest.approx(1.0, abs=1e-9)
+
+
+def test_stylistic_pos_distribution_empty_doc_all_zeros() -> None:
+    result = compute_stylistic(_sdoc_full(""))
+    assert all(v == pytest.approx(0.0) for v in result["pos_distribution"].values())
+
+
+def test_stylistic_pos_distribution_punct_only_all_zeros() -> None:
+    # All tokens are punctuation → no non-punct tokens → all zeros.
+    result = compute_stylistic(_sdoc_full("... !!! ???"))
+    assert all(v == pytest.approx(0.0) for v in result["pos_distribution"].values())
+
+
+def test_stylistic_pos_distribution_values_in_unit_interval() -> None:
+    result = compute_stylistic(
+        _sdoc_full("The old woman walked slowly through the dark forest and she sang.")
+    )
+    for v in result["pos_distribution"].values():
+        assert 0.0 <= v <= 1.0
+
+
+def test_stylistic_pos_distribution_other_is_nonnegative() -> None:
+    result = compute_stylistic(_sdoc_full("She quickly ran to the bright blue house."))
+    assert result["pos_distribution"]["OTHER"] >= 0.0
+
+
+def test_stylistic_pos_distribution_exact_fractions() -> None:
+    # Use the full model on a controlled sentence; verify by recomputing.
+    doc = _sdoc_full("Dogs bark loudly.")
+    from collections import Counter
+
+    raw = Counter(t.pos_ for t in doc if not t.is_punct)
+    total = sum(raw.values())
+    expected_noun = raw["NOUN"] / total
+    result = compute_stylistic(doc)
+    assert result["pos_distribution"]["NOUN"] == pytest.approx(expected_noun)
+
+
+# ── dialogue_ratio ────────────────────────────────────────────────────────────
+
+
+def test_stylistic_dialogue_ratio_no_quotes_is_zero() -> None:
+    result = compute_stylistic(_sdoc("He walked home slowly."))
+    assert result["dialogue_ratio"] == pytest.approx(0.0)
+
+
+def test_stylistic_dialogue_ratio_all_dialogue() -> None:
+    # '"Hello there friend"' — every non-quote token is inside dialogue.
+    result = compute_stylistic(_sdoc('"Hello there friend"'))
+    assert result["dialogue_ratio"] == pytest.approx(1.0)
+
+
+def test_stylistic_dialogue_ratio_half_dialogue() -> None:
+    # "Hello" narrator — 1 dialogue token ("Hello"), 1 non-dialogue ("narrator")
+    # Plus 2 quote tokens (ignored in denominator).
+    result = compute_stylistic(_sdoc('"Hello" narrator'))
+    assert result["dialogue_ratio"] == pytest.approx(1 / 2)
+
+
+def test_stylistic_dialogue_ratio_in_unit_interval() -> None:
+    result = compute_stylistic(_sdoc('"Wait," she said. "I disagree."'))
+    assert 0.0 <= result["dialogue_ratio"] <= 1.0
+
+
+def test_stylistic_dialogue_ratio_empty_doc_is_zero() -> None:
+    result = compute_stylistic(_sdoc(""))
+    assert result["dialogue_ratio"] == pytest.approx(0.0)
+
+
+def test_stylistic_dialogue_ratio_ignores_quote_tokens_in_denominator() -> None:
+    # 4 non-quote tokens total: "Wait" (dialogue), "she" (narration), "said" (narration), "Now" (narration).
+    # Dialogue count = 1.  Ratio = 1/4.
+    result = compute_stylistic(_sdoc('"Wait" she said Now'))
+    assert result["dialogue_ratio"] == pytest.approx(1 / 4)
+
+
+# ── first_person_ratio ────────────────────────────────────────────────────────
+
+
+def test_stylistic_first_person_ratio_no_fp_is_zero() -> None:
+    result = compute_stylistic(_sdoc("She walked to the store."))
+    assert result["first_person_ratio"] == pytest.approx(0.0)
+
+
+def test_stylistic_first_person_ratio_per_1000_tokens() -> None:
+    # "I me my mine myself" = 5 first-person tokens out of 5 total → 1000.0.
+    result = compute_stylistic(_sdoc("I me my mine myself"))
+    assert result["first_person_ratio"] == pytest.approx(1000.0)
+
+
+def test_stylistic_first_person_ratio_case_insensitive() -> None:
+    # "I" and "i" must both be counted.
+    result_upper = compute_stylistic(_sdoc("I went home."))
+    result_lower = compute_stylistic(_sdoc("i went home."))
+    assert result_upper["first_person_ratio"] == pytest.approx(result_lower["first_person_ratio"])
+
+
+def test_stylistic_first_person_ratio_exact() -> None:
+    # "I love my dog" → 4 tokens total, 2 first-person ("I", "my") → 2/4 * 1000 = 500.
+    result = compute_stylistic(_sdoc("I love my dog"))
+    assert result["first_person_ratio"] == pytest.approx(500.0)
+
+
+def test_stylistic_first_person_ratio_empty_doc_is_zero() -> None:
+    result = compute_stylistic(_sdoc(""))
+    assert result["first_person_ratio"] == pytest.approx(0.0)
+
+
+def test_stylistic_first_person_ratio_includes_all_five_forms() -> None:
+    # All 5 forms present: 5 first-person tokens out of 7 total.
+    result = compute_stylistic(_sdoc("I hurt me on my mine myself"))
+    assert result["first_person_ratio"] == pytest.approx(5 / 7 * 1000)
+
+
+def test_stylistic_first_person_ratio_is_nonnegative() -> None:
+    result = compute_stylistic(_sdoc("The wind blew fiercely."))
+    assert result["first_person_ratio"] >= 0.0
