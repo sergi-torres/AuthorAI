@@ -34,8 +34,8 @@ _TRACKED_POS: tuple[str, ...] = (
 _FIRST_PERSON: frozenset[str] = frozenset({"i", "me", "my", "mine", "myself"})
 
 # Canonical zero-valued dicts used for empty-doc early-return (never mutated).
-_EMPTY_PUNCT: dict[str, float] = {mark: 0.0 for mark in _PUNCT_MARKS}
-_EMPTY_POS: dict[str, float] = {tag: 0.0 for tag in _TRACKED_POS} | {"OTHER": 0.0}
+_EMPTY_PUNCT: dict[str, float] = dict.fromkeys(_PUNCT_MARKS, 0.0)
+_EMPTY_POS: dict[str, float] = dict.fromkeys(_TRACKED_POS, 0.0) | {"OTHER": 0.0}
 
 
 def compute_stylistic(doc: spacy.tokens.Doc) -> dict:

@@ -378,7 +378,7 @@ def test_stylistic_empty_doc_returns_zeros() -> None:
     assert result["dialogue_ratio"] == pytest.approx(0.0)
     assert result["first_person_ratio"] == pytest.approx(0.0)
     assert result["punct_distribution"] == dict.fromkeys(_PUNCT_MARKS, 0.0)
-    assert result["pos_distribution"] == {tag: 0.0 for tag in _TRACKED_POS} | {"OTHER": 0.0}
+    assert result["pos_distribution"] == dict.fromkeys(_TRACKED_POS, 0.0) | {"OTHER": 0.0}
 
 
 def test_stylistic_return_types() -> None:
