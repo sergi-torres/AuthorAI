@@ -125,3 +125,11 @@ export interface DistinctiveTerm {
   /** TF-IDF score vs reference corpus. */
   score: number;
 }
+
+/** Mirrors StyleProfileRecomputeAccepted in api_contract.yaml — 202 from POST recompute. */
+export interface StyleProfileRecomputeAccepted {
+  /** Always "computing" — recompute is async; poll GET style-profile for completion. */
+  status: "computing";
+  /** Rough wall-clock estimate in seconds: max(30, n_tokens // 2000). */
+  estimated_seconds: number;
+}
