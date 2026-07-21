@@ -84,6 +84,19 @@ export const en = {
       `Highlights mark ${author}'s signature vocabulary`,
   },
 
+  generate: {
+    sectionTitle: "Generate in this voice",
+    promptLabel: "Your prompt",
+    promptPlaceholder: "Write a paragraph about a foggy London morning…",
+    promptHint: (max: number) => `Up to ${max} characters`,
+    generateButton: "Generate",
+    generatingButton: "Generating…",
+    outputSectionLabel: "Generation output",
+    idleHeading: "Ready to generate",
+    idleBody:
+      "Enter a prompt above and press Generate to see the vanilla model alongside AutorIA's voice-conditioned output.",
+  },
+
   styleDna: {
     sectionTitle: "Style DNA",
     collapseToggle: "Toggle Style DNA panel",

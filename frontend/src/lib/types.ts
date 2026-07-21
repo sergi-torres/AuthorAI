@@ -133,3 +133,25 @@ export interface StyleProfileRecomputeAccepted {
   /** Rough wall-clock estimate in seconds: max(30, n_tokens // 2000). */
   estimated_seconds: number;
 }
+
+/** Mirrors GenerateRequest in api_contract.yaml — body for POST /api/generate. */
+export interface GenerateRequest {
+  /** Target author voice (slug). */
+  author_id: string;
+  /** User creative prompt (English). Max 4000 chars per contract. */
+  prompt: string;
+}
+
+/**
+ * Mirrors GenerateResponse in api_contract.yaml — 200 from POST /api/generate.
+ *
+ * NOTE (#19): PassportEnvelope is typed as `unknown` here — the Passport UI
+ * is out of scope for this issue. Full typing will be added in the Passport
+ * issue once the verify/display flow is built.
+ */
+export interface GenerateResponse {
+  vanilla: GenerationOutput;
+  autoria: GenerationOutput;
+  /** OUT OF SCOPE for #19 — typed as unknown; will be narrowed in the Passport issue. */
+  passport: unknown;
+}
