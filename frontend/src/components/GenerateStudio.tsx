@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { PromptComposer } from "@/components/PromptComposer";
 import { SideBySideOutput } from "@/components/SideBySideOutput";
 import type { GenerationState } from "@/components/AuthorColumn";
+import { Button } from "@/components/ui/button";
 import { generateText } from "@/lib/api";
 import { en } from "@/lib/i18n/en";
 import type { AuthorCardData } from "@/lib/types";
@@ -33,6 +34,13 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
   const [hasGenerated, setHasGenerated] = useState(false);
 
   /**
+   * Passport from the most recent GenerateResponse.
+   * Remains `null` until the backend returns a non-null passport.
+   * Full handling (download / verify) deferred to #42 / #29.
+   */
+  const [passport, setPassport] = useState<unknown>(null);
+
+  /**
    * Distinctive terms from the StyleProfile — optional enhancement.
    * Not fetched here; could be passed in from a parent that already has
    * the StyleProfile loaded. Kept as a future prop without blocking
@@ -55,6 +63,9 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
         const response = await generateText(author.id, promptText);
         setVanillaState({ status: "success", output: response.vanilla });
         setAutoriaState({ status: "success", output: response.autoria });
+        // Store the passport from this generation; may be null if backend
+        // hasn't implemented signing yet (see backend #26).
+        setPassport(response.passport ?? null);
       } catch (err: unknown) {
         const isAbort = err instanceof Error && err.name === "AbortError";
         const nextState: GenerationState = isAbort
@@ -78,6 +89,13 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
     if (isSubmitting) return;
     void runGeneration(lastPromptRef.current);
   }, [isSubmitting, runGeneration]);
+
+  const bothSucceeded =
+    vanillaState.status === "success" && autoriaState.status === "success";
+
+  const handleGeneratePassport = useCallback(() => {
+    // TODO(#42): download formatted passport JSON
+  }, []);
 
   return (
     <div className="flex flex-col gap-8">
@@ -111,6 +129,24 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
           <IdleState />
         )}
       </section>
+
+      {/* ── Generate Passport button — only after first successful generation ── */}
+      {bothSucceeded && (
+        <div className="flex flex-col items-start gap-2">
+          <Button
+            variant="outline"
+            disabled={passport === null}
+            onClick={handleGeneratePassport}
+          >
+            {en.studio.passportButton}
+          </Button>
+          {passport === null && (
+            <p className="text-xs text-muted-foreground">
+              {en.studio.passportUnavailable}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

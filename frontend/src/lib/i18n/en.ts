@@ -82,6 +82,22 @@ export const en = {
     latency: (ms: number) => `${(ms / 1000).toFixed(1)} s`,
     vocabLegend: (author: string) =>
       `Highlights mark ${author}'s signature vocabulary`,
+
+    // Comparative metrics table (#28)
+    metricsTitle: "Measured on this generation",
+    metricSentenceLength: "Avg. sentence length",
+    metricTtr: "Type–token ratio",
+    metricWordCount: "Word count",
+    metricTopWords: "Top words",
+    metricsColVanilla: "Vanilla",
+    metricsColVoice: (author: string) => `AutorIA · ${author}`,
+    metricsCaption:
+      "Descriptive statistics computed from the text above — not the training corpus.",
+
+    // Generate Passport button (#28)
+    passportButton: "Generate Passport",
+    passportUnavailable:
+      "A signed Authorship Passport will appear here once generation returns one.",
   },
 
   generate: {
@@ -134,6 +150,13 @@ export const en = {
       "Upload corpus documents to start the analysis pipeline. This panel will populate automatically once the profile is ready.",
     error: "Could not load Style DNA — check the API and try again.",
     retry: "Retry",
+
+    // Distinctive vocabulary table (#41)
+    vocabSectionTitle: "Distinctive vocabulary",
+    vocabCaption: "Top terms ranked by TF-IDF against the reference corpus.",
+    vocabTermHeader: "Term",
+    vocabScoreHeader: "TF-IDF",
+    vocabEmpty: "Distinctive vocabulary not yet computed.",
   },
 
   verify: {

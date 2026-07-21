@@ -140,28 +140,35 @@ export function StyleDnaPanel({ authorId, authorName }: StyleDnaPanelProps) {
         </button>
       </div>
 
-      {/* Panel content — conditionally hidden (design-system §5: no height animation) */}
+      {/* Panel content — conditionally hidden (design-system §5: no height animation).
+          Children are only mounted while expanded so Recharts' ResponsiveContainer
+          never measures a display:none (0×0) parent — that triggers a runtime warning.
+          The wrapper stays in the tree so aria-controls always resolves. */}
       <div id={contentId} hidden={!expanded}>
-        {panelState.status === "loading" && <LoadingSkeleton />}
+        {expanded && (
+          <>
+            {panelState.status === "loading" && <LoadingSkeleton />}
 
-        {panelState.status === "empty" && (
-          <EmptyState
-            icon={<Feather className="size-5" />}
-            title={en.styleDna.empty}
-            body={en.styleDna.emptyBody}
-          />
-        )}
+            {panelState.status === "empty" && (
+              <EmptyState
+                icon={<Feather className="size-5" />}
+                title={en.styleDna.empty}
+                body={en.styleDna.emptyBody}
+              />
+            )}
 
-        {panelState.status === "error" && (
-          <ErrorNotice message={panelState.message} onRetry={handleRetry} />
-        )}
+            {panelState.status === "error" && (
+              <ErrorNotice message={panelState.message} onRetry={handleRetry} />
+            )}
 
-        {panelState.status === "ready" && (
-          <ReadyLayout
-            profile={panelState.profile}
-            authorId={authorId}
-            scatterPoints={panelState.scatterPoints}
-          />
+            {panelState.status === "ready" && (
+              <ReadyLayout
+                profile={panelState.profile}
+                authorId={authorId}
+                scatterPoints={panelState.scatterPoints}
+              />
+            )}
+          </>
         )}
       </div>
     </section>
@@ -225,6 +232,11 @@ function ReadyLayout({
     day: "numeric",
   });
 
+  // Top-10 distinctive vocab sorted by score descending
+  const topVocab = [...profile.distinctive_vocab]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
   return (
     <Card className="shadow-paper animate-fade-rise">
       <CardContent className="flex flex-col gap-6 py-5">
@@ -256,6 +268,87 @@ function ReadyLayout({
             </h3>
             <StyleScatter2D points={scatterPoints} />
           </div>
+        </div>
+
+        {/* Distinctive vocabulary table (#41) */}
+        <div className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {en.styleDna.vocabSectionTitle}
+          </h3>
+
+          {topVocab.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              {en.styleDna.vocabEmpty}
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-sm">
+                <caption className="sr-only">
+                  {en.styleDna.vocabSectionTitle}
+                </caption>
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-left text-xs font-medium text-muted-foreground"
+                    >
+                      {en.styleDna.vocabTermHeader}
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-4 py-2 text-right text-xs font-medium text-muted-foreground"
+                    >
+                      {en.styleDna.vocabScoreHeader}
+                    </th>
+                    <th
+                      scope="col"
+                      className="w-[40%] px-4 py-2"
+                      aria-hidden="true"
+                    />
+                  </tr>
+                </thead>
+                <tbody>
+                  {topVocab.map((item, i) => (
+                    <tr
+                      key={item.term}
+                      className={cn(
+                        "border-b border-border/50 last:border-0",
+                        i % 2 === 1 && "bg-muted/20",
+                      )}
+                    >
+                      <td className="px-4 py-2 font-serif text-sm text-foreground/90">
+                        {item.term}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono tabular-nums text-xs text-foreground/80">
+                        {item.score.toFixed(2)}
+                      </td>
+                      {/* Score bar */}
+                      <td className="px-4 py-2" aria-hidden="true">
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-voice"
+                            style={{
+                              width: `${Math.min(item.score * 100, 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-4 py-2 text-left text-xs text-muted-foreground/70"
+                    >
+                      {en.styleDna.vocabCaption}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
