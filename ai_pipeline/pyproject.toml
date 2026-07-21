@@ -16,10 +16,14 @@ dependencies = [
     "pydantic>=2.7",
     "python-jose>=3.3",
     "ibm-watsonx-ai>=1.0",
+    # DB / vector store (SQLAlchemy 2.0 async + pgvector)
+    "sqlalchemy>=2.0",
+    "asyncpg>=0.29",
+    "pgvector>=0.3",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.4", "black>=24"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff>=0.4", "black>=24"]
 
 [tool.black]
 line-length = 100
@@ -27,3 +31,4 @@ target-version = ["py311"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
