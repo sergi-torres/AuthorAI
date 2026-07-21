@@ -52,9 +52,7 @@ def test_generate_success_uses_chat_and_returns_text(monkeypatch):
     monkeypatch.setenv("WATSONX_URL", "https://example.ml.cloud.ibm.com")
 
     mock_model = MagicMock()
-    mock_model.chat.return_value = {
-        "choices": [{"message": {"content": "  hello from watsonx  "}}]
-    }
+    mock_model.chat.return_value = {"choices": [{"message": {"content": "  hello from watsonx  "}}]}
 
     with (
         patch("app.services.watsonx_client.Credentials") as creds_cls,
@@ -68,9 +66,7 @@ def test_generate_success_uses_chat_and_returns_text(monkeypatch):
         )
 
     assert text == "  hello from watsonx  "
-    creds_cls.assert_called_once_with(
-        api_key="test-key", url="https://example.ml.cloud.ibm.com"
-    )
+    creds_cls.assert_called_once_with(api_key="test-key", url="https://example.ml.cloud.ibm.com")
     model_cls.assert_called_once()
     assert model_cls.call_args.kwargs["max_retries"] == 0
     assert model_cls.call_args.kwargs["validate"] is False

@@ -36,9 +36,7 @@ def _require_credentials() -> tuple[str, str, str]:
     project_id = settings.watsonx_project_id
     url = settings.watsonx_url or _DEFAULT_URL
     if not api_key or not project_id:
-        raise WatsonxError(
-            "Watsonx is not configured: set WATSONX_API_KEY and WATSONX_PROJECT_ID"
-        )
+        raise WatsonxError("Watsonx is not configured: set WATSONX_API_KEY and WATSONX_PROJECT_ID")
     return api_key, project_id, url
 
 
@@ -74,6 +72,10 @@ def _call_watsonx(
         model_id=model_id,
         credentials=Credentials(api_key=api_key, url=url),
         project_id=project_id,
+        # params is also forwarded to model.chat() below; the SDK uses the
+        # call-level value and ignores the constructor default when both are
+        # supplied.  We keep it here so static model defaults work if a caller
+        # ever omits params at call time.
         params=params,
         # Own retry/backoff below — disable SDK-level retries.
         max_retries=0,
@@ -125,15 +127,17 @@ def generate(
                 )
                 return future.result(timeout=HARD_TIMEOUT_SECONDS)
             finally:
-                # Don't block the retry loop waiting on a hung SDK call.
+                # cancel_futures=True prevents queued work from starting, but
+                # cannot interrupt a thread that is already executing a hung
+                # network call — that thread will linger until the OS closes the
+                # socket.  This is an unavoidable CPython/Windows limitation of
+                # ThreadPoolExecutor; correctness is unaffected.
                 pool.shutdown(wait=False, cancel_futures=True)
         except FuturesTimeoutError:
             last_error = TimeoutError(
                 f"Watsonx call exceeded {HARD_TIMEOUT_SECONDS:.0f}s hard timeout"
             )
-            logger.warning(
-                "Watsonx timeout on attempt %s/%s", attempt + 1, max_attempts
-            )
+            logger.warning("Watsonx timeout on attempt %s/%s", attempt + 1, max_attempts)
         except Exception as exc:
             last_error = exc
             logger.warning(
