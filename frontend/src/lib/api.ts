@@ -5,6 +5,8 @@
 import type {
   AuthorSummary,
   DocumentUploadAccepted,
+  GenerateRequest,
+  GenerateResponse,
   StyleProfile,
 } from "@/lib/types";
 
@@ -92,4 +94,36 @@ export function slugifyAuthorName(name: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * POST /api/generate — run vanilla + AutorIA generation in parallel on the backend.
+ *
+ * Uses AbortController with a 10 s timeout so a hanging Watsonx call resolves
+ * to a timeout state rather than an infinite spinner (design-system §1 / §7.4).
+ *
+ * Return contract:
+ *   200       → resolves with GenerateResponse
+ *   AbortError → throws with name "AbortError" (timeout path)
+ *   other      → throws a plain Error (error path)
+ */
+export async function generateText(
+  authorId: string,
+  prompt: string,
+): Promise<GenerateResponse> {
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const body: GenerateRequest = { author_id: authorId, prompt };
+    const res = await fetch(`${API_BASE}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    return parseOrThrow<GenerateResponse>(res, "POST /api/generate");
+  } finally {
+    clearTimeout(timerId);
+  }
 }

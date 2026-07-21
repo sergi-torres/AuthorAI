@@ -33,6 +33,7 @@ export const en = {
   authorDetail: {
     comingSoon: "Full studio coming soon.",
     backToAuthors: "← Back to authors",
+    generateCta: "Generate in this voice →",
   },
 
   badge: {
@@ -82,6 +83,20 @@ export const en = {
     latency: (ms: number) => `${(ms / 1000).toFixed(1)} s`,
     vocabLegend: (author: string) =>
       `Highlights mark ${author}'s signature vocabulary`,
+  },
+
+  generate: {
+    pageTitle: (author: string) => `Generate · ${author}`,
+    backToProfile: "← Back to Style DNA",
+    promptLabel: "Your prompt",
+    promptPlaceholder: "Write a paragraph about a foggy London morning…",
+    promptHint: (max: number) => `Up to ${max} characters`,
+    generateButton: "Generate",
+    generatingButton: "Generating…",
+    outputSectionLabel: "Generation output",
+    idleHeading: "Ready to generate",
+    idleBody:
+      "Enter a prompt above and press Generate to see the vanilla model alongside AutorIA's voice-conditioned output.",
   },
 
   styleDna: {
