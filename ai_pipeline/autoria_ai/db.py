@@ -290,14 +290,12 @@ async def retrieve_top_k(
         await sess.execute(text(f"SET LOCAL hnsw.ef_search = {int(ef_search)}"))
 
         rows = await sess.execute(
-            text(
-                """
+            text("""
                 SELECT id, document_id, chunk_index, text
                 FROM public.chunks
                 ORDER BY embedding <=> CAST(:emb AS vector)
                 LIMIT :k
-                """
-            ),
+                """),
             {"emb": str(query_embedding), "k": k},
         )
         return [
