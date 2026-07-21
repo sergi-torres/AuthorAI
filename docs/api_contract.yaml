@@ -126,6 +126,39 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/authors/{author_id}/style-profile/recompute:
+    post:
+      tags: [authors]
+      operationId: recomputeAuthorStyleProfile
+      summary: Trigger manual StyleProfile recompute
+      description: |
+        Enqueues an async StyleProfile recompute for the author.
+        Returns 202 immediately; poll GET style-profile to detect completion.
+        The stub pipeline (Sprint 2 P2 entrypoint not yet wired) inserts a
+        placeholder-valued but schema-valid StyleProfile row.
+      parameters:
+        - $ref: "#/components/parameters/AuthorId"
+      responses:
+        "202":
+          description: Recompute accepted and enqueued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StyleProfileRecomputeAccepted"
+              examples:
+                accepted:
+                  value:
+                    status: computing
+                    estimated_seconds: 30
+        "404":
+          description: Unknown author_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /api/authors/{author_id}/documents:
     post:
       tags: [authors]
@@ -457,6 +490,19 @@ components:
           type: string
           const: processing
           description: Async pipeline state; poll style-profile until recomputed
+
+    StyleProfileRecomputeAccepted:
+      type: object
+      required: [status, estimated_seconds]
+      properties:
+        status:
+          type: string
+          const: computing
+          description: Always "computing" — recompute is async
+        estimated_seconds:
+          type: integer
+          minimum: 0
+          description: Rough wall-clock estimate; derived from corpus n_tokens (max(30, n_tokens // 2000))
 
     StyleProfile:
       type: object
