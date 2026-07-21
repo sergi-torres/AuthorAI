@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import Link from "next/link";
-import { Feather } from "lucide-react";
 
 import { PromptComposer } from "@/components/PromptComposer";
 import { SideBySideOutput } from "@/components/SideBySideOutput";
@@ -20,9 +18,8 @@ interface GenerateStudioProps {
  * GenerationStates. Passes real response data to SideBySideOutput; never
  * fakes the contrast (design-system §8).
  *
- * The component starts in an "idle" visual state (both columns show loading
- * skeletons) before the first generation. Once Generate is pressed the
- * loading state is real.
+ * The parent page (server component) owns the page header and data-voice.
+ * This component starts in an "idle" visual state before the first generation.
  */
 export function GenerateStudio({ author }: GenerateStudioProps) {
   const [prompt, setPrompt] = useState("");
@@ -83,28 +80,11 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
   }, [isSubmitting, runGeneration]);
 
   return (
-    <div className="flex flex-col gap-8" data-voice={author.id}>
-      {/* ── Page header ── */}
-      <div className="flex items-center justify-between">
-        <Link
-          href={`/author/${author.id}`}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {en.generate.backToProfile}
-        </Link>
-      </div>
-
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <Feather className="size-5 text-voice" aria-hidden="true" />
-          <h1 className="font-heading text-4xl font-semibold tracking-tight">
-            {author.name}
-          </h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {en.generate.pageTitle(author.name)}
-        </p>
-      </header>
+    <div className="flex flex-col gap-8">
+      {/* ── Section label ── */}
+      <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        {en.generate.sectionTitle}
+      </p>
 
       {/* ── Prompt composer ── */}
       <section aria-label={en.generate.promptLabel}>
