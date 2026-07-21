@@ -77,7 +77,7 @@ export interface StyleProfile {
   syntactic: SyntacticFeatures;
   /** Stylistic / rhetorical features. */
   stylistic: StylisticFeatures;
-  /** Top distinctive vocabulary items (TF-IDF ranked). Not rendered in the Style DNA panel. */
+  /** Top distinctive vocabulary items (TF-IDF ranked). Rendered as a top-10 table in the Style DNA panel. */
   distinctive_vocab: DistinctiveTerm[];
   /**
    * 768-dimensional mean embedding vector.
