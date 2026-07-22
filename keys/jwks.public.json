@@ -1,0 +1,13 @@
+{
+  "keys": [
+    {
+      "kty": "EC",
+      "crv": "P-256",
+      "x": "mdwVHOhqza-78IPdo18B0cc6MmUBhXb2KW0rYv5pxas",
+      "y": "BFQ4yg8ITmDvartx-EBRsEvHyFFqnj7NvsBvitaDjPY",
+      "use": "sig",
+      "alg": "ES256",
+      "kid": "autoria-2026-07"
+    }
+  ]
+}
