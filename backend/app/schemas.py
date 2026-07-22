@@ -8,7 +8,7 @@ requires a 2/3 vote + Decision Log entry.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -43,3 +43,60 @@ class DocumentUploadAccepted(BaseModel):
 
     document_id: str = Field(description="UUID of the newly created document row")
     status: Literal["processing"] = "processing"
+
+
+# ---------------------------------------------------------------------------
+# Passport / JWKS — mirrors VerifyRequest, VerifyError, VerifyResponse,
+# JwksDocument, JsonWebKey in docs/api_contract.yaml.
+# ---------------------------------------------------------------------------
+
+
+class VerifyRequest(BaseModel):
+    """Mirrors `VerifyRequest` — compact JWS token to be verified."""
+
+    jws_token: str = Field(
+        min_length=1, description="Compact serialized JWS from passport.jws_token"
+    )
+
+
+class VerifyError(BaseModel):
+    """Mirrors `VerifyError` — one structured error entry inside VerifyResponse."""
+
+    code: Literal[
+        "invalid_token",
+        "invalid_signature",
+        "unknown_kid",
+        "unsupported_algorithm",
+        "schema_mismatch",
+        "jwks_unavailable",
+    ]
+    message: str
+
+
+class VerifyResponse(BaseModel):
+    """Mirrors `VerifyResponse` — always HTTP 200 for crypto outcomes."""
+
+    valid: bool
+    payload: dict[str, Any] | None = Field(
+        default=None,
+        description="Decoded passport payload when valid; null otherwise",
+    )
+    errors: list[VerifyError] = Field(default_factory=list)
+
+
+class JsonWebKey(BaseModel):
+    """Mirrors `JsonWebKey` — one EC P-256 public key in a JWKS."""
+
+    kty: Literal["EC"] = "EC"
+    crv: Literal["P-256"] = "P-256"
+    x: str = Field(description="Base64url-encoded x coordinate")
+    y: str = Field(description="Base64url-encoded y coordinate")
+    use: Literal["sig"] = "sig"
+    alg: Literal["ES256"] = "ES256"
+    kid: str
+
+
+class JwksDocument(BaseModel):
+    """Mirrors `JwksDocument` — RFC 7517 key set served at /.well-known/jwks.json."""
+
+    keys: list[JsonWebKey] = Field(min_length=1)

@@ -8,3 +8,5 @@ supabase>=2.4
 tiktoken>=0.7
 python-multipart>=0.0.9
 ibm-watsonx-ai>=1.0
+python-jose[cryptography]>=3.3
+jsonschema[format]>=4.18

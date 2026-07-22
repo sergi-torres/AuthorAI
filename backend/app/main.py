@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.config import settings
-from app.routes import authors, diagnostics, health
+from app.routes import authors, diagnostics, health, jwks, passport
 
 # Allowed frontend origins come from AUTORIA_CORS_ORIGINS (see app.config).
 # Defaults to the local Next.js dev server; set the Vercel URL in prod.
@@ -41,3 +41,5 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(authors.router)
 app.include_router(diagnostics.router)
+app.include_router(jwks.router)
+app.include_router(passport.router)
