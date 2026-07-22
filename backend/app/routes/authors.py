@@ -25,7 +25,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 import tiktoken
@@ -98,7 +98,7 @@ def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> 
     Errors are logged but not re-raised: the 202 has already been sent.
     """
     try:
-        computed_at = datetime.now(datetime.UTC).isoformat()
+        computed_at = datetime.now(UTC).isoformat()
 
         # ------------------------------------------------------------------
         # Stub StyleProfile — satisfies docs/api_contract.yaml §StyleProfile
