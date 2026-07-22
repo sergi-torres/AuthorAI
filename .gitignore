@@ -71,7 +71,9 @@ pnpm-debug.log*
 .envrc
 
 # ─── Authorship Passport signing keys ───
-keys/
+# Ignore private material under keys/, but allow committing the public JWKS.
+keys/**
+!keys/jwks.public.json
 *.pem
 *.key
 !docs/examples/*.pem.example

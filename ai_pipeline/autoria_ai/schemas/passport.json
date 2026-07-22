@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://autoria.app/schemas/passport-1.0.json",
+  "title": "AutorIA Authorship Passport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "passport_id",
+    "generated_at",
+    "author_voice",
+    "generation",
+    "rag_sources",
+    "contribution",
+    "fit_score"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "passport_id":    { "type": "string", "format": "uuid" },
+    "generated_at":   { "type": "string", "format": "date-time" },
+    "author_voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "style_profile_hash", "style_profile_version"],
+      "properties": {
+        "id":                   { "type": "string" },
+        "style_profile_hash":   { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "style_profile_version":{ "type": "string" }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_provider",
+        "model_id",
+        "user_prompt_hash",
+        "output_hash",
+        "output_length_tokens"
+      ],
+      "properties": {
+        "model_provider":        { "type": "string" },
+        "model_id":              { "type": "string" },
+        "user_prompt_hash":      { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "output_hash":           { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "output_length_tokens":  { "type": "integer", "minimum": 0 }
+      }
+    },
+    "rag_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["doc_id", "chunk_id", "snippet_hash"],
+        "properties": {
+          "doc_id":       { "type": "string" },
+          "chunk_id":     { "type": "integer", "minimum": 0 },
+          "snippet_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["human_pct", "ai_pct"],
+      "properties": {
+        "human_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "ai_pct":    { "type": "integer", "minimum": 0, "maximum": 100 },
+        "note":      { "type": "string" }
+      }
+    },
+    "fit_score":    { "type": "integer", "minimum": 0, "maximum": 100 },
+    "verifier_url": { "type": "string", "format": "uri" }
+  }
+}

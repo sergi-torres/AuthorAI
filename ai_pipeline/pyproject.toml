@@ -14,7 +14,8 @@ dependencies = [
     "tiktoken>=0.7",
     "numpy>=1.26",
     "pydantic>=2.7",
-    "python-jose>=3.3",
+    "python-jose[cryptography]>=3.3",
+    "jsonschema[format]>=4.18",
     "ibm-watsonx-ai>=1.0",
     # DB / vector store (SQLAlchemy 2.0 async + pgvector)
     "sqlalchemy>=2.0",

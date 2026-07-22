@@ -18,6 +18,14 @@ from dataclasses import dataclass
 # Keep in sync with .env.example and docs/DEPLOYMENT.md.
 REQUIRED_ENV_VARS: tuple[str, ...] = ("WATSONX_API_KEY", "SUPABASE_URL", "SUPABASE_KEY")
 
+# Passport key env var names — exposed only as presence booleans in env_report().
+PASSPORT_ENV_VARS: tuple[str, ...] = (
+    "PASSPORT_PRIVATE_KEY_PATH",
+    "PASSPORT_PUBLIC_KEY_PATH",
+    "PASSPORT_KID",
+    "PASSPORT_VERIFIER_URL",
+)
+
 _DEFAULT_CORS_ORIGINS = "http://localhost:3000"
 
 
@@ -36,6 +44,11 @@ class Settings:
     supabase_key: str | None
     database_url: str | None
     cors_origins: tuple[str, ...]
+    # Passport — paths/ids only; never log the values of *_PATH vars.
+    passport_private_key_path: str | None
+    passport_public_key_path: str | None
+    passport_kid: str | None
+    passport_verifier_url: str | None
 
 
 def load_settings() -> Settings:
@@ -48,6 +61,10 @@ def load_settings() -> Settings:
         supabase_key=os.getenv("SUPABASE_KEY"),
         database_url=os.getenv("DATABASE_URL"),
         cors_origins=_split_origins(os.getenv("AUTORIA_CORS_ORIGINS", _DEFAULT_CORS_ORIGINS)),
+        passport_private_key_path=os.getenv("PASSPORT_PRIVATE_KEY_PATH"),
+        passport_public_key_path=os.getenv("PASSPORT_PUBLIC_KEY_PATH"),
+        passport_kid=os.getenv("PASSPORT_KID"),
+        passport_verifier_url=os.getenv("PASSPORT_VERIFIER_URL"),
     )
 
 
