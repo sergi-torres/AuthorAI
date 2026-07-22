@@ -1,0 +1,1718 @@
+{
+  "version": 1,
+  "exportedAt": 1784740055069,
+  "workspace": "file:c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+  "tasks": [
+    {
+      "task": {
+        "id": "1d077a0ae72c0049769a8874c909a3a4",
+        "workspace": "file:c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+        "parentId": null,
+        "taskType": "normal",
+        "title": "",
+        "status": "running",
+        "firstMessage": null,
+        "version": null,
+        "gitSha": null,
+        "gitBranch": null,
+        "env": {
+          "id": "1d077a0ae72c0049769a8874c909a3a4",
+          "workspace": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+          "scheme": "file",
+          "query": "",
+          "workspaceName": "AuthorAI",
+          "language": "en",
+          "isPlayground": false,
+          "costEffective": true,
+          "_meta": {
+            "commandSecurityModel": "openai/gpt-oss-20b"
+          }
+        },
+        "costs": {
+          "input": 456295,
+          "output": 5471,
+          "cacheRead": 358038,
+          "cacheWrite": 98239,
+          "cost": 1.1544100000000002,
+          "contextTokens": 35375
+        },
+        "messageQueue": null,
+        "approvalConfig": {
+          "autoApprovalEnabled": true,
+          "outsideWorkspaceAllowed": false,
+          "allowed_permissions": [
+            "read"
+          ],
+          "permissionOptions": [],
+          "allowedExecutors": [
+            {
+              "toolId": "execute_command",
+              "approvedCommands": [
+                "cat",
+                "git diff",
+                "git log",
+                "git rev-parse",
+                "git show",
+                "git status",
+                "grep",
+                "head",
+                "tail",
+                "ls",
+                "sort",
+                "wc",
+                "which",
+                "du",
+                "df"
+              ],
+              "deniedCommands": []
+            }
+          ],
+          "editApprovalPreviewMode": "editor",
+          "taskAllowedMcpTools": []
+        },
+        "lastError": null,
+        "isPinned": false,
+        "createdAt": 1784734937814,
+        "updatedAt": 1784740052842
+      },
+      "messages": [
+        {
+          "id": "3260388247765af61803ecff20858c0c",
+          "role": "user",
+          "data": {
+            "role": "user",
+            "content": "<environment_details>\n<active_file>\nActive file: c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\ai_pipeline\\pyproject.toml\n</active_file>\n<git_status_snapshot>\n## Git Status at start of this conversation. This is a point-in-time snapshot and does not reflect subsequent changes.\nBranch: feat/ai-chunk-embedder-rag\n```\n M frontend/next.config.ts\n M frontend/src/components/AddAuthorCard.tsx\n M frontend/src/components/AuthorColumn.tsx\n M frontend/src/components/DistinctiveVocabHighlight.tsx\n M frontend/src/components/FitScoreBar.tsx\n M frontend/src/lib/api.ts\n```\n</git_status_snapshot>\n</environment_details>\n\n\n<user_query>\n## AutorIA — Estado del proyecto (David, P2)\n\nContext: AutorIA project. Follow docs/style_features.md §4.1 \"Distinctive\nvocabulary\" as the authoritative spec — it takes precedence over any\ninformal task description, since the schema is LOCKED per docs/MVP.md §7\nand docs/api_contract.yaml.\n\nTask: implement ai_pipeline/autoria_ai/extractor/vocabulary.py (note: this\npath, matching the existing sibling modules lexical.py, syntactic.py,\nstylistic.py already in ai_pipeline/autoria_ai/extractor/ — NOT a new\nai_pipeline/extractors/ package).\n\n1. Function signature:\n   compute_distinctive_vocab(\n       corpora_lemmas: dict[str, str],  # {\"austen\": \"<lemmatized corpus text>\", \"dickens\": ..., \"poe\": ...}\n       author_id: str,                  # which author's top terms to return\n       top_n: int = 30,                 # per style_features.md §4.1, NOT 50\n   ) -> list[dict]                      # [{\"term\": str, \"score\": float}, ...] sorted desc by score\n\n2. Algorithm, exactly per docs/style_features.md §4.1:\n   - The input `corpora_lemmas` ALREADY contains lemmatized text processed\n     by spaCy en_core_web_lg from the previous pipeline steps. Do NOT re-initialize\n     spaCy or re-lemmatize inside this function.\n   - Each author's FULL lemmatized corpus is treated as ONE \"document\" for TF-IDF purposes.\n   - Use sklearn.feature_extraction.text.TfidfVectorizer with:\n       stop_words=\"english\"\n       ngram_range=(1, 1)\n       max_features=50000\n       token_pattern=r\"(?u)\\b[a-zA-Z]{3,}\\b\"   # min 3 chars, alpha only\n   - Fit on all 3 authors' corpora together (the TfidfVectorizer's corpus IS\n     the 3 documents), then for the requested author_id, sort its TF-IDF\n     scores descending and return top_n as {\"term\": str, \"score\": float}.\n\n3. Output must match docs/api_contract.yaml schema exactly:\n     DistinctiveTerm: { term: string, score: number }\n   as a flat list — this becomes StyleProfile.distinctive_vocab (root-level\n   field, NOT nested under a \"vocabulary\" object). Do not invent new field\n   names or nesting; docs/api_contract.yaml is locked and\n   frontend/src/components/DistinctiveVocabHighlight.tsx already consumes\n   this exact shape.\n\n4. This function will be called once per author during StyleProfile\n   computation (docs/architecture.md §3.2, style_profile.py assembles the\n   full profile) — it does NOT persist to DB itself; it just returns the\n   list for style_profile.py to embed into the StyleProfile JSON.\n\n5. Tests (ai_pipeline/tests/test_vocabulary.py):\n   - Happy path: 3 synthetic small corpora with an obviously distinctive\n     word in one (\"countenance\" appears often in one, never in the others)\n     — assert it appears in that author's top_n and not skewing others.\n   - Assert output length <= top_n (could be less if the corpus has fewer\n     than top_n distinct valid tokens).\n   - Assert each item matches {\"term\": str, \"score\": float} shape.\n   - Assert scores are sorted descending.\n   - Assert stopwords and <3-char tokens never appear in results.\n\nConstraints: Python 3.11, scikit-learn (already a dependency per ai_pipeline/pyproject.toml). Follow\nthe same lint conventions as the rest of ai_pipeline (ruff + black,\nline-length 100, per root pyproject.toml). Run `black --check` with the\nCI-pinned version (26.5.1, per .github/workflows/ci.yml — not the\nrequirements-dev.txt version, which is out of sync) before committing.\n</user_query>",
+            "availableTools": [
+              "GetSymbolsOverview",
+              "FindSymbol",
+              "FindReferencingSymbols",
+              "apply_diff",
+              "insert_content",
+              "list_files",
+              "read_file",
+              "read_xlsx",
+              "search_and_replace",
+              "switch_mode",
+              "write_file",
+              "execute_command",
+              "glob",
+              "grep",
+              "ask_followup_question",
+              "start_workflow"
+            ],
+            "_meta": {
+              "mentionEditorState": {
+                "root": {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "type": "pasted-text",
+                          "text": "## AutorIA — Estado del proyecto (David, P2)\n\nContext: AutorIA project. Follow docs/style_features.md §4.1 \"Distinctive\nvocabulary\" as the authoritative spec — it takes precedence over any\ninformal task description, since the schema is LOCKED per docs/MVP.md §7\nand docs/api_contract.yaml.\n\nTask: implement ai_pipeline/autoria_ai/extractor/vocabulary.py (note: this\npath, matching the existing sibling modules lexical.py, syntactic.py,\nstylistic.py already in ai_pipeline/autoria_ai/extractor/ — NOT a new\nai_pipeline/extractors/ package).\n\n1. Function signature:\n   compute_distinctive_vocab(\n       corpora_lemmas: dict[str, str],  # {\"austen\": \"<lemmatized corpus text>\", \"dickens\": ..., \"poe\": ...}\n       author_id: str,                  # which author's top terms to return\n       top_n: int = 30,                 # per style_features.md §4.1, NOT 50\n   ) -> list[dict]                      # [{\"term\": str, \"score\": float}, ...] sorted desc by score\n\n2. Algorithm, exactly per docs/style_features.md §4.1:\n   - The input `corpora_lemmas` ALREADY contains lemmatized text processed\n     by spaCy en_core_web_lg from the previous pipeline steps. Do NOT re-initialize\n     spaCy or re-lemmatize inside this function.\n   - Each author's FULL lemmatized corpus is treated as ONE \"document\" for TF-IDF purposes.\n   - Use sklearn.feature_extraction.text.TfidfVectorizer with:\n       stop_words=\"english\"\n       ngram_range=(1, 1)\n       max_features=50000\n       token_pattern=r\"(?u)\\b[a-zA-Z]{3,}\\b\"   # min 3 chars, alpha only\n   - Fit on all 3 authors' corpora together (the TfidfVectorizer's corpus IS\n     the 3 documents), then for the requested author_id, sort its TF-IDF\n     scores descending and return top_n as {\"term\": str, \"score\": float}.\n\n3. Output must match docs/api_contract.yaml schema exactly:\n     DistinctiveTerm: { term: string, score: number }\n   as a flat list — this becomes StyleProfile.distinctive_vocab (root-level\n   field, NOT nested under a \"vocabulary\" object). Do not invent new field\n   names or nesting; docs/api_contract.yaml is locked and\n   frontend/src/components/DistinctiveVocabHighlight.tsx already consumes\n   this exact shape.\n\n4. This function will be called once per author during StyleProfile\n   computation (docs/architecture.md §3.2, style_profile.py assembles the\n   full profile) — it does NOT persist to DB itself; it just returns the\n   list for style_profile.py to embed into the StyleProfile JSON.\n\n5. Tests (ai_pipeline/tests/test_vocabulary.py):\n   - Happy path: 3 synthetic small corpora with an obviously distinctive\n     word in one (\"countenance\" appears often in one, never in the others)\n     — assert it appears in that author's top_n and not skewing others.\n   - Assert output length <= top_n (could be less if the corpus has fewer\n     than top_n distinct valid tokens).\n   - Assert each item matches {\"term\": str, \"score\": float} shape.\n   - Assert scores are sorted descending.\n   - Assert stopwords and <3-char tokens never appear in results.\n\nConstraints: Python 3.11, scikit-learn (already a dependency per ai_pipeline/pyproject.toml). Follow\nthe same lint conventions as the rest of ai_pipeline (ruff + black,\nline-length 100, per root pyproject.toml). Run `black --check` with the\nCI-pinned version (26.5.1, per .github/workflows/ci.yml — not the\nrequirements-dev.txt version, which is out of sync) before committing.",
+                          "index": 1,
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 0,
+                      "textStyle": ""
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "root",
+                  "version": 1
+                }
+              },
+              "mask": "## AutorIA — Estado del proyecto (David, P2)\n\nContext: AutorIA project. Follow docs/style_features.md §4.1 \"Distinctive\nvocabulary\" as the authoritative spec — it takes precedence over any\ninformal task description, since the schema is LOCKED per docs/MVP.md §7\nand docs/api_contract.yaml.\n\nTask: implement ai_pipeline/autoria_ai/extractor/vocabulary.py (note: this\npath, matching the existing sibling modules lexical.py, syntactic.py,\nstylistic.py already in ai_pipeline/autoria_ai/extractor/ — NOT a new\nai_pipeline/extractors/ package).\n\n1. Function signature:\n   compute_distinctive_vocab(\n       corpora_lemmas: dict[str, str],  # {\"austen\": \"<lemmatized corpus text>\", \"dickens\": ..., \"poe\": ...}\n       author_id: str,                  # which author's top terms to return\n       top_n: int = 30,                 # per style_features.md §4.1, NOT 50\n   ) -> list[dict]                      # [{\"term\": str, \"score\": float}, ...] sorted desc by score\n\n2. Algorithm, exactly per docs/style_features.md §4.1:\n   - The input `corpora_lemmas` ALREADY contains lemmatized text processed\n     by spaCy en_core_web_lg from the previous pipeline steps. Do NOT re-initialize\n     spaCy or re-lemmatize inside this function.\n   - Each author's FULL lemmatized corpus is treated as ONE \"document\" for TF-IDF purposes.\n   - Use sklearn.feature_extraction.text.TfidfVectorizer with:\n       stop_words=\"english\"\n       ngram_range=(1, 1)\n       max_features=50000\n       token_pattern=r\"(?u)\\b[a-zA-Z]{3,}\\b\"   # min 3 chars, alpha only\n   - Fit on all 3 authors' corpora together (the TfidfVectorizer's corpus IS\n     the 3 documents), then for the requested author_id, sort its TF-IDF\n     scores descending and return top_n as {\"term\": str, \"score\": float}.\n\n3. Output must match docs/api_contract.yaml schema exactly:\n     DistinctiveTerm: { term: string, score: number }\n   as a flat list — this becomes StyleProfile.distinctive_vocab (root-level\n   field, NOT nested under a \"vocabulary\" object). Do not invent new field\n   names or nesting; docs/api_contract.yaml is locked and\n   frontend/src/components/DistinctiveVocabHighlight.tsx already consumes\n   this exact shape.\n\n4. This function will be called once per author during StyleProfile\n   computation (docs/architecture.md §3.2, style_profile.py assembles the\n   full profile) — it does NOT persist to DB itself; it just returns the\n   list for style_profile.py to embed into the StyleProfile JSON.\n\n5. Tests (ai_pipeline/tests/test_vocabulary.py):\n   - Happy path: 3 synthetic small corpora with an obviously distinctive\n     word in one (\"countenance\" appears often in one, never in the others)\n     — assert it appears in that author's top_n and not skewing others.\n   - Assert output length <= top_n (could be less if the corpus has fewer\n     than top_n distinct valid tokens).\n   - Assert each item matches {\"term\": str, \"score\": float} shape.\n   - Assert scores are sorted descending.\n   - Assert stopwords and <3-char tokens never appear in results.\n\nConstraints: Python 3.11, scikit-learn (already a dependency per ai_pipeline/pyproject.toml). Follow\nthe same lint conventions as the rest of ai_pipeline (ruff + black,\nline-length 100, per root pyproject.toml). Run `black --check` with the\nCI-pinned version (26.5.1, per .github/workflows/ci.yml — not the\nrequirements-dev.txt version, which is out of sync) before committing.",
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1784734948327
+            },
+            "id": "3260388247765af61803ecff20858c0c"
+          },
+          "createdAt": 1784734948319
+        },
+        {
+          "id": "bef8dc6303a115b372d09c1bc174d932",
+          "role": "system",
+          "data": {
+            "role": "system",
+            "content": "<role_definition>\nYou are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.\n</role_definition>\n\n<investigate_before_answering>\nNever speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Investigate and read relevant files before answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.\n</investigate_before_answering>\n\n<engineering_discipline>\nProduce the minimal change that solves the problem. Do not add features, refactors, or abstractions beyond what was asked. Do not add error handling for scenarios that cannot happen. Do not clean up surrounding code that is unrelated to the task. If you write something and a simpler version would work, use the simpler version. Every changed line should trace directly to the user's request.\n</engineering_discipline>\n\n<tool_use>\n- Choose the most appropriate tool for each step.\n- Tools can be called in parallel when independent, but avoid running operations together that have dependencies (e.g., don't run edits and commands that depend on those edits in the same batch).\n- If a tool fails, address the error before continuing.\n- MCP server tools use IDs formatted as `mcp__<server>__<tool>`. Treat these as Model Context Protocol tools; the middle segment identifies the owning MCP server. Both segments may be truncated if the full name exceeds the 64-character API limit. Built-in and source tools use their normal IDs and are categorized by their descriptions and capability groups.\n- Prefer native file tools (read_file, write_file, search_and_replace, insert_content, list_files) over shell commands for file operations — they need no additional user permissions. Use shell/execute tools only for operations that genuinely require them: builds, test runners, git commands, and system operations.\n</tool_use>\n\n<markdown_rules>\nAll responses should show any language construct or filename reference as a clickable link, exactly as [`filename OR language.declaration()`](relative/file/path.ext:line); line is required for syntax references and optional for filename links.\n</markdown_rules>\n\n<auto_appended_context>\nEach user message may contain an auto-appended <environment_details> section that includes potentially relevant information such as git status, active file, and relevant files modified externally since your last interaction. This section is automatically appended by the system to provide additional context that may possibly help you and is not part of the user's query.\n\nPay close attention to the <external_changes> sub-section — it lists files that were modified, deleted, or created outside of your actions. Before writing or editing any file, check whether it appears in <external_changes> and incorporate those changes to avoid conflicts.\n</auto_appended_context>\n\n<base_rules>\n- Prefer editing tools (apply_diff, search_and_replace, insert_content) over write_file for existing files.\n- When using write_file, provide the COMPLETE file content. Partial updates or placeholders are not acceptable.\n- Be direct and technical. Do not start messages with \"Great\", \"Certainly\", \"Okay\", or \"Sure\".\n- Follow existing code style and project conventions.\n- Use available tools to accomplish tasks efficiently. Do not ask unnecessary follow-up questions.\n- Do not stop when implementation looks complete. Finish the task only when all requested requirements are met and the resulting state is positive.\n- Before reporting final completion, run the relevant validation for your changes. Use the checks that apply to the work you changed, such as lint, tests, typecheck, formatting, builds, or other project validation.\n- Work is done when the changed work and any affected project state pass the required validation with no new warnings, failures, or unfinished requirements.\n</base_rules>\n\nYou have access to skills that provide specialized instructions for specific tasks. Review the available skills below. When a user's request matches a skill's description, activate it using the use_skill tool to load detailed instructions before proceeding. Only activate skills that are clearly relevant to the current task. Activate each skill once per current context window. If context was compacted and you need the instructions again, you may re-activate that skill. Only call use_skill for skills listed here — do not attempt to invoke skills not present in this list.\n<available_skills>\n  <skill>\n    <name>create-skill</name>\n    <description>Guide for creating a new Bob skill (SKILL.md) — covers the frontmatter schema, name rules, file location, and gotchas. Use when the user wants to author, create, or scaffold a skill.</description>\n  </skill>\n  <skill>\n    <name>create-mode</name>\n    <description>Guide for creating a new custom Bob mode (custom_modes.yaml) — covers the schema, permission groups, roleDefinition, and file location. Use when the user wants to author, create, or scaffold a mode or persona.</description>\n  </skill>\n  <skill>\n    <name>configure-mcp</name>\n    <description>Add a new MCP server or diagnose an existing one — covers local vs remote transport, system dependency checks (node, docker, podman, python, uv), config schema validation, secrets handling, and scope. Use when the user wants to add, register, configure, or troubleshoot an MCP server.</description>\n  </skill>\n  <skill>\n    <name>build-mcp-server</name>\n    <description>Guide for building a custom MCP server from scratch — covers project scaffolding, the v2 registerTool/registerResource/registerPrompt API, API key and OAuth authentication patterns, building and registering the server. Use when the user wants to create, build, or write a custom MCP server.</description>\n  </skill>\n  <skill>\n    <name>xlsx-insights</name>\n    <description>Use this skill when the user asks for analysis, extraction, or insights from an Excel (.xlsx) workbook. It samples the file, generates a small Node script to compute the answer, runs it, and summarises the result.</description>\n  </skill>\n</available_skills>\n\n<user_custom_instructions>\nThe following additional instructions are provided by the user, and should be followed to the best of your ability without interfering with the TOOL USE guidelines.\n\nLanguage Preference:\nYou should always speak and think in the \"English\" (en) language unless the user gives you instructions below to do otherwise.\n\nMode-specific Instructions:\nDo not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.\n</user_custom_instructions>\n\n<environment_info>\n## Workspace Info\nThe currently active workspace folder is c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\nUse file paths relative to this directory.\n## Command Execution Environment\nPlatform: win32\nRelease: 10.0.26200\nArchitecture: x64\nShell: powershell.exe\n</environment_info>\n\nYou can get information about available symbols by using the `GetSymbolsOverview` tool for finding top-level symbols in a file,\nor by using `FindSymbol` if you already know the symbol's name path. You generally try to read as little code as possible\nwhile still solving your task, meaning you only read the bodies when you need to, and after you have found the symbol you want to edit.\nFor example, if you are working with python code and already know that you need to read the body of the constructor of the class Foo, you can directly\nuse `FindSymbol` with the name path `Foo/__init__` and `include_body: true`. If you don't know yet which methods in `Foo` you need to read or edit,\nyou can use `FindSymbol` with the name path `Foo`, `include_body: false` and `depth: 1` to get all (top-level) methods of `Foo` before proceeding\nto read the desired methods with `include_body: true`\nYou can understand relationships between symbols by using the `FindReferencingSymbols` tool.\n\n# Mode Switching\n\nYou can switch between different modes using the switch_mode tool. Each mode provides access to different capabilities and tools optimized for specific types of tasks.\n\n<available_modes>\n  <mode>\n    <name>Agent</name>\n    <id>agent</id>\n    <when_to_use>Use this mode when you need to write, modify, or refactor code. Ideal for implementing features, fixing bugs, creating new files, or making code improvements across any programming language or framework.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, apply_diff, create_html_artifact, insert_content, list_files, read_file, read_xlsx, search_and_replace, update_todo_list, switch_mode, write_file, execute_command, glob, grep, spawn_subagent, ask_followup_question, start_subtask, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>Plan</name>\n    <id>plan</id>\n    <when_to_use>Use this mode when you need to plan, design, or strategize before implementation. Perfect for breaking down complex problems, creating technical specifications, designing system architecture, or brainstorming solutions before coding.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, glob, grep, spawn_subagent, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>Ask</name>\n    <id>ask</id>\n    <when_to_use>Use this mode when you need explanations, documentation, or answers to technical questions. Best for understanding concepts, analyzing existing code, getting recommendations, or learning about technologies without making changes.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, list_files, read_file, read_xlsx, switch_mode, glob, grep, spawn_subagent, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>StyleExtractor</name>\n    <id>style-extractor</id>\n    <when_to_use>Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>GenerationConductor</name>\n    <id>generation-conductor</id>\n    <when_to_use>RAG retrieval, conditioned-prompt design, Watsonx orchestration, and fit_score work.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>StudioComposer</name>\n    <id>studio-composer</id>\n    <when_to_use>Style DNA charts, side-by-side generation UI, /verify layout, API client and TS types, and i18n.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>PassportAuditor</name>\n    <id>passport-auditor</id>\n    <when_to_use>JWS signing and verification, the JWKS endpoint, and adversarial review of crypto edge cases.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n</available_modes>\n\n# glob — file search\nUse `glob` to find files by name pattern (e.g. \"**/*.ts\", \"src/**/*.test.ts\"). Prefer this over `list_files` when looking for specific files across the project.\nOnly fall back to `list_files` when you need to browse a single directory's structure.\n\n# grep — content search\nUse `grep` to find code by content using regex patterns. Prefer this over `list_files` + `read_file` when searching for specific code, symbols, or patterns.\nUse `read_file` only after grep tells you which file and lines to look at.\n\nYou have access to workflows that provide specialized multi-step processes for specific tasks. Review the available workflows below. When a user's request matches a workflow's purpose, use the start_workflow tool. Run the workflow only if you are sure the workflow description will provide appropriate assistance. When suggesting workflows to users, provide the title and description, never the internal ID.\nAvailable workflows:\n* create_pr_workflow: Create Pull Request - Generates description from git diff using PR templates, allows review and editing, then creates the pull request on GitHub.",
+            "_meta": {
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1784734948327
+            },
+            "id": "bef8dc6303a115b372d09c1bc174d932"
+          },
+          "createdAt": 1784734948327
+        },
+        {
+          "id": "81cc0790f7670706184877cba905363e",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Let me investigate the existing codebase before writing anything.",
+            "id": "81cc0790f7670706184877cba905363e",
+            "_meta": {
+              "timestamp": 1784734951859,
+              "spend": {
+                "input": 10069,
+                "output": 114,
+                "cacheRead": 8533,
+                "cacheWrite": 1533,
+                "cost": 0.025457,
+                "contextTokens": 10183,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_0jFCq5inqIgCyiPmir5FGm",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/style_features.md"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_mWnGfPocKJtk9K19exmWxU",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/api_contract.yaml"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784734951948
+        },
+        {
+          "id": "90525561d955cb7763af1d2d02abbc38",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file docs/style_features.md:\n\n1 | # AutorIA — Style Feature Definitions\n2 | \n3 | > **Owner**: P2 · **Status**: Sprint 0 draft · **Last updated**: 2026-06-29\n4 | > **Schema version this document describes**: `StyleProfile v1.0`\n5 | > **Stack**: spaCy `en_core_web_lg` · sentence-transformers `all-mpnet-base-v2`\n6 | \n7 | This document is the authoritative reference for every metric stored in a `StyleProfile`. For each feature it defines: what it measures, how it is computed, why it was chosen, and the expected range per preloaded author (Austen / Dickens / Poe). These ranges serve as sanity-check thresholds during extraction and as reference values in the demo.\n8 | \n9 | Features not listed here are **out of scope for v1.0** and must go through a Decision Log entry before being added.\n10 | \n11 | ---\n12 | \n13 | ## Table of Contents\n14 | \n15 | 1. [Lexical features](#1-lexical-features)\n16 | 2. [Syntactic features](#2-syntactic-features)\n17 | 3. [Stylistic features](#3-stylistic-features)\n18 | 4. [Distinctive vocabulary](#4-distinctive-vocabulary)\n19 | 5. [Semantic features](#5-semantic-features)\n20 | 6. [fit\\_score — composite metric](#6-fit_score--composite-metric)\n21 | 7. [Expected ranges per author](#7-expected-ranges-per-author)\n22 | 8. [Computation pipeline](#8-computation-pipeline)\n23 | 9. [Known limitations](#9-known-limitations)\n24 | \n25 | ---\n26 | \n27 | ## 1. Lexical features\n28 | \n29 | Lexical features capture **vocabulary richness and word-level choices** — how varied and how complex the author's word selection is, independently of grammar.\n30 | \n31 | ### 1.1 `mattr_500` — Moving Average Type-Token Ratio\n32 | \n33 | **What it measures**: vocabulary richness, stabilized across corpus length.\n34 | \n35 | **Why not plain TTR**: plain Type-Token Ratio (unique tokens / total tokens) decreases monotonically as text length grows, making it useless for comparing corpora of different sizes (Austen ~330k words vs Poe ~70k words). MATTR fixes this by computing TTR over a sliding window of 500 tokens and averaging across all windows.\n36 | \n37 | **How it is computed**:\n38 | ```\n39 | mattr_500 = mean( TTR(window_i) for each window of 500 tokens )\n40 | where TTR(window_i) = unique_tokens(window_i) / 500\n41 | ```\n42 | \n43 | **Tool**: computed with the `lexical_diversity` Python package or manually with a sliding window over `doc` tokens.\n44 | \n45 | **Interpretation**: higher = richer vocabulary per 500-token block.\n46 | \n47 | **Expected ranges**:\n48 | | Author | Range |\n49 | |---|---|\n50 | | Austen | 0.62 – 0.68 |\n51 | | Dickens | 0.58 – 0.64 |\n52 | | Poe | 0.66 – 0.73 |\n53 | \n54 | ---\n55 | \n56 | ### 1.2 `avg_word_length` — Average Word Length\n57 | \n58 | **What it measures**: the mean number of characters per word, excluding punctuation tokens.\n59 | \n60 | **Why it matters**: Poe deliberately uses long Latinate and archaic words (*phantasm*, *physiognomy*, *luminousness*) to create a Gothic, elevated register. Austen's prose is conversational and prefers shorter words. This single number is immediately interpretable by a non-technical judge.\n61 | \n62 | **How it is computed**:\n63 | ```python\n64 | words = [t.text for t in doc if t.is_alpha]\n65 | avg_word_length = sum(len(w) for w in words) / len(words)\n66 | ```\n67 | \n68 | **Expected ranges**:\n69 | | Author | Range |\n70 | |---|---|\n71 | | Austen | 4.0 – 4.5 |\n72 | | Dickens | 4.6 – 5.1 |\n73 | | Poe | 5.0 – 5.6 |\n74 | \n75 | ---\n76 | \n77 | ### 1.3 `hapax_ratio` — Hapax Legomena Ratio\n78 | \n79 | **What it measures**: the proportion of word types that appear **exactly once** in the corpus.\n80 | \n81 | **Why it matters**: a high hapax ratio signals an author who actively avoids repetition and draws from a wide, exotic vocabulary — a hallmark of Poe. It is complementary to `mattr_500`: MATTR measures local richness per window; hapax ratio measures global uniqueness across the full corpus.\n82 | \n83 | **How it is computed**:\n84 | ```python\n85 | from collections import Counter\n86 | freq = Counter(t.lemma_.lower() for t in doc if t.is_alpha)\n87 | hapax_ratio = sum(1 for v in freq.values() if v == 1) / len(freq)\n88 | ```\n89 | \n90 | Note: computed over **lemmas**, not raw forms, to avoid counting inflections as separate types.\n91 | \n92 | **Expected ranges**:\n93 | | Author | Range |\n94 | |---|---|\n95 | | Austen | 0.38 – 0.44 |\n96 | | Dickens | 0.40 – 0.46 |\n97 | | Poe | 0.48 – 0.56 |\n98 | \n99 | ---\n100 | \n101 | ## 2. Syntactic features\n102 | \n103 | Syntactic features capture **sentence architecture** — how sentences are structured, how complex they are, and what grammatical patterns dominate. All syntactic analysis is performed with spaCy's dependency parser (`en_core_web_lg`).\n104 | \n105 | ### 2.1 `avg_sentence_length_tokens` and `std_sentence_length_tokens`\n106 | \n107 | **What they measure**: mean and standard deviation of sentence length in tokens.\n108 | \n109 | **Why both matter**: the mean tells you how long Dickens's sentences are on average (~28 tokens); the standard deviation tells you how much they vary. Dickens has both very long, sprawling sentences and short, punchy ones — high std. Austen is more controlled. These two numbers appear directly in the demo side-by-side comparison.\n110 | \n111 | **How they are computed**:\n112 | ```python\n113 | import statistics\n114 | lengths = [len(sent) for sent in doc.sents]\n115 | avg = statistics.mean(lengths)\n116 | std = statistics.stdev(lengths)\n117 | ```\n118 | \n119 | **Expected ranges**:\n120 | | Author | avg | std |\n121 | |---|---|---|\n122 | | Austen | 22 – 28 | 10 – 14 |\n123 | | Dickens | 25 – 32 | 13 – 17 |\n124 | | Poe | 24 – 34 | 14 – 20 |\n125 | \n126 | ---\n127 | \n128 | ### 2.2 `subordination_ratio` — Subordination Ratio\n129 | \n130 | **What it measures**: the proportion of tokens that are the root of a subordinate clause.\n131 | \n132 | **Why it matters**: subordination is the primary driver of syntactic complexity. Dickens constructs long, nested sentences where one clause depends on another. This ratio captures that tendency directly from the dependency tree.\n133 | \n134 | **How it is computed**:\n135 | ```python\n136 | SUBORDINATE_DEPS = {\"advcl\", \"relcl\", \"ccomp\", \"xcomp\"}\n137 | subordinate = sum(1 for t in doc if t.dep_ in SUBORDINATE_DEPS)\n138 | subordination_ratio = subordinate / len(list(doc.sents))\n139 | ```\n140 | \n141 | Normalized per sentence (not per token) so it is not confounded by sentence length.\n142 | \n143 | **Expected ranges**:\n144 | | Author | Range |\n145 | |---|---|\n146 | | Austen | 0.28 – 0.36 |\n147 | | Dickens | 0.34 – 0.44 |\n148 | | Poe | 0.22 – 0.32 |\n149 | \n150 | ---\n151 | \n152 | ### 2.3 `noun_to_verb_ratio` — Noun-to-Verb Ratio\n153 | \n154 | **What it measures**: the ratio of NOUN tokens to VERB tokens across the corpus.\n155 | \n156 | **Why it matters**: a high ratio indicates a **nominal style** — descriptive, scene-setting, rich in objects and characters. A low ratio indicates a more **verbal style** — action-oriented, dynamic. Austen and Dickens are more nominal (they describe scenes and characters at length); Poe's Gothic action sequences are more verbal.\n157 | \n158 | **How it is computed**:\n159 | ```python\n160 | nouns = sum(1 for t in doc if t.pos_ == \"NOUN\")\n161 | verbs = sum(1 for t in doc if t.pos_ == \"VERB\")\n162 | noun_to_verb_ratio = nouns / verbs\n163 | ```\n164 | \n165 | **Expected ranges**:\n166 | | Author | Range |\n167 | |---|---|\n168 | | Austen | 1.6 – 2.0 |\n169 | | Dickens | 1.7 – 2.1 |\n170 | | Poe | 1.2 – 1.6 |\n171 | \n172 | ---\n173 | \n174 | ### 2.4 `passive_voice_ratio` — Passive Voice Ratio\n175 | \n176 | **What it measures**: the proportion of sentences containing at least one passive construction.\n177 | \n178 | **Why it matters**: Poe systematically uses the passive voice to create psychological distance between narrator and event — \"it was heard\", \"the door was opened\" — amplifying dread without agency. This is one of the most **author-discriminating** features in the syntactic block.\n179 | \n180 | **How it is computed**:\n181 | ```python\n182 | passive_sentences = sum(\n183 |     1 for sent in doc.sents\n184 |     if any(t.dep_ == \"nsubjpass\" for t in sent)\n185 | )\n186 | passive_voice_ratio = passive_sentences / len(list(doc.sents))\n187 | ```\n188 | \n189 | **Expected ranges**:\n190 | | Author | Range |\n191 | |---|---|\n192 | | Austen | 0.06 – 0.12 |\n193 | | Dickens | 0.08 – 0.14 |\n194 | | Poe | 0.18 – 0.28 |\n195 | \n196 | ---\n197 | \n198 | ## 3. Stylistic features\n199 | \n200 | Stylistic features capture **surface patterns** — punctuation habits, part-of-speech distributions, and narrator perspective. These are fast to compute and highly stable across works by the same author.\n201 | \n202 | ### 3.1 `punct_distribution` — Punctuation Distribution\n203 | \n204 | **What it measures**: the relative frequency of each punctuation mark, normalized over all punctuation tokens.\n205 | \n206 | **Why it matters**: punctuation is the author's \"breath marks\" — it encodes rhythm and pacing at the surface level. The semicolon (`;`) is Dickens's signature pause for dramatic elaboration. The em-dash (`—`) is Poe's interruption and intensification. Austen's high quotation mark frequency (`\"`) reflects her dialogue-heavy social novels.\n207 | \n208 | **How it is computed**:\n209 | ```python\n210 | from collections import Counter\n211 | PUNCT_MARKS = {\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", '\"'}\n212 | counts = Counter(t.text for t in doc if t.text in PUNCT_MARKS)\n213 | total = sum(counts.values())\n214 | punct_distribution = {k: v / total for k, v in counts.items()}\n215 | ```\n216 | \n217 | **Stored as**: a dict with keys `[\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", \"\\\"\"]`.\n218 | \n219 | **Key signals**:\n220 | | Mark | Dickens | Poe | Austen |\n221 | |---|---|---|---|\n222 | | `;` | High | Low | Medium |\n223 | | `—` | Low | High | Low |\n224 | | `\"` | Medium | Low | High |\n225 | \n226 | ---\n227 | \n228 | ### 3.2 `pos_distribution` — Part-of-Speech Distribution\n229 | \n230 | **What it measures**: the relative frequency of each universal POS tag across all tokens (excluding punctuation).\n231 | \n232 | **Why it matters**: POS distribution captures the grammatical texture of prose — how much the author relies on adjectives, adverbs, pronouns, etc. It is one of the five components of `fit_score` (Jaccard similarity between generated text and profile distributions).\n233 | \n234 | **How it is computed**:\n235 | ```python\n236 | TRACKED_POS = {\"NOUN\",\"VERB\",\"ADJ\",\"ADV\",\"DET\",\"ADP\",\"PRON\",\"CONJ\",\"SCONJ\"}\n237 | counts = Counter(t.pos_ for t in doc if not t.is_punct)\n238 | total = sum(counts[p] for p in TRACKED_POS)\n239 | pos_distribution = {p: counts[p] / total for p in TRACKED_POS}\n240 | pos_distribution[\"OTHER\"] = 1 - sum(pos_distribution.values())\n241 | ```\n242 | \n243 | **Stored as**: a dict with 10 keys (9 POS tags + `OTHER`).\n244 | \n245 | ---\n246 | \n247 | ### 3.3 `dialogue_ratio` — Dialogue Ratio\n248 | \n249 | **What it measures**: the proportion of tokens that appear inside quotation marks (direct speech).\n250 | \n251 | **Why it matters**: this single number cleanly separates Austen from the other two. Her novels are driven by dialogue — social sparring, misunderstandings, wit — while Poe is almost entirely first-person interior monologue with minimal direct speech.\n252 | \n253 | **How it is computed**:\n254 | ```python\n255 | in_dialogue = False\n256 | dialogue_tokens = 0\n257 | total_tokens = 0\n258 | for token in doc:\n259 |     if token.text == '\"':\n260 |         in_dialogue = not in_dialogue\n261 |         continue\n262 |     total_tokens += 1\n263 |     if in_dialogue:\n264 |         dialogue_tokens += 1\n265 | dialogue_ratio = dialogue_tokens / total_tokens\n266 | ```\n267 | \n268 | **Expected ranges**:\n269 | | Author | Range |\n270 | |---|---|\n271 | | Austen | 0.28 – 0.38 |\n272 | | Dickens | 0.20 – 0.28 |\n273 | | Poe | 0.05 – 0.14 |\n274 | \n275 | ---\n276 | \n277 | ### 3.4 `first_person_ratio` — First-Person Pronoun Ratio\n278 | \n279 | **What it measures**: the frequency of first-person singular pronouns (*I, me, my, mine, myself*) per 1,000 tokens.\n280 | \n281 | **Why it matters**: Poe almost exclusively writes in close first-person — the narrator *is* the protagonist, confessing, spiraling, obsessing. Austen writes in third-person omniscient and never uses \"I\" in narration. This is the sharpest Poe discriminator in the stylistic block.\n282 | \n283 | **How it is computed**:\n284 | ```python\n285 | FIRST_PERSON = {\"i\", \"me\", \"my\", \"mine\", \"myself\"}\n286 | fp_count = sum(1 for t in doc if t.lower_ in FIRST_PERSON)\n287 | first_person_ratio = (fp_count / len(doc)) * 1000  # per 1k tokens\n288 | ```\n289 | \n290 | **Expected ranges**:\n291 | | Author | Range (per 1k tokens) |\n292 | |---|---|\n293 | | Austen | 0.5 – 3.0 |\n294 | | Dickens | 4.0 – 9.0 |\n295 | | Poe | 18.0 – 30.0 |\n296 | \n297 | ---\n298 | \n299 | ## 4. Distinctive vocabulary\n300 | \n301 | ### 4.1 `distinctive_vocab` — TF-IDF Signature Words\n302 | \n303 | **What it measures**: the words that are **most characteristic of one author relative to the others** — not just frequent words, but words that are unusually concentrated in that author's corpus.\n304 | \n305 | **Why it matters**: this is the feature the audience *sees* in the demo. When the AutorIA output contains \"countenance\", \"physiognomy\", and \"presently\" for Dickens, the jury can read and feel the difference without understanding a single number.\n306 | \n307 | **How it is computed**: standard TF-IDF where each author's full corpus is one \"document\" and the collection is all three authors combined.\n308 | \n309 | ```python\n310 | from sklearn.feature_extraction.text import TfidfVectorizer\n311 | \n312 | corpora = {\n313 |     \"austen\": \"<full austen corpus>\",\n314 |     \"dickens\": \"<full dickens corpus>\",\n315 |     \"poe\": \"<full poe corpus>\"\n316 | }\n317 | \n318 | vectorizer = TfidfVectorizer(\n319 |     stop_words=\"english\",\n320 |     ngram_range=(1, 1),\n321 |     max_features=50000,\n322 |     token_pattern=r\"(?u)\\b[a-zA-Z]{3,}\\b\"  # min 3 chars, alpha only\n323 | )\n324 | \n325 | tfidf_matrix = vectorizer.fit_transform(corpora.values())\n326 | # For each author: sort features by TF-IDF score descending\n327 | # Store top-N as distinctive_vocab list\n328 | ```\n329 | \n330 | **Stored as**: a list of `{ \"term\": str, \"score\": float }` objects, sorted by score descending. Top 30 terms per author.\n331 | \n332 | **Preprocessing**: lemmatize before TF-IDF, exclude stopwords, exclude tokens shorter than 3 characters.\n333 | \n334 | ---\n335 | \n336 | ## 5. Semantic features\n337 | \n338 | Semantic features capture **what the author writes about and the meaning-space they inhabit**, independently of surface form. They are computed with sentence-transformers `all-mpnet-base-v2` (768-dimensional embeddings).\n339 | \n340 | ### 5.1 `semantic_centroid` — Author Semantic Centroid\n341 | \n342 | **What it measures**: the mean embedding vector across all ~500-token chunks of the author's corpus. It represents the author's \"average semantic position\" in the 768-dim embedding space.\n343 | \n344 | **Why it matters**: it is the single most important feature for `fit_score` (35% weight). When the model generates a text conditioned on Dickens, the generated text's embedding should land close to this centroid.\n345 | \n346 | **How it is computed**:\n347 | ```python\n348 | from sentence_transformers import SentenceTransformer\n349 | model = SentenceTransformer(\"all-mpnet-base-v2\")\n350 | \n351 | chunk_embeddings = model.encode(chunks)  # chunks: list of ~500-token strings\n352 | semantic_centroid = chunk_embeddings.mean(axis=0)  # shape: (768,)\n353 | ```\n354 | \n355 | **Stored as**: a list of 768 floats in the `StyleProfile` JSON.\n356 | \n357 | ---\n358 | \n359 | ### 5.2 `embedding_umap_2d` — UMAP 2D Projection\n360 | \n361 | **What it measures**: a 2-dimensional projection of the `semantic_centroid`, used exclusively for the demo visualization (the scatter plot showing authors as clusters).\n362 | \n363 | **Why UMAP**: UMAP (Uniform Manifold Approximation and Projection) preserves local and global structure better than PCA for high-dimensional embeddings. The three authors should form clearly separated clusters at 2D.\n364 | \n365 | **How it is computed**: UMAP is fit once on all chunk embeddings from all three authors combined, then the centroid of each author is projected.\n366 | \n367 | ```python\n368 | import umap\n369 | reducer = umap.UMAP(n_components=2, random_state=42)\n370 | all_embeddings = [...]  # all chunks from all authors\n371 | reducer.fit(all_embeddings)\n372 | \n373 | centroid_2d = reducer.transform([semantic_centroid])[0]\n374 | embedding_umap_2d = {\n375 |     \"centroid\": centroid_2d.tolist(),   # [x, y]\n376 |     \"spread\": float(chunk_embeddings.std())  # intra-author spread\n377 | }\n378 | ```\n379 | \n380 | **Stored as**: `{ \"centroid\": [float, float], \"spread\": float }`.\n381 | \n382 | ---\n383 | \n384 | ## 6. `fit_score` — Composite Metric\n385 | \n386 | The `fit_score` measures how closely a **generated text** matches a target author's `StyleProfile`. It is computed for both the vanilla and AutorIA outputs so the gap is always visible.\n387 | \n388 | ```\n389 | fit_score (0–1, then ×100) = weighted sum of:\n390 | \n391 |   cosine_sim(embed_generated, semantic_centroid)           × 0.35\n392 |   (1 − |asl_generated − asl_profile| / asl_profile)       × 0.20\n393 |   (1 − |ttr_generated − mattr_profile| / mattr_profile)   × 0.15\n394 |   jaccard(pos_dist_generated, pos_dist_profile)            × 0.15\n395 |   vocab_overlap(generated_vocab, distinctive_vocab_top30)  × 0.15\n396 | ```\n397 | \n398 | Where:\n399 | - `asl` = average sentence length in tokens\n400 | - `jaccard(A, B)` = sum of min(A[k], B[k]) / sum of max(A[k], B[k]) over all POS tags\n401 | - `vocab_overlap` = |generated_lemmas ∩ top30_distinctive| / 30\n402 | \n403 | Output is clipped to [0, 1] and multiplied by 100. Displayed as e.g. **\"87% Dickens-fit\"**.\n404 | \n405 | ---\n406 | \n407 | ## 7. Expected ranges per author\n408 | \n409 | Reference table for sanity checks during extraction. Flag any value outside these ranges for manual review.\n410 | \n411 | | Feature | Austen | Dickens | Poe |\n412 | |---|---|---|---|\n413 | | `mattr_500` | 0.62–0.68 | 0.58–0.64 | 0.66–0.73 |\n414 | | `avg_word_length` | 4.0–4.5 | 4.6–5.1 | 5.0–5.6 |\n415 | | `hapax_ratio` | 0.38–0.44 | 0.40–0.46 | 0.48–0.56 |\n416 | | `avg_sentence_length_tokens` | 22–28 | 25–32 | 24–34 |\n417 | | `std_sentence_length_tokens` | 10–14 | 13–17 | 14–20 |\n418 | | `subordination_ratio` | 0.28–0.36 | 0.34–0.44 | 0.22–0.32 |\n419 | | `noun_to_verb_ratio` | 1.6–2.0 | 1.7–2.1 | 1.2–1.6 |\n420 | | `passive_voice_ratio` | 0.06–0.12 | 0.08–0.14 | 0.18–0.28 |\n421 | | `dialogue_ratio` | 0.28–0.38 | 0.20–0.28 | 0.05–0.14 |\n422 | | `first_person_ratio` (per 1k) | 0.5–3.0 | 4.0–9.0 | 18.0–30.0 |\n423 | \n424 | > **Note**: these ranges are informed estimates based on stylometric literature and manual corpus inspection. They will be updated after Sprint 1 extraction runs on the actual Gutenberg corpora.\n425 | \n426 | ---\n427 | \n428 | ## 8. Computation pipeline\n429 | \n430 | All features are computed in a single pass through the corpus by `ai_pipeline/extractor.py`. The pipeline runs in this order to minimize redundant tokenization:\n431 | \n432 | ```\n433 | raw .txt files\n434 |     → cleaner.py          (strip Gutenberg headers, normalize quotes/whitespace)\n435 |     → chunker.py          (500-token chunks, 50-token overlap, tiktoken cl100k_base)\n436 |     → spaCy en_core_web_lg (tokenization, POS, dependency parsing — batch mode)\n437 |          ├── lexical_features()     §1.1 – §1.3\n438 |          ├── syntactic_features()   §2.1 – §2.4\n439 |          └── stylistic_features()   §3.1 – §3.4\n440 |     → TfidfVectorizer (sklearn)\n441 |          └── distinctive_vocab()    §4.1\n442 |     → SentenceTransformer all-mpnet-base-v2\n443 |          └── semantic_features()    §5.1 – §5.2\n444 |     → StyleProfile JSON (persisted to Postgres)\n445 | ```\n446 | \n447 | spaCy processing is run in **batch mode** (`nlp.pipe(chunks, batch_size=64)`) to avoid loading the model once per chunk.\n448 | \n449 | ---\n450 | \n451 | ## 9. Known limitations\n452 | \n453 | **MATTR window size**: 500 tokens is a reasonable default but has not been tuned for 19th-century English. If Austen and Dickens score too similarly, consider reducing to 300.\n454 | \n455 | **Passive voice detection**: spaCy's `nsubjpass` label works well for canonical passives (\"it was seen\") but misses some complex or inverted passive constructions common in Victorian prose. Acceptable for v1.0.\n456 | \n457 | **Dialogue detection**: the `dialogue_ratio` algorithm assumes straight ASCII quotation marks (`\"`). Gutenberg texts sometimes use curly quotes (`\"` `\"`) — the cleaner must normalize these before extraction.\n458 | \n459 | **UMAP non-determinism**: UMAP results vary slightly across runs even with `random_state=42` if the input data changes. The 2D coordinates are for visualization only and are not used in `fit_score`.\n460 | \n461 | **Corpus size imbalance**: Poe's corpus (~70k words) is 4–5× smaller than Austen and Dickens. Features computed over the full corpus (hapax\\_ratio, distinctive\\_vocab) may be slightly less stable for Poe. Monitor the Sprint 2 extraction results.\n462 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_0jFCq5inqIgCyiPmir5FGm",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/style_features.md"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/docs/style_features.md": 1783268352328
+              },
+              "durationMs": 5,
+              "timestamp": 1784734951879
+            },
+            "id": "90525561d955cb7763af1d2d02abbc38"
+          },
+          "createdAt": 1784734951949
+        },
+        {
+          "id": "d541d0651ca663cbdf3e52194be36fba",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Symbol overview for file at path: docs/api_contract.yaml\n\nLine count: 843. Use read_file with specific ranges for more details.\n\nYAML Schema:\n{\n  \"type\": \"array\",\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"openapi\": {\n        \"type\": \"string\"\n      },\n      \"info\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"title\": {\n            \"type\": \"string\"\n          },\n          \"version\": {\n            \"type\": \"string\"\n          },\n          \"description\": {\n            \"type\": \"string\"\n          },\n          \"contact\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"name\": {}\n            },\n            \"required\": [\n              \"name\"\n            ]\n          },\n          \"license\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"name\": {},\n              \"url\": {}\n            },\n            \"required\": [\n              \"name\",\n              \"url\"\n            ]\n          }\n        },\n        \"required\": [\n          \"title\",\n          \"version\",\n          \"description\",\n          \"contact\",\n          \"license\"\n        ]\n      },\n      \"servers\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"url\": {\n              \"type\": \"string\"\n            },\n            \"description\": {\n              \"type\": \"string\"\n            }\n          },\n          \"required\": [\n            \"url\",\n            \"description\"\n          ]\n        }\n      },\n      \"tags\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"name\": {\n              \"type\": \"string\"\n            },\n            \"description\": {\n              \"type\": \"string\"\n            }\n          },\n          \"required\": [\n            \"name\",\n            \"description\"\n          ]\n        }\n      },\n      \"paths\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"/health\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"get\": {}\n            },\n            \"required\": [\n              \"get\"\n            ]\n          },\n          \"/api/authors\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"get\": {}\n            },\n            \"required\": [\n              \"get\"\n            ]\n          },\n          \"/api/authors/{author_id}/style-profile\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"get\": {}\n            },\n            \"required\": [\n              \"get\"\n            ]\n          },\n          \"/api/authors/{author_id}/documents\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"post\": {}\n            },\n            \"required\": [\n              \"post\"\n            ]\n          },\n          \"/api/generate\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"post\": {}\n            },\n            \"required\": [\n              \"post\"\n            ]\n          },\n          \"/api/passports/verify\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"post\": {}\n            },\n            \"required\": [\n              \"post\"\n            ]\n          },\n          \"/.well-known/jwks.json\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"get\": {}\n            },\n            \"required\": [\n              \"get\"\n            ]\n          }\n        },\n        \"required\": [\n          \"/health\",\n          \"/api/authors\",\n          \"/api/authors/{author_id}/style-profile\",\n          \"/api/authors/{author_id}/documents\",\n          \"/api/generate\",\n          \"/api/passports/verify\",\n          \"/.well-known/jwks.json\"\n        ]\n      },\n      \"components\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"AuthorId\": {}\n            },\n            \"required\": [\n              \"AuthorId\"\n            ]\n          },\n          \"responses\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"ValidationError\": {},\n              \"InternalError\": {}\n            },\n            \"required\": [\n              \"ValidationError\",\n              \"InternalError\"\n            ]\n          },\n          \"schemas\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"HealthResponse\": {},\n              \"ErrorResponse\": {},\n              \"ValidationErrorResponse\": {},\n              \"AuthorSummary\": {},\n              \"DocumentUploadJson\": {},\n              \"DocumentUploadAccepted\": {},\n              \"StyleProfile\": {},\n              \"CorpusStats\": {},\n              \"LexicalFeatures\": {},\n              \"SyntacticFeatures\": {},\n              \"StylisticFeatures\": {},\n              \"DistinctiveTerm\": {},\n              \"EmbeddingUmap2d\": {},\n              \"GenerateRequest\": {},\n              \"GenerationOutput\": {},\n              \"GenerateResponse\": {},\n              \"PassportEnvelope\": {},\n              \"PassportPayload\": {},\n              \"AuthorVoiceRef\": {},\n              \"GenerationMetadata\": {},\n              \"RagSourceRef\": {},\n              \"ContributionBreakdown\": {},\n              \"VerifyRequest\": {},\n              \"VerifyError\": {},\n              \"VerifyResponse\": {},\n              \"JwksDocument\": {},\n              \"JsonWebKey\": {}\n            },\n            \"required\": [\n              \"HealthResponse\",\n              \"ErrorResponse\",\n              \"ValidationErrorResponse\",\n              \"AuthorSummary\",\n              \"DocumentUploadJson\",\n              \"DocumentUploadAccepted\",\n              \"StyleProfile\",\n              \"CorpusStats\",\n              \"LexicalFeatures\",\n              \"SyntacticFeatures\",\n              \"StylisticFeatures\",\n              \"DistinctiveTerm\",\n              \"EmbeddingUmap2d\",\n              \"GenerateRequest\",\n              \"GenerationOutput\",\n              \"GenerateResponse\",\n              \"PassportEnvelope\",\n              \"PassportPayload\",\n              \"AuthorVoiceRef\",\n              \"GenerationMetadata\",\n              \"RagSourceRef\",\n              \"ContributionBreakdown\",\n              \"VerifyRequest\",\n              \"VerifyError\",\n              \"VerifyResponse\",\n              \"JwksDocument\",\n              \"JsonWebKey\"\n            ]\n          }\n        },\n        \"required\": [\n          \"parameters\",\n          \"responses\",\n          \"schemas\"\n        ]\n      }\n    },\n    \"required\": [\n      \"openapi\",\n      \"info\",\n      \"servers\",\n      \"tags\",\n      \"paths\",\n      \"components\"\n    ]\n  }\n}",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_mWnGfPocKJtk9K19exmWxU",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/api_contract.yaml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 73,
+              "timestamp": 1784734951947
+            },
+            "id": "d541d0651ca663cbdf3e52194be36fba"
+          },
+          "createdAt": 1784734951951
+        },
+        {
+          "id": "342ca5876fb944646d35941d0748c642",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now let me read the specific schema sections and the existing extractor modules:",
+            "id": "342ca5876fb944646d35941d0748c642",
+            "_meta": {
+              "timestamp": 1784734955453,
+              "spend": {
+                "input": 19470,
+                "output": 146,
+                "cacheRead": 10066,
+                "cacheWrite": 9403,
+                "cost": 0.04904,
+                "contextTokens": 19616,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_x6EAJeCJFJaiTVA90zJtGR",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_lPJU7VmM5rFCEXH0ytKWU8",
+                "name": "grep",
+                "arguments": {
+                  "pattern": "DistinctiveTerm|distinctive_vocab",
+                  "path": "docs/api_contract.yaml"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784734956288
+        },
+        {
+          "id": "cbf02dbd8da3f2280c791e8f0f102762",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Directory listing for ai_pipeline/autoria_ai/extractor:\n\nai_pipeline\\autoria_ai\\extractor\\chunker.py\nai_pipeline\\autoria_ai\\extractor\\cleaner.py\nai_pipeline\\autoria_ai\\extractor\\lexical.py\nai_pipeline\\autoria_ai\\extractor\\stylistic.py\nai_pipeline\\autoria_ai\\extractor\\syntactic.py\nai_pipeline\\autoria_ai\\extractor\\__init__.py\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_x6EAJeCJFJaiTVA90zJtGR",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "List Files in {path}",
+                "error": "Failed to list files in {path}",
+                "running": "Listing files in {path}",
+                "success": "Listed files in {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 11,
+              "timestamp": 1784734956268
+            },
+            "id": "cbf02dbd8da3f2280c791e8f0f102762"
+          },
+          "createdAt": 1784734956292
+        },
+        {
+          "id": "451b2506ce2886debc62e4b77bda122f",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Found 4 matches\ndocs\\api_contract.yaml:\n  Line 472:         - distinctive_vocab\n  Line 492:         distinctive_vocab:\n  Line 495:             $ref: \"#/components/schemas/DistinctiveTerm\"\n  Line 577:     DistinctiveTerm:",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_lPJU7VmM5rFCEXH0ytKWU8",
+                "name": "grep",
+                "arguments": {
+                  "pattern": "DistinctiveTerm|distinctive_vocab",
+                  "path": "docs/api_contract.yaml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Search Files in {path} for \"{pattern}\"",
+                "error": "Failed to search files in {path}",
+                "running": "Searching files in {path} for \"{pattern}\"",
+                "success": "Searched files in {path} for \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 30,
+              "timestamp": 1784734956287
+            },
+            "id": "451b2506ce2886debc62e4b77bda122f"
+          },
+          "createdAt": 1784734956295
+        },
+        {
+          "id": "6cbcdbcbb501fbf7e5fe354210d74d17",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file docs/api_contract.yaml:\n\n460 | \n461 |     StyleProfile:\n462 |       type: object\n463 |       description: Style DNA fingerprint v1.0 — see docs/MVP.md §4.2\n464 |       required:\n465 |         - schema_version\n466 |         - author_id\n467 |         - computed_at\n468 |         - corpus_stats\n469 |         - lexical\n470 |         - syntactic\n471 |         - stylistic\n472 |         - distinctive_vocab\n473 |         - semantic_centroid\n474 |         - embedding_umap_2d\n475 |       properties:\n476 |         schema_version:\n477 |           type: string\n478 |           const: \"1.0\"\n479 |         author_id:\n480 |           type: string\n481 |         computed_at:\n482 |           type: string\n483 |           format: date-time\n484 |         corpus_stats:\n485 |           $ref: \"#/components/schemas/CorpusStats\"\n486 |         lexical:\n487 |           $ref: \"#/components/schemas/LexicalFeatures\"\n488 |         syntactic:\n489 |           $ref: \"#/components/schemas/SyntacticFeatures\"\n490 |         stylistic:\n491 |           $ref: \"#/components/schemas/StylisticFeatures\"\n492 |         distinctive_vocab:\n493 |           type: array\n494 |           items:\n495 |             $ref: \"#/components/schemas/DistinctiveTerm\"\n496 |         semantic_centroid:\n497 |           type: array\n498 |           description: 768-dimensional mean embedding vector\n499 |           items:\n500 |             type: number\n501 |           minItems: 768\n502 |           maxItems: 768\n503 |         embedding_umap_2d:\n504 |           $ref: \"#/components/schemas/EmbeddingUmap2d\"\n505 | \n506 |     CorpusStats:\n507 |       type: object\n508 |       required: [n_documents, n_tokens, n_sentences]\n509 |       properties:\n510 |         n_documents:",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_2hptyHwjWUathPcjen9zv3",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/api_contract.yaml",
+                  "range": "460-510"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path} ({range})",
+                "error": "Failed to read file {path} ({range})",
+                "running": "Reading file {path} ({range})",
+                "success": "Read file {path} ({range})"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/docs/api_contract.yaml": 1783509555827
+              },
+              "durationMs": 5,
+              "timestamp": 1784734959169
+            },
+            "id": "6cbcdbcbb501fbf7e5fe354210d74d17"
+          },
+          "createdAt": 1784734959173
+        },
+        {
+          "id": "201f44c92111a8890dbd5f3ee518e332",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file docs/api_contract.yaml:\n\n570 |           description: Relative frequency per POS tag (spaCy labels)\n571 |         dialogue_ratio:\n572 |           type: number\n573 |           description: Fraction of sentences that are dialogue (heuristic)\n574 |         first_person_ratio:\n575 |           type: number\n576 |           description: Fraction of sentences with first-person pronouns (heuristic)\n577 |     DistinctiveTerm:\n578 |       type: object\n579 |       required: [term, score]\n580 |       properties:\n581 |         term:\n582 |           type: string\n583 |         score:\n584 |           type: number\n585 |           description: TF-IDF score vs reference corpus\n586 | \n587 |     EmbeddingUmap2d:\n588 |       type: object\n589 |       required: [centroid, spread]\n590 |       properties:\n591 |         centroid:\n592 |           type: array\n593 |           prefixItems:\n594 |             - type: number\n595 |             - type: number",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_x8we39N9v0I5stJcdV84nz",
+                "name": "read_file",
+                "arguments": {
+                  "path": "docs/api_contract.yaml",
+                  "range": "570-595"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path} ({range})",
+                "error": "Failed to read file {path} ({range})",
+                "running": "Reading file {path} ({range})",
+                "success": "Read file {path} ({range})"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/docs/api_contract.yaml": 1783509555827
+              },
+              "durationMs": 6,
+              "timestamp": 1784734959170
+            },
+            "id": "201f44c92111a8890dbd5f3ee518e332"
+          },
+          "createdAt": 1784734959178
+        },
+        {
+          "id": "c8490814f5a138461b29a77ac9bd0821",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/extractor/lexical.py:\n\n1 | \"\"\"Lexical feature extraction.\n2 | \n3 | Public API\n4 | ----------\n5 | compute_lexical(doc) -> dict\n6 |     Computes mattr_500, hapax_ratio, and avg_word_length from a spaCy Doc.\n7 | \"\"\"\n8 | \n9 | from __future__ import annotations\n10 | \n11 | from collections import Counter\n12 | from typing import TYPE_CHECKING\n13 | \n14 | if TYPE_CHECKING:\n15 |     import spacy.tokens  # type: ignore[import-untyped]\n16 | \n17 | \n18 | def compute_lexical(doc: spacy.tokens.Doc) -> dict:\n19 |     \"\"\"Return lexical metrics for *doc*.\n20 | \n21 |     Parameters\n22 |     ----------\n23 |     doc:\n24 |         A spaCy ``Doc`` object produced by any ``en_core_web_*`` model.\n25 |         The model **must not** be loaded inside this function.\n26 | \n27 |     Returns\n28 |     -------\n29 |     dict with keys:\n30 |         ``mattr_500``     - Moving Average TTR, window = 500, over alpha tokens.\n31 |         ``hapax_ratio``   - Proportion of lemma types that appear exactly once.\n32 |         ``avg_word_length`` - Mean character length of alpha tokens.\n33 |         ``mattr_500``     - Moving Average TTR, window = 500, over alpha tokens.\n34 |         ``hapax_ratio``   - Proportion of lemma types that appear exactly once.\n35 |         ``avg_word_length`` - Mean character length of alpha tokens.\n36 | \n37 |     All three values are ``float``.  An empty doc returns ``0.0`` for every key.\n38 |     \"\"\"\n39 |     alpha_tokens = [t for t in doc if t.is_alpha]\n40 | \n41 |     # ── avg_word_length ───────────────────────────────────────────────────────\n42 |     if not alpha_tokens:\n43 |         return {\"mattr_500\": 0.0, \"hapax_ratio\": 0.0, \"avg_word_length\": 0.0}\n44 | \n45 |     avg_word_length = sum(len(t.text) for t in alpha_tokens) / len(alpha_tokens)\n46 | \n47 |     # ── hapax_ratio ───────────────────────────────────────────────────────────\n48 |     freq = Counter(t.lemma_.lower() for t in alpha_tokens)\n49 |     hapax_ratio = sum(1 for v in freq.values() if v == 1) / len(freq)\n50 | \n51 |     # ── mattr_500 ─────────────────────────────────────────────────────────────\n52 |     # Slide a window of WINDOW tokens across alpha_tokens and average the TTRs.\n53 |     # When the corpus is shorter than WINDOW, the single window is the full list\n54 |     # (equivalent to plain TTR), which is the standard fallback.\n55 |     WINDOW = 500\n56 |     words = [t.text.lower() for t in alpha_tokens]\n57 |     n = len(words)\n58 | \n59 |     if n <= WINDOW:\n60 |         # Single window: plain TTR over all alpha tokens\n61 |         mattr_500 = len(set(words)) / n\n62 |     else:\n63 |         ttr_sum = 0.0\n64 |         num_windows = n - WINDOW + 1\n65 |         for i in range(num_windows):\n66 |             ttr_sum += len(set(words[i : i + WINDOW])) / WINDOW\n67 |         mattr_500 = ttr_sum / num_windows\n68 | \n69 |     return {\n70 |         \"mattr_500\": float(mattr_500),\n71 |         \"hapax_ratio\": float(hapax_ratio),\n72 |         \"avg_word_length\": float(avg_word_length),\n73 |     }\n74 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_w6IcwwK8KQyO1CHFqgc5LZ",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/lexical.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/lexical.py": 1783938461730
+              },
+              "durationMs": 8,
+              "timestamp": 1784734959173
+            },
+            "id": "c8490814f5a138461b29a77ac9bd0821"
+          },
+          "createdAt": 1784734959183
+        },
+        {
+          "id": "53040da7b06a3da9542764058331af2f",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now read the remaining sibling modules and the existing tests directory:",
+            "id": "53040da7b06a3da9542764058331af2f",
+            "_meta": {
+              "timestamp": 1784734961485,
+              "spend": {
+                "input": 22075,
+                "output": 217,
+                "cacheRead": 19469,
+                "cacheWrite": 2605,
+                "cost": 0.05573,
+                "contextTokens": 22292,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_teCzWZSPnqmI5nvpC3vfvh",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline/tests"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_QYp5V0uPfG5lKR2S31Oy7u",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/pyproject.toml"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_rBndMMbhztxL2g7TS7Up2H",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/syntactic.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_hRXN5ASc48f3BXnrTj4UXr",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/stylistic.py"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784734962545
+        },
+        {
+          "id": "384a0d1899163b0538a9ee5548eb1f37",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Directory listing for ai_pipeline/tests:\n\nai_pipeline\\tests\\test_embedder.py\nai_pipeline\\tests\\test_smoke.py\nai_pipeline\\tests\\__init__.py\nai_pipeline\\tests\\__pycache__\\",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_teCzWZSPnqmI5nvpC3vfvh",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline/tests"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "List Files in {path}",
+                "error": "Failed to list files in {path}",
+                "running": "Listing files in {path}",
+                "success": "Listed files in {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 4,
+              "timestamp": 1784734962541
+            },
+            "id": "384a0d1899163b0538a9ee5548eb1f37"
+          },
+          "createdAt": 1784734962549
+        },
+        {
+          "id": "ff99174e57c3f861bbc43642282b5c85",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/pyproject.toml:\n\n1 | [build-system]\n2 | requires = [\"setuptools>=68\", \"wheel\"]\n3 | build-backend = \"setuptools.build_meta\"\n4 | \n5 | [project]\n6 | name = \"autoria-ai\"\n7 | version = \"0.1.0\"\n8 | requires-python = \">=3.11\"\n9 | dependencies = [\n10 |     \"spacy>=3.7\",\n11 |     \"sentence-transformers>=2.7\",\n12 |     \"scikit-learn>=1.4\",\n13 |     \"umap-learn>=0.5\",\n14 |     \"tiktoken>=0.7\",\n15 |     \"numpy>=1.26\",\n16 |     \"pydantic>=2.7\",\n17 |     \"python-jose>=3.3\",\n18 |     \"ibm-watsonx-ai>=1.0\",\n19 |     # DB / vector store (SQLAlchemy 2.0 async + pgvector)\n20 |     \"sqlalchemy>=2.0\",\n21 |     \"asyncpg>=0.29\",\n22 |     \"pgvector>=0.3\",\n23 | ]\n24 | \n25 | [project.optional-dependencies]\n26 | dev = [\"pytest>=8\", \"pytest-asyncio>=0.23\", \"ruff>=0.4\", \"black>=24\"]\n27 | \n28 | [tool.black]\n29 | line-length = 100\n30 | target-version = [\"py311\"]\n31 | \n32 | [tool.pytest.ini_options]\n33 | testpaths = [\"tests\"]\n34 | asyncio_mode = \"auto\"",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_QYp5V0uPfG5lKR2S31Oy7u",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/pyproject.toml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/pyproject.toml": 1784632256925
+              },
+              "durationMs": 6,
+              "timestamp": 1784734962543
+            },
+            "id": "ff99174e57c3f861bbc43642282b5c85"
+          },
+          "createdAt": 1784734962553
+        },
+        {
+          "id": "fbf69675e6c88a5f71a3114e79603a1f",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/extractor/syntactic.py:\n\n1 | \"\"\"Syntactic feature extraction.\n2 | \n3 | Public API\n4 | ----------\n5 | compute_syntactic(doc) -> dict\n6 |     Computes sentence-length stats, subordination ratio, noun-to-verb ratio,\n7 |     and passive-voice ratio from a spaCy Doc.\n8 | \"\"\"\n9 | \n10 | from __future__ import annotations\n11 | \n12 | import statistics\n13 | from typing import TYPE_CHECKING\n14 | \n15 | if TYPE_CHECKING:\n16 |     import spacy.tokens  # type: ignore[import-untyped]\n17 | \n18 | _SUBORDINATE_DEPS: frozenset[str] = frozenset({\"advcl\", \"relcl\", \"ccomp\", \"xcomp\"})\n19 | \n20 | _EMPTY_RESULT: dict = {\n21 |     \"avg_sentence_length_tokens\": 0.0,\n22 |     \"std_sentence_length_tokens\": 0.0,\n23 |     \"subordination_ratio\": 0.0,\n24 |     \"noun_to_verb_ratio\": 0.0,\n25 |     \"passive_voice_ratio\": 0.0,\n26 | }\n27 | \n28 | \n29 | def compute_syntactic(doc: spacy.tokens.Doc) -> dict:\n30 |     \"\"\"Return syntactic metrics for *doc*.\n31 | \n32 |     Parameters\n33 |     ----------\n34 |     doc:\n35 |         A spaCy ``Doc`` object produced by any ``en_core_web_*`` model with the\n36 |         dependency parser enabled.  The model **must not** be loaded inside this\n37 |         function.\n38 | \n39 |     Returns\n40 |     -------\n41 |     dict with keys:\n42 |         ``avg_sentence_length_tokens``  - mean sentence length in tokens.\n43 |         ``std_sentence_length_tokens``  - standard deviation of sentence length.\n44 |             Returns ``0.0`` when there is only one sentence (stdev undefined).\n45 |         ``subordination_ratio``         - subordinate clause tokens per sentence.\n46 |             Dep labels counted: advcl, relcl, ccomp, xcomp.  Normalized per\n47 |             sentence (not per token) so it is not confounded by sentence length.\n48 |         ``noun_to_verb_ratio``          - NOUN count / VERB count across all\n49 |             tokens.  Returns ``0.0`` when there are no VERB tokens.\n50 |         ``passive_voice_ratio``         - proportion of sentences that contain\n51 |             at least one token with ``dep_ == \"nsubjpass\"``.\n52 | \n53 |     All values are ``float``.  An empty doc (no tokens, no sentences) returns\n54 |     ``0.0`` for every key.\n55 | \n56 |     Notes\n57 |     -----\n58 |     * ``statistics.stdev`` is used for sentence-length std, matching the\n59 |       definition in docs/style_features.md §2.1 (sample std, ddof=1).\n60 |     * No spaCy model is loaded here; the caller owns the model lifecycle.\n61 |     \"\"\"\n62 |     # -- sentence lengths ------------------------------------------------------\n63 |     lengths = [len(sent) for sent in doc.sents]\n64 | \n65 |     if not lengths:\n66 |         return dict(_EMPTY_RESULT)\n67 | \n68 |     n_sents = len(lengths)\n69 |     avg_sentence_length_tokens = statistics.mean(lengths)\n70 |     # statistics.stdev requires at least 2 data points (sample std, ddof=1).\n71 |     std_sentence_length_tokens = statistics.stdev(lengths) if n_sents > 1 else 0.0\n72 | \n73 |     # -- subordination ratio ---------------------------------------------------\n74 |     # Count tokens whose dep_ label marks them as roots of a subordinate clause,\n75 |     # then normalize per sentence so the metric is not driven by sentence length.\n76 |     subordinate_count = sum(1 for t in doc if t.dep_ in _SUBORDINATE_DEPS)\n77 |     subordination_ratio = subordinate_count / n_sents\n78 | \n79 |     # -- noun-to-verb ratio ----------------------------------------------------\n80 |     nouns = sum(1 for t in doc if t.pos_ == \"NOUN\")\n81 |     verbs = sum(1 for t in doc if t.pos_ == \"VERB\")\n82 |     noun_to_verb_ratio = nouns / verbs if verbs > 0 else 0.0\n83 | \n84 |     # -- passive voice ratio ---------------------------------------------------\n85 |     passive_sentences = sum(1 for sent in doc.sents if any(t.dep_ == \"nsubjpass\" for t in sent))\n86 |     passive_voice_ratio = passive_sentences / n_sents\n87 | \n88 |     return {\n89 |         \"avg_sentence_length_tokens\": float(avg_sentence_length_tokens),\n90 |         \"std_sentence_length_tokens\": float(std_sentence_length_tokens),\n91 |         \"subordination_ratio\": float(subordination_ratio),\n92 |         \"noun_to_verb_ratio\": float(noun_to_verb_ratio),\n93 |         \"passive_voice_ratio\": float(passive_voice_ratio),\n94 |     }\n95 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_rBndMMbhztxL2g7TS7Up2H",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/syntactic.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/syntactic.py": 1783936865265
+              },
+              "durationMs": 7,
+              "timestamp": 1784734962544
+            },
+            "id": "fbf69675e6c88a5f71a3114e79603a1f"
+          },
+          "createdAt": 1784734962556
+        },
+        {
+          "id": "26af78d1f072a9ebc50003a09272b836",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/extractor/stylistic.py:\n\n1 | \"\"\"Stylistic feature extraction.\n2 | \n3 | Public API\n4 | ----------\n5 | compute_stylistic(doc) -> dict\n6 |     Computes punct_distribution, pos_distribution, dialogue_ratio, and\n7 |     first_person_ratio from a spaCy Doc.\n8 | \"\"\"\n9 | \n10 | from __future__ import annotations\n11 | \n12 | from collections import Counter\n13 | from typing import TYPE_CHECKING\n14 | \n15 | if TYPE_CHECKING:\n16 |     import spacy.tokens  # type: ignore[import-untyped]\n17 | \n18 | # ── constants ──────────────────────────────────────────────────────────────────\n19 | \n20 | _PUNCT_MARKS: frozenset[str] = frozenset({\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", '\"'})\n21 | \n22 | _TRACKED_POS: tuple[str, ...] = (\n23 |     \"NOUN\",\n24 |     \"VERB\",\n25 |     \"ADJ\",\n26 |     \"ADV\",\n27 |     \"DET\",\n28 |     \"ADP\",\n29 |     \"PRON\",\n30 |     \"CONJ\",\n31 |     \"SCONJ\",\n32 | )\n33 | \n34 | _FIRST_PERSON: frozenset[str] = frozenset({\"i\", \"me\", \"my\", \"mine\", \"myself\"})\n35 | \n36 | # Canonical zero-valued dicts used for empty-doc early-return (never mutated).\n37 | _EMPTY_PUNCT: dict[str, float] = dict.fromkeys(_PUNCT_MARKS, 0.0)\n38 | _EMPTY_POS: dict[str, float] = dict.fromkeys(_TRACKED_POS, 0.0) | {\"OTHER\": 0.0}\n39 | \n40 | \n41 | def compute_stylistic(doc: spacy.tokens.Doc) -> dict:\n42 |     \"\"\"Return stylistic metrics for *doc*.\n43 | \n44 |     Parameters\n45 |     ----------\n46 |     doc:\n47 |         A spaCy ``Doc`` object.  The model **must not** be loaded inside this\n48 |         function.\n49 | \n50 |     Returns\n51 |     -------\n52 |     dict with keys:\n53 |         ``punct_distribution``  - dict[str, float] with exactly 8 keys\n54 |             (the tracked punctuation marks).  Values are relative frequencies\n55 |             over all punctuation tokens; they sum to ~1.0.  Marks absent from\n56 |             *doc* are included with value 0.0.\n57 |         ``pos_distribution``    - dict[str, float] with exactly 10 keys\n58 |             (9 universal POS tags + \"OTHER\").  Values are relative frequencies\n59 |             over all non-punctuation tokens; they sum to 1.0.\n60 |         ``dialogue_ratio``      - float in [0, 1].  Proportion of\n61 |             non-punctuation tokens that appear between straight ASCII\n62 |             double-quote tokens (``\"``).\n63 |         ``first_person_ratio``  - float ≥ 0.  Count of first-person singular\n64 |             pronouns per 1,000 tokens (total doc length, not just alpha).\n65 | \n66 |     An empty doc returns 0.0 / empty distributions for every metric.\n67 | \n68 |     Notes\n69 |     -----\n70 |     * ``dialogue_ratio`` uses ``token.text == '\"'`` (straight ASCII quote,\n71 |       U+0022) as the toggle signal, matching the cleaner's normalisation.\n72 |     * ``first_person_ratio`` uses ``token.lower_`` so it is case-insensitive\n73 |       and does not depend on POS tagging.\n74 |     * No spaCy model is loaded here; the caller owns the model lifecycle.\n75 |     \"\"\"\n76 |     if len(doc) == 0:\n77 |         return {\n78 |             \"punct_distribution\": dict(_EMPTY_PUNCT),\n79 |             \"pos_distribution\": dict(_EMPTY_POS),\n80 |             \"dialogue_ratio\": 0.0,\n81 |             \"first_person_ratio\": 0.0,\n82 |         }\n83 | \n84 |     # ── punct_distribution ────────────────────────────────────────────────────\n85 |     # Count every token whose text is one of the tracked marks, then normalize.\n86 |     raw_punct: Counter[str] = Counter(t.text for t in doc if t.text in _PUNCT_MARKS)\n87 |     punct_total = sum(raw_punct.values())\n88 |     if punct_total > 0:\n89 |         punct_distribution: dict[str, float] = {\n90 |             mark: raw_punct[mark] / punct_total for mark in _PUNCT_MARKS\n91 |         }\n92 |     else:\n93 |         punct_distribution = dict(_EMPTY_PUNCT)\n94 | \n95 |     # ── pos_distribution ──────────────────────────────────────────────────────\n96 |     # Count POS tags for non-punctuation tokens; normalize over tracked tags;\n97 |     # assign the remainder to \"OTHER\".\n98 |     raw_pos: Counter[str] = Counter(t.pos_ for t in doc if not t.is_punct)\n99 |     tracked_total = sum(raw_pos[tag] for tag in _TRACKED_POS)\n100 |     all_non_punct = sum(raw_pos.values())\n101 | \n102 |     if all_non_punct > 0:\n103 |         pos_distribution: dict[str, float] = {\n104 |             tag: raw_pos[tag] / all_non_punct for tag in _TRACKED_POS\n105 |         }\n106 |         # OTHER = everything that is not punctuation and not in _TRACKED_POS.\n107 |         # Using 1 - sum(tracked) keeps the total at exactly 1.0.\n108 |         pos_distribution[\"OTHER\"] = 1.0 - (tracked_total / all_non_punct)\n109 |     else:\n110 |         pos_distribution = dict(_EMPTY_POS)\n111 | \n112 |     # ── dialogue_ratio ────────────────────────────────────────────────────────\n113 |     # Toggle in_dialogue on each straight ASCII quote token; count non-quote\n114 |     # tokens that appear while in_dialogue is True.  The denominator is every\n115 |     # non-quote token (both inside and outside dialogue).\n116 |     in_dialogue = False\n117 |     dialogue_tokens = 0\n118 |     non_quote_total = 0\n119 | \n120 |     for token in doc:\n121 |         if token.text == '\"':\n122 |             in_dialogue = not in_dialogue\n123 |             continue\n124 |         non_quote_total += 1\n125 |         if in_dialogue:\n126 |             dialogue_tokens += 1\n127 | \n128 |     dialogue_ratio = dialogue_tokens / non_quote_total if non_quote_total > 0 else 0.0\n129 | \n130 |     # ── first_person_ratio ────────────────────────────────────────────────────\n131 |     # Count {i, me, my, mine, myself} (case-insensitive via lower_) then scale\n132 |     # to per-1,000 tokens using the full doc length as the denominator.\n133 |     fp_count = sum(1 for t in doc if t.lower_ in _FIRST_PERSON)\n134 |     first_person_ratio = (fp_count / len(doc)) * 1000.0\n135 | \n136 |     return {\n137 |         \"punct_distribution\": punct_distribution,\n138 |         \"pos_distribution\": pos_distribution,\n139 |         \"dialogue_ratio\": float(dialogue_ratio),\n140 |         \"first_person_ratio\": float(first_person_ratio),\n141 |     }\n142 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_hRXN5ASc48f3BXnrTj4UXr",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/stylistic.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/stylistic.py": 1784023997545
+              },
+              "durationMs": 8,
+              "timestamp": 1784734962545
+            },
+            "id": "26af78d1f072a9ebc50003a09272b836"
+          },
+          "createdAt": 1784734962559
+        },
+        {
+          "id": "473690e2c157c93c2a43fe1841cb231c",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now check the existing tests and the CI workflow for black version:",
+            "id": "473690e2c157c93c2a43fe1841cb231c",
+            "_meta": {
+              "timestamp": 1784734965065,
+              "spend": {
+                "input": 26475,
+                "output": 168,
+                "cacheRead": 22074,
+                "cacheWrite": 4400,
+                "cost": 0.066607,
+                "contextTokens": 26643,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_YU9d236vsoaBKIki0SV2zQ",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/__init__.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_73kgM2zZHmoe4dblenvFST",
+                "name": "glob",
+                "arguments": {
+                  "pattern": ".github/workflows/ci.yml"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_bxHtD7EwGrfnBrOA2q1qrV",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784734966068
+        },
+        {
+          "id": "e529a283a84a8a2c1e0ca47a0dcfb5f4",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/extractor/__init__.py:\n\n1 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_YU9d236vsoaBKIki0SV2zQ",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/__init__.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/__init__.py": 1783268352314
+              },
+              "durationMs": 11,
+              "timestamp": 1784734966038
+            },
+            "id": "e529a283a84a8a2c1e0ca47a0dcfb5f4"
+          },
+          "createdAt": 1784734966073
+        },
+        {
+          "id": "a6d0045584f9878268a8278d17bc64da",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "No files found",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_73kgM2zZHmoe4dblenvFST",
+                "name": "glob",
+                "arguments": {
+                  "pattern": ".github/workflows/ci.yml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 36,
+              "timestamp": 1784734966063
+            },
+            "id": "a6d0045584f9878268a8278d17bc64da"
+          },
+          "createdAt": 1784734966078
+        },
+        {
+          "id": "b412fe183db3d225ec65d1f726be8d6a",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Symbol overview for file at path: ai_pipeline/tests/test_smoke.py\n\n17 | _NLP_BLANK = spacy.blank(\"en\")\n18 | _NLP_FULL = spacy.load(\"en_core_web_lg\")\n22 | _PG_SAMPLE = \"\"\"\\\n42 | def test_clean_text_strips_pg_header_and_footer() -> None\n51 | def test_clean_text_normalizes_curly_quotes() -> None\n58 | def test_clean_text_normalizes_double_dash_to_em_dash() -> None\n64 | def test_clean_text_collapses_multiple_blank_lines() -> None\n82 | _PHRASE = \"The quick brown fox \"  # 5 tokens/rep (cl100k_base)\n85 | def test_chunk_text_correct_chunk_count() -> None\n92 | def test_chunk_text_overlap_between_consecutive_chunks() -> None\n109 | def test_chunk_text_returns_strings_not_token_ids() -> None\n115 | def test_chunk_text_empty_input_returns_empty_list() -> None\n121 | REQUIRED_KEYS = {\"mattr_500\", \"hapax_ratio\", \"avg_word_length\"}\n124 | def _doc(text: str)\n129 | def _doc_full(text: str)\n134 | def test_lexical_empty_doc_returns_zeros() -> None\n139 | def test_lexical_punct_only_doc_returns_zeros() -> None\n144 | def test_lexical_short_doc_under_500_tokens() -> None\n153 | def test_lexical_return_type_is_dict_of_floats() -> None\n161 | def test_lexical_avg_word_length_ignores_punctuation() -> None\n166 | def test_lexical_hapax_ratio_all_unique() -> None\n171 | def test_lexical_hapax_ratio_no_hapax() -> None\n176 | def test_lexical_hapax_ratio_mixed() -> None\n181 | def test_lexical_mattr_500_with_exactly_500_alpha_tokens() -> None\n187 | def test_lexical_mattr_500_over_500_tokens() -> None\n204 | def test_lexical_mattr_500_repeated_vocab_over_500_tokens() -> None\n211 | def test_lexical_keys_are_exactly_three() -> None\n218 | SYNTACTIC_KEYS\n227 | def test_syntactic_empty_doc_returns_zeros() -> None\n233 | def test_syntactic_single_sentence_std_is_zero() -> None\n239 | def test_syntactic_no_verbs_noun_to_verb_ratio_is_zero() -> None\n246 | def test_syntactic_return_type_is_dict_of_floats() -> None\n255 | def test_syntactic_keys_exactly_five() -> None\n261 | def test_syntactic_avg_sentence_length_two_equal_sentences() -> None\n270 | def test_syntactic_avg_and_std_three_sentences() -> None\n278 | def test_syntactic_subordination_ratio_is_nonnegative() -> None\n288 | def test_syntactic_subordination_ratio_normalized_per_sentence() -> None\n303 | def test_syntactic_noun_to_verb_ratio_is_positive_for_normal_text() -> None\n309 | def test_syntactic_noun_to_verb_ratio_exact() -> None\n318 | def test_syntactic_passive_voice_ratio_bounds() -> None\n324 | def test_syntactic_passive_voice_ratio_exact() -> None\n337 | def test_syntactic_all_active_passive_ratio_is_zero() -> None\n345 | _PUNCT_MARKS = {\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", '\"'}\n346 | _TRACKED_POS = {\"NOUN\", \"VERB\", \"ADJ\", \"ADV\", \"DET\", \"ADP\", \"PRON\", \"CONJ\", \"SCONJ\"}\n347 | _STYLISTIC_TOP_KEYS\n358 | def _sdoc(text: str)\n363 | def _sdoc_full(text: str)\n371 | def test_stylistic_keys_are_exactly_four() -> None\n376 | def test_stylistic_empty_doc_returns_zeros() -> None\n384 | def test_stylistic_return_types() -> None\n395 | def test_stylistic_punct_distribution_has_all_eight_keys() -> None\n400 | def test_stylistic_punct_distribution_absent_marks_are_zero() -> None\n409 | def test_stylistic_punct_distribution_sums_to_one() -> None\n415 | def test_stylistic_punct_distribution_no_punctuation() -> None\n421 | def test_stylistic_punct_distribution_exact_counts() -> None\n431 | def test_stylistic_punct_distribution_quote_counted() -> None\n443 | def test_stylistic_pos_distribution_has_ten_keys() -> None\n448 | def test_stylistic_pos_distribution_sums_to_one() -> None\n454 | def test_stylistic_pos_distribution_empty_doc_all_zeros() -> None\n459 | def test_stylistic_pos_distribution_punct_only_all_zeros() -> None\n465 | def test_stylistic_pos_distribution_values_in_unit_interval() -> None\n473 | def test_stylistic_pos_distribution_other_is_nonnegative() -> None\n478 | def test_stylistic_pos_distribution_exact_fractions() -> None\n493 | def test_stylistic_dialogue_ratio_no_quotes_is_zero() -> None\n498 | def test_stylistic_dialogue_ratio_all_dialogue() -> None\n504 | def test_stylistic_dialogue_ratio_half_dialogue() -> None\n511 | def test_stylistic_dialogue_ratio_in_unit_interval() -> None\n516 | def test_stylistic_dialogue_ratio_empty_doc_is_zero() -> None\n521 | def test_stylistic_dialogue_ratio_ignores_quote_tokens_in_denominator() -> None\n531 | def test_stylistic_first_person_ratio_no_fp_is_zero() -> None\n536 | def test_stylistic_first_person_ratio_per_1000_tokens() -> None\n542 | def test_stylistic_first_person_ratio_case_insensitive() -> None\n549 | def test_stylistic_first_person_ratio_exact() -> None\n555 | def test_stylistic_first_person_ratio_empty_doc_is_zero() -> None\n560 | def test_stylistic_first_person_ratio_includes_all_five_forms() -> None\n566 | def test_stylistic_first_person_ratio_is_nonnegative() -> None",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_bxHtD7EwGrfnBrOA2q1qrV",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/tests/test_smoke.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 42,
+              "timestamp": 1784734966068
+            },
+            "id": "b412fe183db3d225ec65d1f726be8d6a"
+          },
+          "createdAt": 1784734966083
+        },
+        {
+          "id": "89a9e6d6a185980804b674830466e213",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now I have a complete picture. Let me check the root pyproject.toml for ruff config and confirm the black version in CI:",
+            "id": "89a9e6d6a185980804b674830466e213",
+            "_meta": {
+              "timestamp": 1784734968800,
+              "spend": {
+                "input": 28479,
+                "output": 123,
+                "cacheRead": 26474,
+                "cacheWrite": 2004,
+                "cost": 0.071505,
+                "contextTokens": 28602,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_kCPJeMYfh1Qng42E5txli5",
+                "name": "glob",
+                "arguments": {
+                  "pattern": ".github/**/*.yml"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_mupvFAK6V6gf7nZxOClQoJ",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "pyproject.toml"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784734969164
+        },
+        {
+          "id": "3faff95ed4e20915f10a9d0a41c65dfc",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "No files found",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_kCPJeMYfh1Qng42E5txli5",
+                "name": "glob",
+                "arguments": {
+                  "pattern": ".github/**/*.yml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 38,
+              "timestamp": 1784734969156
+            },
+            "id": "3faff95ed4e20915f10a9d0a41c65dfc"
+          },
+          "createdAt": 1784734969168
+        },
+        {
+          "id": "92d9149d48c45dac5f8a71a9628994ce",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "ai_pipeline\\pyproject.toml\nbackend\\pyproject.toml\npyproject.toml",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_mupvFAK6V6gf7nZxOClQoJ",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "pyproject.toml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 47,
+              "timestamp": 1784734969164
+            },
+            "id": "92d9149d48c45dac5f8a71a9628994ce"
+          },
+          "createdAt": 1784734969173
+        },
+        {
+          "id": "661d1a78d1ab54420fe91b0a3f531212",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file pyproject.toml:\n\n1 | # Root tooling config for all Python in the monorepo (ai_pipeline/, backend/, scripts/).\n2 | # This file holds ONLY shared tool config (Ruff + Black) — it is not a buildable package.\n3 | # When you create ai_pipeline/pyproject.toml and backend/pyproject.toml for dependencies,\n4 | # either omit [tool.*] there (Ruff will inherit this root config) OR copy the same\n5 | # line-length so the tools never disagree. Black reads the NEAREST pyproject.toml, so if a\n6 | # sub-package pyproject.toml exists it MUST repeat [tool.black] (or at least line-length).\n7 | \n8 | [tool.ruff]\n9 | line-length = 100\n10 | target-version = \"py311\"\n11 | extend-exclude = [\".venv\", \"venv\", \"__pycache__\", \"build\", \"dist\", \"node_modules\"]\n12 | \n13 | [tool.ruff.lint]\n14 | # E/W: pycodestyle · F: pyflakes · I: isort · B: bugbear · UP: pyupgrade\n15 | # C4: comprehensions · SIM: simplify · RUF: Ruff-specific\n16 | select = [\"E\", \"W\", \"F\", \"I\", \"B\", \"UP\", \"C4\", \"SIM\", \"RUF\"]\n17 | # E501 (line length) is handled by Black; let Black own line wrapping.\n18 | ignore = [\"E501\"]\n19 | \n20 | [tool.ruff.lint.per-file-ignores]\n21 | # Tests may use assert-heavy / unused fixtures patterns.\n22 | \"**/tests/**\" = [\"B011\"]\n23 | \"__init__.py\" = [\"F401\"]\n24 | \n25 | [tool.ruff.lint.isort]\n26 | known-first-party = [\"autoria_ai\", \"app\"]\n27 | \n28 | [tool.black]\n29 | line-length = 100\n30 | target-version = [\"py311\"]\n31 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_vtkpLta53AD4w81jH2dIqh",
+                "name": "read_file",
+                "arguments": {
+                  "path": "pyproject.toml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/pyproject.toml": 1782689565561
+              },
+              "durationMs": 4,
+              "timestamp": 1784734971055
+            },
+            "id": "661d1a78d1ab54420fe91b0a3f531212"
+          },
+          "createdAt": 1784734971056
+        },
+        {
+          "id": "11a5cd1a1ed292c038a149f35d1c25f9",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "I have all the context I need. Now I'll write the implementation and the test file:",
+            "id": "11a5cd1a1ed292c038a149f35d1c25f9",
+            "_meta": {
+              "timestamp": 1784734973338,
+              "spend": {
+                "input": 29298,
+                "output": 1114,
+                "cacheRead": 28478,
+                "cacheWrite": 819,
+                "cost": 0.07603,
+                "contextTokens": 30412,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_JcGUajh4iP95gsC8BRtyyj",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/vocabulary.py",
+                  "content": "\"\"\"Distinctive vocabulary extraction — §4.1 of docs/style_features.md.\n\nPublic API\n----------\ncompute_distinctive_vocab(corpora_lemmas, author_id, top_n=30) -> list[dict]\n    Returns the top-*n* TF-IDF signature terms for *author_id* relative to the\n    other authors in *corpora_lemmas*.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport numpy as np\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n\n# TfidfVectorizer settings per docs/style_features.md §4.1 (locked).\n_TOKEN_PATTERN = r\"(?u)\\b[a-zA-Z]{3,}\\b\"\n_MAX_FEATURES = 50_000\n\n\ndef compute_distinctive_vocab(\n    corpora_lemmas: dict[str, str],\n    author_id: str,\n    top_n: int = 30,\n) -> list[dict]:\n    \"\"\"Return the top-*n* TF-IDF signature terms for *author_id*.\n\n    Parameters\n    ----------\n    corpora_lemmas:\n        Mapping of ``author_id → lemmatized corpus text``.  Each value is the\n        full lemmatized corpus already produced by a prior spaCy pass — this\n        function does **not** load spaCy or re-lemmatize anything.\n    author_id:\n        Key in *corpora_lemmas* whose top terms are returned.\n    top_n:\n        Maximum number of terms to return (default 30, per §4.1).\n\n    Returns\n    -------\n    list[dict]\n        Each element is ``{\"term\": str, \"score\": float}``, sorted by score\n        descending.  The list may be shorter than *top_n* when the corpus\n        contains fewer than *top_n* distinct valid tokens.\n\n    Notes\n    -----\n    * Each author's full corpus is treated as **one TF-IDF document**, so the\n      three-author collection is a three-document corpus.\n    * The vectorizer uses ``stop_words=\"english\"``, ``ngram_range=(1, 1)``,\n      ``max_features=50000``, and ``token_pattern=r\"(?u)\\\\b[a-zA-Z]{3,}\\\\b\"``\n      (alpha-only, minimum 3 characters) — exactly as specified in §4.1.\n    * No spaCy model is loaded here; the caller owns the model lifecycle.\n    \"\"\"\n    if author_id not in corpora_lemmas:\n        raise KeyError(f\"author_id {author_id!r} not found in corpora_lemmas\")\n\n    # Stable ordering so the TF-IDF row index is predictable.\n    authors = list(corpora_lemmas.keys())\n    corpus_docs = [corpora_lemmas[a] for a in authors]\n\n    vectorizer = TfidfVectorizer(\n        stop_words=\"english\",\n        ngram_range=(1, 1),\n        max_features=_MAX_FEATURES,\n        token_pattern=_TOKEN_PATTERN,\n    )\n\n    tfidf_matrix = vectorizer.fit_transform(corpus_docs)  # shape: (n_authors, n_features)\n    feature_names: list[str] = vectorizer.get_feature_names_out().tolist()\n\n    author_idx = authors.index(author_id)\n    # Convert the sparse row to a dense 1-D array.\n    scores: np.ndarray = np.asarray(tfidf_matrix[author_idx].todense()).flatten()\n\n    # Sort feature indices by TF-IDF score descending.\n    ranked_indices = np.argsort(scores)[::-1]\n\n    result: list[dict] = []\n    for idx in ranked_indices:\n        if len(result) >= top_n:\n            break\n        score = float(scores[idx])\n        if score == 0.0:\n            # Remaining features are all zero — nothing more to add.\n            break\n        result.append({\"term\": feature_names[idx], \"score\": score})\n\n    return result\n",
+                  "line_count": 87
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784738391727
+        },
+        {
+          "id": "4d58d6d95adb8901c769e328a0e8c539",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Created file: ai_pipeline/autoria_ai/extractor/vocabulary.py\n\n<result>\n\"\"\"Distinctive vocabulary extraction — §4.1 of docs/style_features.md.\n\nPublic API\n----------\ncompute_distinctive_vocab(corpora_lemmas, author_id, top_n=30) -> list[dict]\n\n...84 lines truncated. You do not need to re-read the file. The complete file was written successfully. Use read_file if you need to see the full contents.\n</result>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_JcGUajh4iP95gsC8BRtyyj",
+                "name": "write_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/extractor/vocabulary.py",
+                  "content": "\"\"\"Distinctive vocabulary extraction — §4.1 of docs/style_features.md.\n\nPublic API\n----------\ncompute_distinctive_vocab(corpora_lemmas, author_id, top_n=30) -> list[dict]\n    Returns the top-*n* TF-IDF signature terms for *author_id* relative to the\n    other authors in *corpora_lemmas*.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport numpy as np\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n\n# TfidfVectorizer settings per docs/style_features.md §4.1 (locked).\n_TOKEN_PATTERN = r\"(?u)\\b[a-zA-Z]{3,}\\b\"\n_MAX_FEATURES = 50_000\n\n\ndef compute_distinctive_vocab(\n    corpora_lemmas: dict[str, str],\n    author_id: str,\n    top_n: int = 30,\n) -> list[dict]:\n    \"\"\"Return the top-*n* TF-IDF signature terms for *author_id*.\n\n    Parameters\n    ----------\n    corpora_lemmas:\n        Mapping of ``author_id → lemmatized corpus text``.  Each value is the\n        full lemmatized corpus already produced by a prior spaCy pass — this\n        function does **not** load spaCy or re-lemmatize anything.\n    author_id:\n        Key in *corpora_lemmas* whose top terms are returned.\n    top_n:\n        Maximum number of terms to return (default 30, per §4.1).\n\n    Returns\n    -------\n    list[dict]\n        Each element is ``{\"term\": str, \"score\": float}``, sorted by score\n        descending.  The list may be shorter than *top_n* when the corpus\n        contains fewer than *top_n* distinct valid tokens.\n\n    Notes\n    -----\n    * Each author's full corpus is treated as **one TF-IDF document**, so the\n      three-author collection is a three-document corpus.\n    * The vectorizer uses ``stop_words=\"english\"``, ``ngram_range=(1, 1)``,\n      ``max_features=50000``, and ``token_pattern=r\"(?u)\\\\b[a-zA-Z]{3,}\\\\b\"``\n      (alpha-only, minimum 3 characters) — exactly as specified in §4.1.\n    * No spaCy model is loaded here; the caller owns the model lifecycle.\n    \"\"\"\n    if author_id not in corpora_lemmas:\n        raise KeyError(f\"author_id {author_id!r} not found in corpora_lemmas\")\n\n    # Stable ordering so the TF-IDF row index is predictable.\n    authors = list(corpora_lemmas.keys())\n    corpus_docs = [corpora_lemmas[a] for a in authors]\n\n    vectorizer = TfidfVectorizer(\n        stop_words=\"english\",\n        ngram_range=(1, 1),\n        max_features=_MAX_FEATURES,\n        token_pattern=_TOKEN_PATTERN,\n    )\n\n    tfidf_matrix = vectorizer.fit_transform(corpus_docs)  # shape: (n_authors, n_features)\n    feature_names: list[str] = vectorizer.get_feature_names_out().tolist()\n\n    author_idx = authors.index(author_id)\n    # Convert the sparse row to a dense 1-D array.\n    scores: np.ndarray = np.asarray(tfidf_matrix[author_idx].todense()).flatten()\n\n    # Sort feature indices by TF-IDF score descending.\n    ranked_indices = np.argsort(scores)[::-1]\n\n    result: list[dict] = []\n    for idx in ranked_indices:\n        if len(result) >= top_n:\n            break\n        score = float(scores[idx])\n        if score == 0.0:\n            # Remaining features are all zero — nothing more to add.\n            break\n        result.append({\"term\": feature_names[idx], \"score\": score})\n\n    return result\n",
+                  "line_count": 87
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Write File {path}",
+                "error": "Failed to write file {path}",
+                "running": "Writing file {path}",
+                "success": "Wrote file {path}",
+                "runningLong": [
+                  "Still writing...",
+                  "Writing takes time...",
+                  "Nearly written...",
+                  "A lot of content to write...",
+                  "Committing every character...",
+                  "Writing like my life depends on it..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/vocabulary.py": {
+                  "before": "",
+                  "after": "\"\"\"Distinctive vocabulary extraction — §4.1 of docs/style_features.md.\n\nPublic API\n----------\ncompute_distinctive_vocab(corpora_lemmas, author_id, top_n=30) -> list[dict]\n    Returns the top-*n* TF-IDF signature terms for *author_id* relative to the\n    other authors in *corpora_lemmas*.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport numpy as np\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n\n# TfidfVectorizer settings per docs/style_features.md §4.1 (locked).\n_TOKEN_PATTERN = r\"(?u)\\b[a-zA-Z]{3,}\\b\"\n_MAX_FEATURES = 50_000\n\n\ndef compute_distinctive_vocab(\n    corpora_lemmas: dict[str, str],\n    author_id: str,\n    top_n: int = 30,\n) -> list[dict]:\n    \"\"\"Return the top-*n* TF-IDF signature terms for *author_id*.\n\n    Parameters\n    ----------\n    corpora_lemmas:\n        Mapping of ``author_id → lemmatized corpus text``.  Each value is the\n        full lemmatized corpus already produced by a prior spaCy pass — this\n        function does **not** load spaCy or re-lemmatize anything.\n    author_id:\n        Key in *corpora_lemmas* whose top terms are returned.\n    top_n:\n        Maximum number of terms to return (default 30, per §4.1).\n\n    Returns\n    -------\n    list[dict]\n        Each element is ``{\"term\": str, \"score\": float}``, sorted by score\n        descending.  The list may be shorter than *top_n* when the corpus\n        contains fewer than *top_n* distinct valid tokens.\n\n    Notes\n    -----\n    * Each author's full corpus is treated as **one TF-IDF document**, so the\n      three-author collection is a three-document corpus.\n    * The vectorizer uses ``stop_words=\"english\"``, ``ngram_range=(1, 1)``,\n      ``max_features=50000``, and ``token_pattern=r\"(?u)\\\\b[a-zA-Z]{3,}\\\\b\"``\n      (alpha-only, minimum 3 characters) — exactly as specified in §4.1.\n    * No spaCy model is loaded here; the caller owns the model lifecycle.\n    \"\"\"\n    if author_id not in corpora_lemmas:\n        raise KeyError(f\"author_id {author_id!r} not found in corpora_lemmas\")\n\n    # Stable ordering so the TF-IDF row index is predictable.\n    authors = list(corpora_lemmas.keys())\n    corpus_docs = [corpora_lemmas[a] for a in authors]\n\n    vectorizer = TfidfVectorizer(\n        stop_words=\"english\",\n        ngram_range=(1, 1),\n        max_features=_MAX_FEATURES,\n        token_pattern=_TOKEN_PATTERN,\n    )\n\n    tfidf_matrix = vectorizer.fit_transform(corpus_docs)  # shape: (n_authors, n_features)\n    feature_names: list[str] = vectorizer.get_feature_names_out().tolist()\n\n    author_idx = authors.index(author_id)\n    # Convert the sparse row to a dense 1-D array.\n    scores: np.ndarray = np.asarray(tfidf_matrix[author_idx].todense()).flatten()\n\n    # Sort feature indices by TF-IDF score descending.\n    ranked_indices = np.argsort(scores)[::-1]\n\n    result: list[dict] = []\n    for idx in ranked_indices:\n        if len(result) >= top_n:\n            break\n        score = float(scores[idx])\n        if score == 0.0:\n            # Remaining features are all zero — nothing more to add.\n            break\n        result.append({\"term\": feature_names[idx], \"score\": score})\n\n    return result\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/vocabulary.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/vocabulary.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/vocabulary.py\n@@ -0,0 +1,88 @@\n+\"\"\"Distinctive vocabulary extraction — §4.1 of docs/style_features.md.\n+\n+Public API\n+----------\n+compute_distinctive_vocab(corpora_lemmas, author_id, top_n=30) -> list[dict]\n+    Returns the top-*n* TF-IDF signature terms for *author_id* relative to the\n+    other authors in *corpora_lemmas*.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import numpy as np\n+from sklearn.feature_extraction.text import TfidfVectorizer\n+\n+# TfidfVectorizer settings per docs/style_features.md §4.1 (locked).\n+_TOKEN_PATTERN = r\"(?u)\\b[a-zA-Z]{3,}\\b\"\n+_MAX_FEATURES = 50_000\n+\n+\n+def compute_distinctive_vocab(\n+    corpora_lemmas: dict[str, str],\n+    author_id: str,\n+    top_n: int = 30,\n+) -> list[dict]:\n+    \"\"\"Return the top-*n* TF-IDF signature terms for *author_id*.\n+\n+    Parameters\n+    ----------\n+    corpora_lemmas:\n+        Mapping of ``author_id → lemmatized corpus text``.  Each value is the\n+        full lemmatized corpus already produced by a prior spaCy pass — this\n+        function does **not** load spaCy or re-lemmatize anything.\n+    author_id:\n+        Key in *corpora_lemmas* whose top terms are returned.\n+    top_n:\n+        Maximum number of terms to return (default 30, per §4.1).\n+\n+    Returns\n+    -------\n+    list[dict]\n+        Each element is ``{\"term\": str, \"score\": float}``, sorted by score\n+        descending.  The list may be shorter than *top_n* when the corpus\n+        contains fewer than *top_n* distinct valid tokens.\n+\n+    Notes\n+    -----\n+    * Each author's full corpus is treated as **one TF-IDF document**, so the\n+      three-author collection is a three-document corpus.\n+    * The vectorizer uses ``stop_words=\"english\"``, ``ngram_range=(1, 1)``,\n+      ``max_features=50000``, and ``token_pattern=r\"(?u)\\\\b[a-zA-Z]{3,}\\\\b\"``\n+      (alpha-only, minimum 3 characters) — exactly as specified in §4.1.\n+    * No spaCy model is loaded here; the caller owns the model lifecycle.\n+    \"\"\"\n+    if author_id not in corpora_lemmas:\n+        raise KeyError(f\"author_id {author_id!r} not found in corpora_lemmas\")\n+\n+    # Stable ordering so the TF-IDF row index is predictable.\n+    authors = list(corpora_lemmas.keys())\n+    corpus_docs = [corpora_lemmas[a] for a in authors]\n+\n+    vectorizer = TfidfVectorizer(\n+        stop_words=\"english\",\n+        ngram_range=(1, 1),\n+        max_features=_MAX_FEATURES,\n+        token_pattern=_TOKEN_PATTERN,\n+    )\n+\n+    tfidf_matrix = vectorizer.fit_transform(corpus_docs)  # shape: (n_authors, n_features)\n+    feature_names: list[str] = vectorizer.get_feature_names_out().tolist()\n+\n+    author_idx = authors.index(author_id)\n+    # Convert the sparse row to a dense 1-D array.\n+    scores: np.ndarray = np.asarray(tfidf_matrix[author_idx].todense()).flatten()\n+\n+    # Sort feature indices by TF-IDF score descending.\n+    ranked_indices = np.argsort(scores)[::-1]\n+\n+    result: list[dict] = []\n+    for idx in ranked_indices:\n+        if len(result) >= top_n:\n+            break\n+        score = float(scores[idx])\n+        if score == 0.0:\n+            # Remaining features are all zero — nothing more to add.\n+            break\n+        result.append({\"term\": feature_names[idx], \"score\": score})\n+\n+    return result\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/extractor/vocabulary.py": 1784738390707
+              },
+              "durationMs": 3403027,
+              "timestamp": 1784738391725
+            },
+            "id": "4d58d6d95adb8901c769e328a0e8c539"
+          },
+          "createdAt": 1784738391731
+        },
+        {
+          "id": "b59cf704cfad1421945c2db2c5368736",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now write the tests:",
+            "id": "b59cf704cfad1421945c2db2c5368736",
+            "_meta": {
+              "timestamp": 1784738412314,
+              "spend": {
+                "input": 30542,
+                "output": 2429,
+                "cacheRead": 8533,
+                "cacheWrite": 22008,
+                "cost": 0.082427,
+                "contextTokens": 32971,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_vD09IZMoBzq3CfxhLnSwmT",
+                "name": "write_file",
+                "arguments": {
+                  "content": "\"\"\"Tests for ai_pipeline/autoria_ai/extractor/vocabulary.py.\n\nCoverage\n--------\n* Happy path: a word that is distinctively concentrated in one author's corpus\n  rises to the top of that author's results and does not dominate the others.\n* Output length is <= top_n (and can be less for a sparse corpus).\n* Each item has exactly the keys {\"term\", \"score\"} with the correct types.\n* Scores are sorted strictly descending (or equal, which is also fine).\n* Stopwords are never present in results.\n* Tokens shorter than 3 characters are never present in results.\n* Unknown author_id raises KeyError.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport pytest\n\nfrom autoria_ai.extractor.vocabulary import compute_distinctive_vocab\n\n# ---------------------------------------------------------------------------\n# Shared test corpora\n# ---------------------------------------------------------------------------\n\n# \"countenance\" appears many times in AUTHOR_A but never in the others.\n# \"raven\" appears many times in AUTHOR_C but never in the others.\n_CORPORA: dict[str, str] = {\n    \"author_a\": (\n        \"countenance countenance countenance countenance countenance \"\n        \"countenance countenance countenance countenance countenance \"\n        \"the quick brown fox jumped over the lazy dog and then ran away \"\n        \"towards the distant hills while the sun was shining brightly \"\n    ),\n    \"author_b\": (\n        \"london street cobblestone children orphan twist poverty workhouse \"\n        \"the quick brown fox jumped over the lazy dog and then walked home \"\n        \"through the foggy streets while the rain was falling steadily down \"\n    ),\n    \"author_c\": (\n        \"raven raven raven raven raven raven raven raven raven raven \"\n        \"nevermore chamber shadow midnight chamber shadow midnight tomb \"\n        \"the quick brown fox jumped over the lazy dog and wandered around \"\n        \"the darkened corridor while the candle flickered and went out \"\n    ),\n}\n\n\n# ---------------------------------------------------------------------------\n# Helper\n# ---------------------------------------------------------------------------\n\n\ndef _terms(result: list[dict]) -> list[str]:\n    return [item[\"term\"] for item in result]\n\n\n# ---------------------------------------------------------------------------\n# Happy path: distinctive word rises to the top\n# ---------------------------------------------------------------------------\n\n\ndef test_distinctive_word_tops_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert \"countenance\" in _terms(result), (\n        \"'countenance' must appear in author_a's top terms because it is \"\n        \"concentrated exclusively in author_a's corpus\"\n    )\n\n\ndef test_distinctive_word_is_first_for_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert result[0][\"term\"] == \"countenance\", (\n        \"'countenance' should be the highest-scoring term for author_a\"\n    )\n\n\ndef test_distinctive_word_tops_author_c() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_c\", top_n=30)\n    assert \"raven\" in _terms(result), (\n        \"'raven' must appear in author_c's top terms\"\n    )\n\n\ndef test_countenance_not_top_for_author_b() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_b\", top_n=30)\n    terms = _terms(result)\n    # \"countenance\" never appears in author_b's corpus, so its TF-IDF is 0.\n    assert \"countenance\" not in terms\n\n\ndef test_raven_not_top_for_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert \"raven\" not in _terms(result)\n\n\n# ---------------------------------------------------------------------------\n# Output length\n# ---------------------------------------------------------------------------\n\n\ndef test_output_length_does_not_exceed_top_n() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert len(result) <= 30\n\n\ndef test_output_length_respects_custom_top_n() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=5)\n    assert len(result) <= 5\n\n\ndef test_sparse_corpus_length_can_be_less_than_top_n() -> None:\n    \"\"\"A tiny corpus with fewer than top_n distinct valid tokens must still work.\"\"\"\n    tiny: dict[str, str] = {\n        \"alpha\": \"hello world\",\n        \"beta\": \"foo bar\",\n        \"gamma\": \"baz qux\",\n    }\n    result = compute_distinctive_vocab(tiny, \"alpha\", top_n=30)\n    assert len(result) <= 30  # may be much shorter; must not error\n\n\n# ---------------------------------------------------------------------------\n# Shape: {\"term\": str, \"score\": float}\n# ---------------------------------------------------------------------------\n\n\ndef test_each_item_has_term_and_score_keys() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert len(result) > 0, \"result must not be empty for a non-trivial corpus\"\n    for item in result:\n        assert set(item.keys()) == {\"term\", \"score\"}, (\n            f\"unexpected keys in item: {set(item.keys())}\"\n        )\n\n\ndef test_term_values_are_strings() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert isinstance(item[\"term\"], str)\n\n\ndef test_score_values_are_floats() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert isinstance(item[\"score\"], float)\n\n\ndef test_score_values_are_positive() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert item[\"score\"] > 0.0\n\n\n# ---------------------------------------------------------------------------\n# Scores sorted descending\n# ---------------------------------------------------------------------------\n\n\ndef test_scores_are_sorted_descending() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    scores = [item[\"score\"] for item in result]\n    assert scores == sorted(scores, reverse=True), \"scores must be sorted descending\"\n\n\ndef test_scores_sorted_descending_for_all_authors() -> None:\n    for author_id in _CORPORA:\n        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n        scores = [item[\"score\"] for item in result]\n        assert scores == sorted(scores, reverse=True), (\n            f\"scores not sorted descending for {author_id}\"\n        )\n\n\n# ---------------------------------------------------------------------------\n# Stopwords never appear\n# ---------------------------------------------------------------------------\n\n# A small sample of sklearn's English stopword list.\n_SAMPLE_STOPWORDS = {\"the\", \"and\", \"was\", \"over\", \"then\", \"while\", \"its\", \"our\"}\n\n\ndef test_stopwords_absent_from_results() -> None:\n    for author_id in _CORPORA:\n        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n        terms = set(_terms(result))\n        overlap = terms & _SAMPLE_STOPWORDS\n        assert not overlap, (\n            f\"stopwords found in {author_id} results: {overlap}\"\n        )\n\n\n# ---------------------------------------------------------------------------\n# Tokens shorter than 3 characters never appear\n# ---------------------------------------------------------------------------\n\n\ndef test_short_tokens_absent_from_results() -> None:\n    \"\"\"Tokens with fewer than 3 characters must be excluded by token_pattern.\"\"\"\n    corpora_with_short_tokens: dict[str, str] = {\n        \"aa\": \"to be or not to be that is the question wonder wonder wonder\",\n        \"bb\": \"it is an honor to act in the play and wonder about things\",\n        \"cc\": \"wonder wonder wonder wonder wonder wonder wonder wonder here\",\n    }\n    # \"to\", \"be\", \"or\", \"is\", \"an\", \"in\", \"it\" are all < 3 chars\n    for author_id in corpora_with_short_tokens:\n        result = compute_distinctive_vocab(corpora_with_short_tokens, author_id, top_n=30)\n        for item in result:\n            assert len(item[\"term\"]) >= 3, (\n                f\"term {item['term']!r} is shorter than 3 characters\"\n            )\n\n\ndef test_single_char_tokens_absent() -> None:\n    corpora: dict[str, str] = {\n        \"x\": \"a b c the quick brown fox jumps over the lazy dog wonder wonder\",\n        \"y\": \"i j k the quick brown fox jumps over the lazy cat shining shining\",\n        \"z\": \"x y z the quick brown fox jumps over the lazy hen glowing glowing\",\n    }\n    for author_id in corpora:\n        result = compute_distinctive_vocab(corpora, author_id, top_n=30)\n        for item in result:\n            assert len(item[\"term\"]) >= 3\n\n\n# ---------------------------------------------------------------------------\n# Error handling\n# ---------------------------------------------------------------------------\n\n\ndef test_unknown_author_id_raises_key_error() -> None:\n    with pytest.raises(KeyError):\n        compute_distinctive_vocab(_CORPORA, \"nonexistent_author\", top_n=30)\n",
+                  "line_count": 197,
+                  "path": "ai_pipeline/tests/test_vocabulary.py"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784738524354
+        },
+        {
+          "id": "6ddedb4b55c5241f5daa444e0ac684d8",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Created file: ai_pipeline/tests/test_vocabulary.py\n\n<result>\n\"\"\"Tests for ai_pipeline/autoria_ai/extractor/vocabulary.py.\n\nCoverage\n--------\n* Happy path: a word that is distinctively concentrated in one author's corpus\n\n...228 lines truncated. You do not need to re-read the file. The complete file was written successfully. Use read_file if you need to see the full contents.\n</result>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_vD09IZMoBzq3CfxhLnSwmT",
+                "name": "write_file",
+                "arguments": {
+                  "content": "\"\"\"Tests for ai_pipeline/autoria_ai/extractor/vocabulary.py.\n\nCoverage\n--------\n* Happy path: a word that is distinctively concentrated in one author's corpus\n  rises to the top of that author's results and does not dominate the others.\n* Output length is <= top_n (and can be less for a sparse corpus).\n* Each item has exactly the keys {\"term\", \"score\"} with the correct types.\n* Scores are sorted strictly descending (or equal, which is also fine).\n* Stopwords are never present in results.\n* Tokens shorter than 3 characters are never present in results.\n* Unknown author_id raises KeyError.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport pytest\n\nfrom autoria_ai.extractor.vocabulary import compute_distinctive_vocab\n\n# ---------------------------------------------------------------------------\n# Shared test corpora\n# ---------------------------------------------------------------------------\n\n# \"countenance\" appears many times in AUTHOR_A but never in the others.\n# \"raven\" appears many times in AUTHOR_C but never in the others.\n_CORPORA: dict[str, str] = {\n    \"author_a\": (\n        \"countenance countenance countenance countenance countenance \"\n        \"countenance countenance countenance countenance countenance \"\n        \"the quick brown fox jumped over the lazy dog and then ran away \"\n        \"towards the distant hills while the sun was shining brightly \"\n    ),\n    \"author_b\": (\n        \"london street cobblestone children orphan twist poverty workhouse \"\n        \"the quick brown fox jumped over the lazy dog and then walked home \"\n        \"through the foggy streets while the rain was falling steadily down \"\n    ),\n    \"author_c\": (\n        \"raven raven raven raven raven raven raven raven raven raven \"\n        \"nevermore chamber shadow midnight chamber shadow midnight tomb \"\n        \"the quick brown fox jumped over the lazy dog and wandered around \"\n        \"the darkened corridor while the candle flickered and went out \"\n    ),\n}\n\n\n# ---------------------------------------------------------------------------\n# Helper\n# ---------------------------------------------------------------------------\n\n\ndef _terms(result: list[dict]) -> list[str]:\n    return [item[\"term\"] for item in result]\n\n\n# ---------------------------------------------------------------------------\n# Happy path: distinctive word rises to the top\n# ---------------------------------------------------------------------------\n\n\ndef test_distinctive_word_tops_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert \"countenance\" in _terms(result), (\n        \"'countenance' must appear in author_a's top terms because it is \"\n        \"concentrated exclusively in author_a's corpus\"\n    )\n\n\ndef test_distinctive_word_is_first_for_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert result[0][\"term\"] == \"countenance\", (\n        \"'countenance' should be the highest-scoring term for author_a\"\n    )\n\n\ndef test_distinctive_word_tops_author_c() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_c\", top_n=30)\n    assert \"raven\" in _terms(result), (\n        \"'raven' must appear in author_c's top terms\"\n    )\n\n\ndef test_countenance_not_top_for_author_b() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_b\", top_n=30)\n    terms = _terms(result)\n    # \"countenance\" never appears in author_b's corpus, so its TF-IDF is 0.\n    assert \"countenance\" not in terms\n\n\ndef test_raven_not_top_for_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert \"raven\" not in _terms(result)\n\n\n# ---------------------------------------------------------------------------\n# Output length\n# ---------------------------------------------------------------------------\n\n\ndef test_output_length_does_not_exceed_top_n() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert len(result) <= 30\n\n\ndef test_output_length_respects_custom_top_n() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=5)\n    assert len(result) <= 5\n\n\ndef test_sparse_corpus_length_can_be_less_than_top_n() -> None:\n    \"\"\"A tiny corpus with fewer than top_n distinct valid tokens must still work.\"\"\"\n    tiny: dict[str, str] = {\n        \"alpha\": \"hello world\",\n        \"beta\": \"foo bar\",\n        \"gamma\": \"baz qux\",\n    }\n    result = compute_distinctive_vocab(tiny, \"alpha\", top_n=30)\n    assert len(result) <= 30  # may be much shorter; must not error\n\n\n# ---------------------------------------------------------------------------\n# Shape: {\"term\": str, \"score\": float}\n# ---------------------------------------------------------------------------\n\n\ndef test_each_item_has_term_and_score_keys() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert len(result) > 0, \"result must not be empty for a non-trivial corpus\"\n    for item in result:\n        assert set(item.keys()) == {\"term\", \"score\"}, (\n            f\"unexpected keys in item: {set(item.keys())}\"\n        )\n\n\ndef test_term_values_are_strings() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert isinstance(item[\"term\"], str)\n\n\ndef test_score_values_are_floats() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert isinstance(item[\"score\"], float)\n\n\ndef test_score_values_are_positive() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert item[\"score\"] > 0.0\n\n\n# ---------------------------------------------------------------------------\n# Scores sorted descending\n# ---------------------------------------------------------------------------\n\n\ndef test_scores_are_sorted_descending() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    scores = [item[\"score\"] for item in result]\n    assert scores == sorted(scores, reverse=True), \"scores must be sorted descending\"\n\n\ndef test_scores_sorted_descending_for_all_authors() -> None:\n    for author_id in _CORPORA:\n        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n        scores = [item[\"score\"] for item in result]\n        assert scores == sorted(scores, reverse=True), (\n            f\"scores not sorted descending for {author_id}\"\n        )\n\n\n# ---------------------------------------------------------------------------\n# Stopwords never appear\n# ---------------------------------------------------------------------------\n\n# A small sample of sklearn's English stopword list.\n_SAMPLE_STOPWORDS = {\"the\", \"and\", \"was\", \"over\", \"then\", \"while\", \"its\", \"our\"}\n\n\ndef test_stopwords_absent_from_results() -> None:\n    for author_id in _CORPORA:\n        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n        terms = set(_terms(result))\n        overlap = terms & _SAMPLE_STOPWORDS\n        assert not overlap, (\n            f\"stopwords found in {author_id} results: {overlap}\"\n        )\n\n\n# ---------------------------------------------------------------------------\n# Tokens shorter than 3 characters never appear\n# ---------------------------------------------------------------------------\n\n\ndef test_short_tokens_absent_from_results() -> None:\n    \"\"\"Tokens with fewer than 3 characters must be excluded by token_pattern.\"\"\"\n    corpora_with_short_tokens: dict[str, str] = {\n        \"aa\": \"to be or not to be that is the question wonder wonder wonder\",\n        \"bb\": \"it is an honor to act in the play and wonder about things\",\n        \"cc\": \"wonder wonder wonder wonder wonder wonder wonder wonder here\",\n    }\n    # \"to\", \"be\", \"or\", \"is\", \"an\", \"in\", \"it\" are all < 3 chars\n    for author_id in corpora_with_short_tokens:\n        result = compute_distinctive_vocab(corpora_with_short_tokens, author_id, top_n=30)\n        for item in result:\n            assert len(item[\"term\"]) >= 3, (\n                f\"term {item['term']!r} is shorter than 3 characters\"\n            )\n\n\ndef test_single_char_tokens_absent() -> None:\n    corpora: dict[str, str] = {\n        \"x\": \"a b c the quick brown fox jumps over the lazy dog wonder wonder\",\n        \"y\": \"i j k the quick brown fox jumps over the lazy cat shining shining\",\n        \"z\": \"x y z the quick brown fox jumps over the lazy hen glowing glowing\",\n    }\n    for author_id in corpora:\n        result = compute_distinctive_vocab(corpora, author_id, top_n=30)\n        for item in result:\n            assert len(item[\"term\"]) >= 3\n\n\n# ---------------------------------------------------------------------------\n# Error handling\n# ---------------------------------------------------------------------------\n\n\ndef test_unknown_author_id_raises_key_error() -> None:\n    with pytest.raises(KeyError):\n        compute_distinctive_vocab(_CORPORA, \"nonexistent_author\", top_n=30)\n",
+                  "line_count": 197,
+                  "path": "ai_pipeline/tests/test_vocabulary.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Write File {path}",
+                "error": "Failed to write file {path}",
+                "running": "Writing file {path}",
+                "success": "Wrote file {path}",
+                "runningLong": [
+                  "Still writing...",
+                  "Writing takes time...",
+                  "Nearly written...",
+                  "A lot of content to write...",
+                  "Committing every character...",
+                  "Writing like my life depends on it..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_vocabulary.py": {
+                  "before": "",
+                  "after": "\"\"\"Tests for ai_pipeline/autoria_ai/extractor/vocabulary.py.\n\nCoverage\n--------\n* Happy path: a word that is distinctively concentrated in one author's corpus\n  rises to the top of that author's results and does not dominate the others.\n* Output length is <= top_n (and can be less for a sparse corpus).\n* Each item has exactly the keys {\"term\", \"score\"} with the correct types.\n* Scores are sorted strictly descending (or equal, which is also fine).\n* Stopwords are never present in results.\n* Tokens shorter than 3 characters are never present in results.\n* Unknown author_id raises KeyError.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport pytest\n\nfrom autoria_ai.extractor.vocabulary import compute_distinctive_vocab\n\n# ---------------------------------------------------------------------------\n# Shared test corpora\n# ---------------------------------------------------------------------------\n\n# \"countenance\" appears many times in AUTHOR_A but never in the others.\n# \"raven\" appears many times in AUTHOR_C but never in the others.\n_CORPORA: dict[str, str] = {\n    \"author_a\": (\n        \"countenance countenance countenance countenance countenance \"\n        \"countenance countenance countenance countenance countenance \"\n        \"the quick brown fox jumped over the lazy dog and then ran away \"\n        \"towards the distant hills while the sun was shining brightly \"\n    ),\n    \"author_b\": (\n        \"london street cobblestone children orphan twist poverty workhouse \"\n        \"the quick brown fox jumped over the lazy dog and then walked home \"\n        \"through the foggy streets while the rain was falling steadily down \"\n    ),\n    \"author_c\": (\n        \"raven raven raven raven raven raven raven raven raven raven \"\n        \"nevermore chamber shadow midnight chamber shadow midnight tomb \"\n        \"the quick brown fox jumped over the lazy dog and wandered around \"\n        \"the darkened corridor while the candle flickered and went out \"\n    ),\n}\n\n\n# ---------------------------------------------------------------------------\n# Helper\n# ---------------------------------------------------------------------------\n\n\ndef _terms(result: list[dict]) -> list[str]:\n    return [item[\"term\"] for item in result]\n\n\n# ---------------------------------------------------------------------------\n# Happy path: distinctive word rises to the top\n# ---------------------------------------------------------------------------\n\n\ndef test_distinctive_word_tops_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert \"countenance\" in _terms(result), (\n        \"'countenance' must appear in author_a's top terms because it is \"\n        \"concentrated exclusively in author_a's corpus\"\n    )\n\n\ndef test_distinctive_word_is_first_for_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert result[0][\"term\"] == \"countenance\", (\n        \"'countenance' should be the highest-scoring term for author_a\"\n    )\n\n\ndef test_distinctive_word_tops_author_c() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_c\", top_n=30)\n    assert \"raven\" in _terms(result), (\n        \"'raven' must appear in author_c's top terms\"\n    )\n\n\ndef test_countenance_not_top_for_author_b() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_b\", top_n=30)\n    terms = _terms(result)\n    # \"countenance\" never appears in author_b's corpus, so its TF-IDF is 0.\n    assert \"countenance\" not in terms\n\n\ndef test_raven_not_top_for_author_a() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert \"raven\" not in _terms(result)\n\n\n# ---------------------------------------------------------------------------\n# Output length\n# ---------------------------------------------------------------------------\n\n\ndef test_output_length_does_not_exceed_top_n() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert len(result) <= 30\n\n\ndef test_output_length_respects_custom_top_n() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=5)\n    assert len(result) <= 5\n\n\ndef test_sparse_corpus_length_can_be_less_than_top_n() -> None:\n    \"\"\"A tiny corpus with fewer than top_n distinct valid tokens must still work.\"\"\"\n    tiny: dict[str, str] = {\n        \"alpha\": \"hello world\",\n        \"beta\": \"foo bar\",\n        \"gamma\": \"baz qux\",\n    }\n    result = compute_distinctive_vocab(tiny, \"alpha\", top_n=30)\n    assert len(result) <= 30  # may be much shorter; must not error\n\n\n# ---------------------------------------------------------------------------\n# Shape: {\"term\": str, \"score\": float}\n# ---------------------------------------------------------------------------\n\n\ndef test_each_item_has_term_and_score_keys() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    assert len(result) > 0, \"result must not be empty for a non-trivial corpus\"\n    for item in result:\n        assert set(item.keys()) == {\"term\", \"score\"}, (\n            f\"unexpected keys in item: {set(item.keys())}\"\n        )\n\n\ndef test_term_values_are_strings() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert isinstance(item[\"term\"], str)\n\n\ndef test_score_values_are_floats() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert isinstance(item[\"score\"], float)\n\n\ndef test_score_values_are_positive() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    for item in result:\n        assert item[\"score\"] > 0.0\n\n\n# ---------------------------------------------------------------------------\n# Scores sorted descending\n# ---------------------------------------------------------------------------\n\n\ndef test_scores_are_sorted_descending() -> None:\n    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n    scores = [item[\"score\"] for item in result]\n    assert scores == sorted(scores, reverse=True), \"scores must be sorted descending\"\n\n\ndef test_scores_sorted_descending_for_all_authors() -> None:\n    for author_id in _CORPORA:\n        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n        scores = [item[\"score\"] for item in result]\n        assert scores == sorted(scores, reverse=True), (\n            f\"scores not sorted descending for {author_id}\"\n        )\n\n\n# ---------------------------------------------------------------------------\n# Stopwords never appear\n# ---------------------------------------------------------------------------\n\n# A small sample of sklearn's English stopword list.\n_SAMPLE_STOPWORDS = {\"the\", \"and\", \"was\", \"over\", \"then\", \"while\", \"its\", \"our\"}\n\n\ndef test_stopwords_absent_from_results() -> None:\n    for author_id in _CORPORA:\n        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n        terms = set(_terms(result))\n        overlap = terms & _SAMPLE_STOPWORDS\n        assert not overlap, (\n            f\"stopwords found in {author_id} results: {overlap}\"\n        )\n\n\n# ---------------------------------------------------------------------------\n# Tokens shorter than 3 characters never appear\n# ---------------------------------------------------------------------------\n\n\ndef test_short_tokens_absent_from_results() -> None:\n    \"\"\"Tokens with fewer than 3 characters must be excluded by token_pattern.\"\"\"\n    corpora_with_short_tokens: dict[str, str] = {\n        \"aa\": \"to be or not to be that is the question wonder wonder wonder\",\n        \"bb\": \"it is an honor to act in the play and wonder about things\",\n        \"cc\": \"wonder wonder wonder wonder wonder wonder wonder wonder here\",\n    }\n    # \"to\", \"be\", \"or\", \"is\", \"an\", \"in\", \"it\" are all < 3 chars\n    for author_id in corpora_with_short_tokens:\n        result = compute_distinctive_vocab(corpora_with_short_tokens, author_id, top_n=30)\n        for item in result:\n            assert len(item[\"term\"]) >= 3, (\n                f\"term {item['term']!r} is shorter than 3 characters\"\n            )\n\n\ndef test_single_char_tokens_absent() -> None:\n    corpora: dict[str, str] = {\n        \"x\": \"a b c the quick brown fox jumps over the lazy dog wonder wonder\",\n        \"y\": \"i j k the quick brown fox jumps over the lazy cat shining shining\",\n        \"z\": \"x y z the quick brown fox jumps over the lazy hen glowing glowing\",\n    }\n    for author_id in corpora:\n        result = compute_distinctive_vocab(corpora, author_id, top_n=30)\n        for item in result:\n            assert len(item[\"term\"]) >= 3\n\n\n# ---------------------------------------------------------------------------\n# Error handling\n# ---------------------------------------------------------------------------\n\n\ndef test_unknown_author_id_raises_key_error() -> None:\n    with pytest.raises(KeyError):\n        compute_distinctive_vocab(_CORPORA, \"nonexistent_author\", top_n=30)\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_vocabulary.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_vocabulary.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_vocabulary.py\n@@ -0,0 +1,232 @@\n+\"\"\"Tests for ai_pipeline/autoria_ai/extractor/vocabulary.py.\n+\n+Coverage\n+--------\n+* Happy path: a word that is distinctively concentrated in one author's corpus\n+  rises to the top of that author's results and does not dominate the others.\n+* Output length is <= top_n (and can be less for a sparse corpus).\n+* Each item has exactly the keys {\"term\", \"score\"} with the correct types.\n+* Scores are sorted strictly descending (or equal, which is also fine).\n+* Stopwords are never present in results.\n+* Tokens shorter than 3 characters are never present in results.\n+* Unknown author_id raises KeyError.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import pytest\n+\n+from autoria_ai.extractor.vocabulary import compute_distinctive_vocab\n+\n+# ---------------------------------------------------------------------------\n+# Shared test corpora\n+# ---------------------------------------------------------------------------\n+\n+# \"countenance\" appears many times in AUTHOR_A but never in the others.\n+# \"raven\" appears many times in AUTHOR_C but never in the others.\n+_CORPORA: dict[str, str] = {\n+    \"author_a\": (\n+        \"countenance countenance countenance countenance countenance \"\n+        \"countenance countenance countenance countenance countenance \"\n+        \"the quick brown fox jumped over the lazy dog and then ran away \"\n+        \"towards the distant hills while the sun was shining brightly \"\n+    ),\n+    \"author_b\": (\n+        \"london street cobblestone children orphan twist poverty workhouse \"\n+        \"the quick brown fox jumped over the lazy dog and then walked home \"\n+        \"through the foggy streets while the rain was falling steadily down \"\n+    ),\n+    \"author_c\": (\n+        \"raven raven raven raven raven raven raven raven raven raven \"\n+        \"nevermore chamber shadow midnight chamber shadow midnight tomb \"\n+        \"the quick brown fox jumped over the lazy dog and wandered around \"\n+        \"the darkened corridor while the candle flickered and went out \"\n+    ),\n+}\n+\n+\n+# ---------------------------------------------------------------------------\n+# Helper\n+# ---------------------------------------------------------------------------\n+\n+\n+def _terms(result: list[dict]) -> list[str]:\n+    return [item[\"term\"] for item in result]\n+\n+\n+# ---------------------------------------------------------------------------\n+# Happy path: distinctive word rises to the top\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_distinctive_word_tops_author_a() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    assert \"countenance\" in _terms(result), (\n+        \"'countenance' must appear in author_a's top terms because it is \"\n+        \"concentrated exclusively in author_a's corpus\"\n+    )\n+\n+\n+def test_distinctive_word_is_first_for_author_a() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    assert result[0][\"term\"] == \"countenance\", (\n+        \"'countenance' should be the highest-scoring term for author_a\"\n+    )\n+\n+\n+def test_distinctive_word_tops_author_c() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_c\", top_n=30)\n+    assert \"raven\" in _terms(result), (\n+        \"'raven' must appear in author_c's top terms\"\n+    )\n+\n+\n+def test_countenance_not_top_for_author_b() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_b\", top_n=30)\n+    terms = _terms(result)\n+    # \"countenance\" never appears in author_b's corpus, so its TF-IDF is 0.\n+    assert \"countenance\" not in terms\n+\n+\n+def test_raven_not_top_for_author_a() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    assert \"raven\" not in _terms(result)\n+\n+\n+# ---------------------------------------------------------------------------\n+# Output length\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_output_length_does_not_exceed_top_n() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    assert len(result) <= 30\n+\n+\n+def test_output_length_respects_custom_top_n() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=5)\n+    assert len(result) <= 5\n+\n+\n+def test_sparse_corpus_length_can_be_less_than_top_n() -> None:\n+    \"\"\"A tiny corpus with fewer than top_n distinct valid tokens must still work.\"\"\"\n+    tiny: dict[str, str] = {\n+        \"alpha\": \"hello world\",\n+        \"beta\": \"foo bar\",\n+        \"gamma\": \"baz qux\",\n+    }\n+    result = compute_distinctive_vocab(tiny, \"alpha\", top_n=30)\n+    assert len(result) <= 30  # may be much shorter; must not error\n+\n+\n+# ---------------------------------------------------------------------------\n+# Shape: {\"term\": str, \"score\": float}\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_each_item_has_term_and_score_keys() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    assert len(result) > 0, \"result must not be empty for a non-trivial corpus\"\n+    for item in result:\n+        assert set(item.keys()) == {\"term\", \"score\"}, (\n+            f\"unexpected keys in item: {set(item.keys())}\"\n+        )\n+\n+\n+def test_term_values_are_strings() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    for item in result:\n+        assert isinstance(item[\"term\"], str)\n+\n+\n+def test_score_values_are_floats() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    for item in result:\n+        assert isinstance(item[\"score\"], float)\n+\n+\n+def test_score_values_are_positive() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    for item in result:\n+        assert item[\"score\"] > 0.0\n+\n+\n+# ---------------------------------------------------------------------------\n+# Scores sorted descending\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_scores_are_sorted_descending() -> None:\n+    result = compute_distinctive_vocab(_CORPORA, \"author_a\", top_n=30)\n+    scores = [item[\"score\"] for item in result]\n+    assert scores == sorted(scores, reverse=True), \"scores must be sorted descending\"\n+\n+\n+def test_scores_sorted_descending_for_all_authors() -> None:\n+    for author_id in _CORPORA:\n+        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n+        scores = [item[\"score\"] for item in result]\n+        assert scores == sorted(scores, reverse=True), (\n+            f\"scores not sorted descending for {author_id}\"\n+        )\n+\n+\n+# ---------------------------------------------------------------------------\n+# Stopwords never appear\n+# ---------------------------------------------------------------------------\n+\n+# A small sample of sklearn's English stopword list.\n+_SAMPLE_STOPWORDS = {\"the\", \"and\", \"was\", \"over\", \"then\", \"while\", \"its\", \"our\"}\n+\n+\n+def test_stopwords_absent_from_results() -> None:\n+    for author_id in _CORPORA:\n+        result = compute_distinctive_vocab(_CORPORA, author_id, top_n=30)\n+        terms = set(_terms(result))\n+        overlap = terms & _SAMPLE_STOPWORDS\n+        assert not overlap, (\n+            f\"stopwords found in {author_id} results: {overlap}\"\n+        )\n+\n+\n+# ---------------------------------------------------------------------------\n+# Tokens shorter than 3 characters never appear\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_short_tokens_absent_from_results() -> None:\n+    \"\"\"Tokens with fewer than 3 characters must be excluded by token_pattern.\"\"\"\n+    corpora_with_short_tokens: dict[str, str] = {\n+        \"aa\": \"to be or not to be that is the question wonder wonder wonder\",\n+        \"bb\": \"it is an honor to act in the play and wonder about things\",\n+        \"cc\": \"wonder wonder wonder wonder wonder wonder wonder wonder here\",\n+    }\n+    # \"to\", \"be\", \"or\", \"is\", \"an\", \"in\", \"it\" are all < 3 chars\n+    for author_id in corpora_with_short_tokens:\n+        result = compute_distinctive_vocab(corpora_with_short_tokens, author_id, top_n=30)\n+        for item in result:\n+            assert len(item[\"term\"]) >= 3, (\n+                f\"term {item['term']!r} is shorter than 3 characters\"\n+            )\n+\n+\n+def test_single_char_tokens_absent() -> None:\n+    corpora: dict[str, str] = {\n+        \"x\": \"a b c the quick brown fox jumps over the lazy dog wonder wonder\",\n+        \"y\": \"i j k the quick brown fox jumps over the lazy cat shining shining\",\n+        \"z\": \"x y z the quick brown fox jumps over the lazy hen glowing glowing\",\n+    }\n+    for author_id in corpora:\n+        result = compute_distinctive_vocab(corpora, author_id, top_n=30)\n+        for item in result:\n+            assert len(item[\"term\"]) >= 3\n+\n+\n+# ---------------------------------------------------------------------------\n+# Error handling\n+# ---------------------------------------------------------------------------\n+\n+\n+def test_unknown_author_id_raises_key_error() -> None:\n+    with pytest.raises(KeyError):\n+        compute_distinctive_vocab(_CORPORA, \"nonexistent_author\", top_n=30)\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/tests/test_vocabulary.py": 1784738523347
+              },
+              "durationMs": 101721,
+              "timestamp": 1784738524354
+            },
+            "id": "6ddedb4b55c5241f5daa444e0ac684d8"
+          },
+          "createdAt": 1784738524359
+        },
+        {
+          "id": "d736d7186de6c43ba1d146d5d1918676",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now run the tests to verify:",
+            "id": "d736d7186de6c43ba1d146d5d1918676",
+            "_meta": {
+              "timestamp": 1784738526935,
+              "spend": {
+                "input": 33084,
+                "output": 97,
+                "cacheRead": 30541,
+                "cacheWrite": 2542,
+                "cost": 0.082952,
+                "contextTokens": 33181,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_jo6MHPA6Owd9X2i5qEViIn",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m pytest tests/test_vocabulary.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784739225922
+        },
+        {
+          "id": "129d4f0a36a7c868bb32f9b8989ba247",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "============================= test session starts =============================\r\nplatform win32 -- Python 3.14.3, pytest-9.1.1, pluggy-1.6.0 -- C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.venv\\Scripts\\python.exe\r\ncachedir: .pytest_cache\r\nrootdir: C:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\ai_pipeline\r\nconfigfile: pyproject.toml\r\nplugins: anyio-4.14.1, asyncio-1.4.0\r\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\r\ncollecting ... collected 18 items\r\n\r\ntests/test_vocabulary.py::test_distinctive_word_tops_author_a PASSED     [  5%]\r\ntests/test_vocabulary.py::test_distinctive_word_is_first_for_author_a PASSED [ 11%]\r\ntests/test_vocabulary.py::test_distinctive_word_tops_author_c PASSED     [ 16%]\r\ntests/test_vocabulary.py::test_countenance_not_top_for_author_b PASSED   [ 22%]\r\ntests/test_vocabulary.py::test_raven_not_top_for_author_a PASSED         [ 27%]\r\ntests/test_vocabulary.py::test_output_length_does_not_exceed_top_n PASSED [ 33%]\r\ntests/test_vocabulary.py::test_output_length_respects_custom_top_n PASSED [ 38%]\r\ntests/test_vocabulary.py::test_sparse_corpus_length_can_be_less_than_top_n PASSED [ 44%]\r\ntests/test_vocabulary.py::test_each_item_has_term_and_score_keys PASSED  [ 50%]\r\ntests/test_vocabulary.py::test_term_values_are_strings PASSED            [ 55%]\r\ntests/test_vocabulary.py::test_score_values_are_floats PASSED            [ 61%]\r\ntests/test_vocabulary.py::test_score_values_are_positive PASSED          [ 66%]\r\ntests/test_vocabulary.py::test_scores_are_sorted_descending PASSED       [ 72%]\r\ntests/test_vocabulary.py::test_scores_sorted_descending_for_all_authors PASSED [ 77%]\r\ntests/test_vocabulary.py::test_stopwords_absent_from_results PASSED      [ 83%]\r\ntests/test_vocabulary.py::test_short_tokens_absent_from_results PASSED   [ 88%]\r\ntests/test_vocabulary.py::test_single_char_tokens_absent PASSED          [ 94%]\r\ntests/test_vocabulary.py::test_unknown_author_id_raises_key_error PASSED [100%]\r\n\r\n============================= 18 passed in 8.84s ==============================",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_jo6MHPA6Owd9X2i5qEViIn",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m pytest tests/test_vocabulary.py -v 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m pytest tests/test_vocabulary.py -v 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m pytest tests/test_vocabulary.py -v 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 698982,
+              "timestamp": 1784739225921
+            },
+            "id": "129d4f0a36a7c868bb32f9b8989ba247"
+          },
+          "createdAt": 1784739225927
+        },
+        {
+          "id": "21c81a3552c97e7145f5cc91db6ed823",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "18/18 pass. Now run ruff and black:",
+            "id": "21c81a3552c97e7145f5cc91db6ed823",
+            "_meta": {
+              "timestamp": 1784739228687,
+              "spend": {
+                "input": 33918,
+                "output": 197,
+                "cacheRead": 8533,
+                "cacheWrite": 25384,
+                "cost": 0.085287,
+                "contextTokens": 34115,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_6NjsESkR7WWm52WxsWiOYZ",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              {
+                "id": "tooluse_SkudbtzGlDLJvnBHRyL51V",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784739709749
+        },
+        {
+          "id": "8fdae5d022196c42df11291c96c465e6",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Error from tool execute_command: Exit code: 1\n\nStderr:\npython : would reformat tests\\test_vocabulary.py\r\nEn l�nea: 1 Car�cter: 1\r\n+ python -m black --check autoria_ai/extractor/vocabulary.py tests/test ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (would reformat tests\\test_vocabulary.py:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\nOh no! \\U0001f4a5 \\U0001f494 \\U0001f4a5\r\n1 file would be reformatted, 1 file would be left unchanged.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_6NjsESkR7WWm52WxsWiOYZ",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 479667,
+              "timestamp": 1784739709085
+            },
+            "id": "8fdae5d022196c42df11291c96c465e6"
+          },
+          "createdAt": 1784739709753
+        },
+        {
+          "id": "c12e217c7c67d052f0cde0505ccedf33",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "All checks passed!",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_SkudbtzGlDLJvnBHRyL51V",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m ruff check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m ruff check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 480330,
+              "timestamp": 1784739709748
+            },
+            "id": "c12e217c7c67d052f0cde0505ccedf33"
+          },
+          "createdAt": 1784739709757
+        },
+        {
+          "id": "39d623eb81694a93bb9b868ee56e7eef",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Black wants to reformat the test file. Let me check what it would change:",
+            "id": "39d623eb81694a93bb9b868ee56e7eef",
+            "_meta": {
+              "timestamp": 1784739713207,
+              "spend": {
+                "input": 34351,
+                "output": 116,
+                "cacheRead": 8533,
+                "cacheWrite": 25817,
+                "cost": 0.086167,
+                "contextTokens": 34467,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_7PIzwnpP2Oil6k3LoYKh4n",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              }
+            ]
+          },
+          "createdAt": 1784739721732
+        },
+        {
+          "id": "cf0508498a4e831884e06f2eb0f9ce5b",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Error from tool execute_command: Exit code: 1\n\nStderr:\npython : reformatted tests\\test_vocabulary.py\r\nEn l�nea: 1 Car�cter: 1\r\n+ python -m black autoria_ai/extractor/vocabulary.py tests/test_vocabul ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (reformatted tests\\test_vocabulary.py:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\nAll done! \\u2728 \\U0001f370 \\u2728\r\n1 file reformatted, 1 file left unchanged.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_7PIzwnpP2Oil6k3LoYKh4n",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m black autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m black autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 8294,
+              "timestamp": 1784739721732
+            },
+            "id": "cf0508498a4e831884e06f2eb0f9ce5b"
+          },
+          "createdAt": 1784739721737
+        },
+        {
+          "id": "c875eaa6cde5134f3f89ff80f1c72b29",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Black reformatted the test file (exit 1 is black's \"I made changes\" code, not an error). Verify it now passes `--check`:",
+            "id": "c875eaa6cde5134f3f89ff80f1c72b29",
+            "_meta": {
+              "timestamp": 1784739724187,
+              "spend": {
+                "input": 34638,
+                "output": 136,
+                "cacheRead": 34350,
+                "cacheWrite": 287,
+                "cost": 0.086935,
+                "contextTokens": 34774,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_7DNwmXR6GkJo1043uDfI0y",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              }
+            ]
+          },
+          "createdAt": 1784739732941
+        },
+        {
+          "id": "a7056cb780215270786c1ec3bc188351",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Error from tool execute_command: Exit code: 1\n\nStderr:\npython : All done! \\u2728 \\U0001f370 \\u2728\r\nEn l�nea: 1 Car�cter: 1\r\n+ python -m black --check autoria_ai/extractor/vocabulary.py tests/test ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (All done! \\u2728 \\U0001f370 \\u2728:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n2 files would be left unchanged.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_7DNwmXR6GkJo1043uDfI0y",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": "ai_pipeline",
+              "durationMs": 7877,
+              "timestamp": 1784739732941
+            },
+            "id": "a7056cb780215270786c1ec3bc188351"
+          },
+          "createdAt": 1784739732945
+        },
+        {
+          "id": "68ddf6f97569992b6348e00aa03dfed0",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "The exit code 1 is a PowerShell stderr-piping artefact — the message says \"2 files would be left unchanged\", confirming both files are clean. Let me verify properly:",
+            "id": "68ddf6f97569992b6348e00aa03dfed0",
+            "_meta": {
+              "timestamp": 1784739735421,
+              "spend": {
+                "input": 34936,
+                "output": 155,
+                "cacheRead": 34637,
+                "cacheWrite": 298,
+                "cost": 0.087727,
+                "contextTokens": 35091,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_eNT9PW4TvtOwa7LVe3o35V",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py; Write-Host \"black exit: $LASTEXITCODE\"",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              }
+            ]
+          },
+          "createdAt": 1784740035700
+        },
+        {
+          "id": "11ce4ff2a8c0b3e5e01263d614049fd9",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Tool call to execute_command was cancelled: User rejected this operation.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_eNT9PW4TvtOwa7LVe3o35V",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py; Write-Host \"black exit: $LASTEXITCODE\"",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py",
+                  "Write-Host \"black exit: $LASTEXITCODE\""
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py",
+                  "python",
+                  "Write-Host \"black exit: $LASTEXITCODE\"",
+                  "Write-Host"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 299331,
+              "timestamp": 1784740035699
+            },
+            "id": "11ce4ff2a8c0b3e5e01263d614049fd9"
+          },
+          "createdAt": 1784740035704
+        },
+        {
+          "id": "45edceca5215cd51c7effe349ef5325d",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Tool call to execute_command was cancelled: User rejected this operation.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_ByB8KrUicjn17DielYaqMG",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1; echo \"exit:$?\"",
+                  "cwd": "ai_pipeline"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "echo \"exit:$?\""
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m black --check autoria_ai/extractor/vocabulary.py tests/test_vocabulary.py 2>&1",
+                  "python",
+                  "echo \"exit:$?\"",
+                  "echo"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 12694,
+              "timestamp": 1784740050877
+            },
+            "id": "45edceca5215cd51c7effe349ef5325d"
+          },
+          "createdAt": 1784740050877
+        }
+      ]
+    }
+  ]
+}
