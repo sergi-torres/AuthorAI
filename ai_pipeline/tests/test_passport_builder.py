@@ -17,14 +17,13 @@ import base64
 import json
 import re
 import uuid
-from pathlib import Path
 from typing import Any
 
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1, generate_private_key
 
-from autoria_ai.passport.builder import _canonical_hash, _sha256, build_passport, issue_passport
+from autoria_ai.passport.builder import _canonical_hash, build_passport, issue_passport
 from autoria_ai.passport.verifier import verify_passport
 
 # ---------------------------------------------------------------------------
@@ -431,8 +430,8 @@ def test_roundtrip_contribution_sums_to_100(ec_keypair):
 
 
 # ===========================================================================
-# Adversarial fixes — regression tests
-# (findings #1–#5 from the PassportAuditor review)
+# Adversarial fixes - regression tests
+# (findings #1-#5 from the PassportAuditor review)
 # ===========================================================================
 
 
@@ -632,7 +631,11 @@ def test_canonical_hash_non_serialisable_raises_typeerror():
 def test_sign_passport_raises_when_kid_unset(monkeypatch, tmp_path):
     """sign_passport must refuse when neither kid arg nor PASSPORT_KID env is set."""
     from cryptography.hazmat.primitives import serialization as _ser
-    from cryptography.hazmat.primitives.asymmetric.ec import SECP256R1, generate_private_key
+    from cryptography.hazmat.primitives.asymmetric.ec import (
+        SECP256R1,
+        generate_private_key,
+    )
+
     from autoria_ai.passport.signer import sign_passport
 
     monkeypatch.delenv("PASSPORT_KID", raising=False)
@@ -649,7 +652,7 @@ def test_sign_passport_raises_when_kid_unset(monkeypatch, tmp_path):
 def test_verify_passport_fails_closed_when_kid_unset(monkeypatch, ec_keypair):
     """verify_passport must return unknown_kid when PASSPORT_KID env is absent
     and expected_kid is not passed explicitly."""
-    priv_path, pub_path, kid = ec_keypair
+    _priv_path, pub_path, _kid = ec_keypair
     envelope = _issue(ec_keypair)  # issued with kid set
 
     monkeypatch.delenv("PASSPORT_KID", raising=False)
@@ -666,7 +669,7 @@ def test_verify_passport_fails_closed_when_kid_unset(monkeypatch, ec_keypair):
 
 def test_happy_path_roundtrip_still_passes_after_all_fixes(ec_keypair):
     """Full build → sign → verify pipeline must remain valid after all fixes."""
-    priv_path, pub_path, kid = ec_keypair
+    _priv_path, pub_path, kid = ec_keypair
     envelope = _issue(ec_keypair)
     result = verify_passport(envelope["jws_token"], public_key_path=pub_path, expected_kid=kid)
     assert result.valid is True
