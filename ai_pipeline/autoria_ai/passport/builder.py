@@ -35,6 +35,7 @@ _HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _sha256(text: str) -> str:
     """Return ``sha256:<lowercase-hex>`` of *text* (UTF-8 encoded).
 
@@ -77,6 +78,7 @@ def _canonical_hash(obj: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def build_passport(
     *,
@@ -162,9 +164,7 @@ def build_passport(
 
     # Fix #1: validate pre-computed hash format before it reaches the payload.
     if style_profile_hash is not None and not _HASH_RE.match(style_profile_hash):
-        raise ValueError(
-            "style_profile_hash must be in the form sha256:<64 lowercase hex chars>"
-        )
+        raise ValueError("style_profile_hash must be in the form sha256:<64 lowercase hex chars>")
 
     # Fix #2: validate caller-supplied overrides before they reach the payload.
     if passport_id is not None:

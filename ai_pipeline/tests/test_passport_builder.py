@@ -194,7 +194,9 @@ def test_style_profile_hash_matches_manual_canonical():
     """Hash produced by build_passport equals an independent manual computation."""
     import hashlib
 
-    canonical = json.dumps(_STYLE_PROFILE, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    canonical = json.dumps(
+        _STYLE_PROFILE, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
     expected = "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     assert _build()["author_voice"]["style_profile_hash"] == expected
 

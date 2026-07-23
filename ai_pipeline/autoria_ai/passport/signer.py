@@ -44,9 +44,7 @@ def sign_passport(
     # JWKS consumer whose key was generated with a real kid.
     resolved_kid = kid or os.getenv("PASSPORT_KID")
     if not resolved_kid:
-        raise RuntimeError(
-            "PASSPORT_KID is not configured; refusing to sign without a key id"
-        )
+        raise RuntimeError("PASSPORT_KID is not configured; refusing to sign without a key id")
     key = private_key if private_key is not None else _load_private_key(private_key_path)
     payload_bytes = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     return jose_jws.sign(
