@@ -1,0 +1,20 @@
+# Railway service config for the AutorIA FastAPI backend (monorepo).
+#
+# IMPORTANT: leave Root Directory EMPTY (repo root), NOT `backend/`.
+# Passport verify imports `autoria_ai` from `ai_pipeline/`, which is a sibling
+# of `backend/` — with Root Directory = backend that package is not in the image
+# and uvicorn crashes with ModuleNotFoundError: No module named 'autoria_ai'.
+#
+# Secrets (WATSONX_API_KEY, SUPABASE_URL, SUPABASE_KEY, DATABASE_URL,
+# AUTORIA_CORS_ORIGINS, PASSPORT_*) are set under Service → Variables.
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r backend/requirements.txt"
+
+[deploy]
+startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
