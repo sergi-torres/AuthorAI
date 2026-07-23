@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -46,7 +47,7 @@ def _load_verifier() -> Callable[..., Any] | None:
         return None
     try:
         _ensure_ai_pipeline_on_path()
-        from autoria_ai.passport.verifier import verify_passport as _fn  # noqa: E402
+        from autoria_ai.passport.verifier import verify_passport as _fn
 
         _verify_passport = _fn
         return _verify_passport
