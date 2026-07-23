@@ -360,8 +360,16 @@ function ReadyLayout({
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches a StyleProfile, falling back to the fixture on NETWORK failure only.
- * A real 404 (NotFoundError) is re-thrown so the panel can show the empty state.
+ * Fetches a StyleProfile with a demo-safe fixture fallback.
+ *
+ * For a preloaded author that HAS a fixture (austen/dickens/poe), we fall back
+ * on ANY failure — network, 5xx, OR a 404 from an unseeded DB — so the Style
+ * DNA panel never renders empty during a demo (bug: the backend returns 404
+ * until `scripts/seed_corpus.py` seeds Supabase; that seed script is missing).
+ *
+ * For an author WITHOUT a fixture (e.g. one added live via upload), original
+ * semantics are preserved: a 404 (NotFoundError) re-throws so the panel shows
+ * the neutral empty state, and network/5xx re-throws to the error state.
  */
 async function fetchProfileWithFallback(
   authorId: string,
@@ -369,16 +377,15 @@ async function fetchProfileWithFallback(
   try {
     return await getStyleProfile(authorId);
   } catch (err) {
-    // NotFoundError → empty state; re-throw
-    if (err instanceof NotFoundError) throw err;
-    // Network / 5xx → fall back to fixture if available; otherwise re-throw
     const fixture = FIXTURE_STYLE_PROFILES[authorId];
     if (fixture) {
+      const reason = err instanceof NotFoundError ? "404" : "network/5xx";
       console.info(
-        `[StyleDnaPanel] API unreachable — using fixture for "${authorId}" (demo-safe fallback)`,
+        `[StyleDnaPanel] StyleProfile unavailable (${reason}) — using fixture for "${authorId}" (demo-safe fallback)`,
       );
       return fixture;
     }
+    // No fixture: 404 → empty state, network/5xx → error state (re-throw as-is).
     throw err;
   }
 }
