@@ -94,10 +94,11 @@ export const en = {
     metricsCaption:
       "Descriptive statistics computed from the text above — not the training corpus.",
 
-    // Generate Passport button (#28)
-    passportButton: "Generate Passport",
+    // Generate Passport button (#28 / #42)
+    passportButton: "Download Authorship Passport",
     passportUnavailable:
       "A signed Authorship Passport will appear here once generation returns one.",
+    passportDownloadAriaLabel: "Download Authorship Passport as JSON",
   },
 
   generate: {
