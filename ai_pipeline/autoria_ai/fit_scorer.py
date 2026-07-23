@@ -39,9 +39,7 @@ def _semantic_score(
 ) -> float:
     """Cosine similarity between the generated text embedding and the author centroid."""
     centroid_vec = np.array(centroid, dtype=np.float32)
-    generated_vec = np.array(
-        embedding_model.encode(generated_text), dtype=np.float32
-    ).ravel()
+    generated_vec = np.array(embedding_model.encode(generated_text), dtype=np.float32).ravel()
     # scipy cosine returns distance; convert to similarity.
     # Guard against zero vectors (cosine_distance raises on zero norm).
     if np.linalg.norm(generated_vec) == 0.0 or np.linalg.norm(centroid_vec) == 0.0:
@@ -80,7 +78,7 @@ def _pos_distribution(doc: Any) -> dict[str, float]:
     Follows the same logic as docs/style_features.md §3.2.
     """
     tracked = {"NOUN", "VERB", "ADJ", "ADV", "DET", "ADP", "PRON", "CONJ", "SCONJ"}
-    counts: dict[str, int] = {tag: 0 for tag in _POS_TAGS}
+    counts: dict[str, int] = dict.fromkeys(_POS_TAGS, 0)
     for token in doc:
         if token.is_punct:
             continue
@@ -91,7 +89,7 @@ def _pos_distribution(doc: Any) -> dict[str, float]:
 
     total_tracked = sum(counts[p] for p in tracked)
     if total_tracked == 0:
-        return {tag: 0.0 for tag in _POS_TAGS}
+        return dict.fromkeys(_POS_TAGS, 0.0)
 
     dist: dict[str, float] = {p: counts[p] / total_tracked for p in tracked}
     dist["OTHER"] = 1.0 - sum(dist.values())
@@ -108,9 +106,7 @@ def _stylistic_score(doc: Any, pos_dist_profile: dict[str, float]) -> float:
 
     all_keys = set(pos_dist_gen) | set(pos_dist_profile)
     numerator = sum(min(pos_dist_gen.get(k, 0.0), pos_dist_profile.get(k, 0.0)) for k in all_keys)
-    denominator = sum(
-        max(pos_dist_gen.get(k, 0.0), pos_dist_profile.get(k, 0.0)) for k in all_keys
-    )
+    denominator = sum(max(pos_dist_gen.get(k, 0.0), pos_dist_profile.get(k, 0.0)) for k in all_keys)
     if denominator == 0.0:
         return 0.0
     return float(numerator / denominator)
