@@ -105,7 +105,11 @@ def verify_passport(
         )
 
     kid = header.get("kid", "")
-    configured_kid = expected_kid or os.getenv("PASSPORT_KID") or "autoria"
+    # Fix #5: if neither expected_kid nor PASSPORT_KID is set, fail closed —
+    # never accept a token by falling back to a hardcoded kid string.
+    configured_kid = expected_kid or os.getenv("PASSPORT_KID")
+    if not configured_kid:
+        return _err("unknown_kid", "No PASSPORT_KID configured; cannot resolve key")
     if kid != configured_kid:
         return _err("unknown_kid", f"kid {kid!r} is not in the key set")
 
@@ -129,7 +133,12 @@ def verify_passport(
     except RuntimeError:
         return _err("schema_mismatch", "Server-side schema unavailable")
 
-    validator = jsonschema.Draft202012Validator(passport_schema)
+    # Fix #2: pass FormatChecker so format:uuid and format:date-time constraints
+    # are enforced as errors, not silently ignored (Draft 2020-12 default).
+    validator = jsonschema.Draft202012Validator(
+        passport_schema,
+        format_checker=jsonschema.FormatChecker(),
+    )
     schema_errors = sorted(validator.iter_errors(payload), key=lambda e: e.path)
     if schema_errors:
         offending = "; ".join(

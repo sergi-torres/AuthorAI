@@ -94,7 +94,7 @@ async def verify_passport_route(body: VerifyRequest) -> VerifyResponse:
     result = verify_fn(
         body.jws_token,
         public_key_path=_cfg.settings.passport_public_key_path,
-        expected_kid=_cfg.settings.passport_kid or "autoria",
+        expected_kid=_cfg.settings.passport_kid,
     )
     return VerifyResponse(
         valid=result.valid,
