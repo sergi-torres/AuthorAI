@@ -1,17 +1,10 @@
-# DEPRECATED for deploy — use the repo-root `railway.toml` instead.
+# Do not use this file for deploy.
 #
-# Do NOT set Railway Root Directory to `backend/`. Passport routes import
-# `autoria_ai` from the sibling `ai_pipeline/` package; that only exists when
-# the service Root Directory is the monorepo root (empty).
+# Railway Root Directory MUST be empty (monorepo root). If it is set to
+# `backend/`, only this folder is built — `ai_pipeline/` is missing and
+# passport verify cannot import `autoria_ai`.
 #
-# Kept here so old dashboard links still point at an explanation.
+# Use the repo-root `railway.toml` instead.
 
 [build]
 builder = "NIXPACKS"
-
-[deploy]
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-healthcheckPath = "/health"
-healthcheckTimeout = 100
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3

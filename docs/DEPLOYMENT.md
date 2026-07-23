@@ -38,16 +38,17 @@ Commonly needed alongside them (see `.env.example`): `WATSONX_URL`,
 
 1. **New Project → Deploy from GitHub repo** → select `autorIA`.
 2. Open the service → **Settings → Root Directory** = **empty** (repo root).
-   Do **not** set it to `backend/`: passport routes import `autoria_ai` from
-   the sibling `ai_pipeline/` package, and with Root Directory = `backend`
-   that folder is missing → `ModuleNotFoundError: No module named 'autoria_ai'`.
-   The root `railway.toml` installs `backend/requirements.txt` and starts
-   uvicorn from `backend/` with `/health` as the healthcheck.
+   Do **not** set it to `backend/`. Build logs that say
+   `snapshot-target-unpack/backend` or a start plan of
+   `uvicorn app.main:app` (without `cd backend`) mean Root Directory is
+   still `backend/` — clear it and redeploy.
+   Also clear any **Custom Start Command** in Settings so the root
+   `railway.toml` wins (`cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`).
 3. **Variables** → add: `WATSONX_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`,
    plus `WATSONX_URL`, `WATSONX_PROJECT_ID`, `DATABASE_URL`, and
    `AUTORIA_CORS_ORIGINS` (include your Vercel URL once you have it).
-4. Deploy. Railway sets `$PORT`; the start command is:
-   `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+4. Deploy. Confirm the Nixpacks plan shows
+   `start │ cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 5. Note the public URL (e.g. `https://autoria-api.up.railway.app`).
 
 
