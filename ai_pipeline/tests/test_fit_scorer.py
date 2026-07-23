@@ -365,5 +365,5 @@ def test_identical_embedding_produces_max_semantic() -> None:
     nlp = _make_nlp([_PERFECT_TOKENS])
     emb = _make_embedding_model(_CENTROID)
     score = compute_fit_score("t", _PROFILE, nlp, emb)
-    # Semantic alone = 0.35 × 100 = 35; other components add more.
+    # Semantic alone = 0.35 x 100 = 35; other components add more.
     assert score >= 35
