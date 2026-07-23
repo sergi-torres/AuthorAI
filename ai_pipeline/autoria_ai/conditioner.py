@@ -78,7 +78,7 @@ def build_system_prompt(style_profile: dict, rag_chunks: list[str]) -> str:
     else:
         subordination_rule = "straightforward clause structure with few subordinate clauses"
 
-    #  -- distinctive vocab (top 10–15 terms to avoid token bloat) -------------
+    #  -- distinctive vocab (top 10-15 terms to avoid token bloat) -------------
     raw_vocab: list[dict] = style_profile.get("distinctive_vocab", [])
     top_terms: list[str] = [
         entry["term"] for entry in raw_vocab[:_MAX_VOCAB_TERMS] if "term" in entry
