@@ -1,12 +1,10 @@
-# Railway service config for the AutorIA FastAPI backend.
+# DEPRECATED for deploy — use the repo-root `railway.toml` instead.
 #
-# In the Railway dashboard, set this service's Root Directory to `backend/`
-# so these paths resolve. Secrets (WATSONX_API_KEY, SUPABASE_URL,
-# SUPABASE_KEY, DATABASE_URL, AUTORIA_CORS_ORIGINS) are configured under
-# Service → Variables — never committed here.
+# Do NOT set Railway Root Directory to `backend/`. Passport routes import
+# `autoria_ai` from the sibling `ai_pipeline/` package; that only exists when
+# the service Root Directory is the monorepo root (empty).
 #
-# Nixpacks auto-detects Python and installs from requirements.txt, then runs
-# the start command below. Verify env wiring post-deploy: GET /internal/env-check
+# Kept here so old dashboard links still point at an explanation.
 
 [build]
 builder = "NIXPACKS"

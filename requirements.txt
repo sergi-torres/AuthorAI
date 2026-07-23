@@ -1,0 +1,3 @@
+# Railway/Nixpacks Python detection at the monorepo root.
+# Runtime deps live in backend/requirements.txt.
+-r backend/requirements.txt

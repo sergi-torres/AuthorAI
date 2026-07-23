@@ -6,11 +6,12 @@ AutorIA is a monorepo deployed as **two services from one GitHub repo**
 | Service       | Platform | Root directory | Deploys           |
 | ------------- | -------- | -------------- | ----------------- |
 | `frontend/`   | Vercel   | `frontend`     | Next.js app       |
-| `backend/`    | Railway  | `backend`      | FastAPI API       |
+| `backend/` + `ai_pipeline/` | Railway | _(empty / repo root)_ | FastAPI API |
 | _Postgres_    | Supabase | —              | DB + pgvector     |
 
-The **root directory** setting is the key to a monorepo deploy: each platform
-builds only its subfolder and ignores the rest.
+The **root directory** setting is the key to a monorepo deploy: Vercel builds
+only `frontend/`. Railway must use the **repo root** so both `backend/` and
+`ai_pipeline/` are in the image (passport verify imports `autoria_ai`).
 
 ---
 
@@ -36,15 +37,19 @@ Commonly needed alongside them (see `.env.example`): `WATSONX_URL`,
 ## Railway — backend
 
 1. **New Project → Deploy from GitHub repo** → select `autorIA`.
-2. Open the service → **Settings → Root Directory** = `backend`.
-   (`backend/railway.toml` supplies the build/start config and `/health`
-   healthcheck; `backend/requirements.txt` is what Nixpacks installs.)
+2. Open the service → **Settings → Root Directory** = **empty** (repo root).
+   Do **not** set it to `backend/`: passport routes import `autoria_ai` from
+   the sibling `ai_pipeline/` package, and with Root Directory = `backend`
+   that folder is missing → `ModuleNotFoundError: No module named 'autoria_ai'`.
+   The root `railway.toml` installs `backend/requirements.txt` and starts
+   uvicorn from `backend/` with `/health` as the healthcheck.
 3. **Variables** → add: `WATSONX_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`,
    plus `WATSONX_URL`, `WATSONX_PROJECT_ID`, `DATABASE_URL`, and
    `AUTORIA_CORS_ORIGINS` (include your Vercel URL once you have it).
-4. Deploy. Railway sets `$PORT`; the start command already binds to it:
-   `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+4. Deploy. Railway sets `$PORT`; the start command is:
+   `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 5. Note the public URL (e.g. `https://autoria-api.up.railway.app`).
+
 
 ---
 
