@@ -5,7 +5,7 @@ This module owns:
 * The ``Chunk`` ORM model mirroring ``public.chunks`` (vector(768) column).
 * ``embed_and_persist_chunks()`` — ingest path (architecture.md §4.1).
 * ``backfill_embeddings()``      — async fill-in for NULL embeddings.
-* ``retrieve_top_k()``           — RAG retrieval (erd.md §5 "Vector search").
+* ``retrieve_top_k()``           — RAG retrieval; optional author scope via documents FK.
 
 Usage
 -----
@@ -243,19 +243,16 @@ async def retrieve_top_k(
     *,
     k: int = 5,
     ef_search: int = HNSW_EF_SEARCH,
+    author_id: str | None = None,
     database_url: str | None = None,
     session: AsyncSession | None = None,
 ) -> list[dict[str, Any]]:
     """Return the top-*k* chunks nearest to *query_embedding* via HNSW ANN.
 
-    Implements the canonical RAG query from docs/erd.md §5 "Vector search":
-
-    .. code-block:: sql
-
-        SELECT id, document_id, chunk_index, text
-        FROM public.chunks
-        ORDER BY embedding <=> $1
-        LIMIT 5;
+    When *author_id* (authors.id UUID) is provided, results are restricted to
+    that author's corpus via ``documents.author_id`` — required for style-
+    conditioned generation (MVP §4.3).  Omitting it keeps the global ANN
+    query used by embedder benchmarks.
 
     Parameters
     ----------
@@ -268,6 +265,9 @@ async def retrieve_top_k(
         HNSW ``ef_search`` parameter set at query time via ``SET``.  Higher
         values improve recall at the cost of latency.  Default ``64``
         (matches ``ef_construction``); tuning notes in ``HNSW_EF_SEARCH``.
+    author_id:
+        Optional ``authors.id`` UUID.  When set, only chunks belonging to
+        documents of that author are considered.
     database_url:
         Override for the DB URL (for tests).
     session:
@@ -289,15 +289,30 @@ async def retrieve_top_k(
     async with _session(database_url, session) as sess, sess.begin():
         await sess.execute(text(f"SET LOCAL hnsw.ef_search = {int(ef_search)}"))
 
-        rows = await sess.execute(
-            text("""
-                SELECT id, document_id, chunk_index, text
-                FROM public.chunks
-                ORDER BY embedding <=> CAST(:emb AS vector)
-                LIMIT :k
-                """),
-            {"emb": str(query_embedding), "k": k},
-        )
+        if author_id is not None:
+            rows = await sess.execute(
+                text("""
+                    SELECT c.id, c.document_id, c.chunk_index, c.text
+                    FROM public.chunks AS c
+                    JOIN public.documents AS d ON d.id = c.document_id
+                    WHERE d.author_id = CAST(:author_id AS uuid)
+                      AND c.embedding IS NOT NULL
+                    ORDER BY c.embedding <=> CAST(:emb AS vector)
+                    LIMIT :k
+                    """),
+                {"emb": str(query_embedding), "k": k, "author_id": author_id},
+            )
+        else:
+            rows = await sess.execute(
+                text("""
+                    SELECT id, document_id, chunk_index, text
+                    FROM public.chunks
+                    WHERE embedding IS NOT NULL
+                    ORDER BY embedding <=> CAST(:emb AS vector)
+                    LIMIT :k
+                    """),
+                {"emb": str(query_embedding), "k": k},
+            )
         return [
             {
                 "id": row.id,
