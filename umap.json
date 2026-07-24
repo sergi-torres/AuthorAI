@@ -1,0 +1,1386 @@
+{
+  "version": 1,
+  "exportedAt": 1784890182170,
+  "workspace": "file:c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+  "tasks": [
+    {
+      "task": {
+        "id": "79242dee8714b9c7f3c37699333dcaa8",
+        "workspace": "file:c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+        "parentId": null,
+        "taskType": "normal",
+        "title": "Act as an expert Data Engineer.\n\nPlease write a Python script named scripts/precompute_umap.py for our AI backend architecture.\n\nObjective: Load high-dimensional text embeddings from a PostgreSQL database (using the pgvector extension), reduce their dimensionality to 2D using the UMAP algorithm, and save the resulting coordinates back into a new database table.\n\nTechnical Requirements & Steps:\n\nDatabase Connection: Connect to PostgreSQL. Assume a standard environment variable DATABASE_URL.\n\nExtraction: Query the database to fetch author_id and the embedding vector array from the chunks table (assume the source table is called document_chunks or adjust as a configurable variable).\n\nDimensionality Reduction (UMAP):\n\nUse the umap-learn Python library.\n\nYou MUST initialize UMAP with exactly these parameters: n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2.\n\nFit and transform the extracted embeddings into 2D coordinates (X and Y).\n\nStorage:\n\nCreate a table named umap_coords if it does not already exist (columns: id serial, author_id integer/uuid, x float, y float).\n\nTruncate or clear the umap_coords table to remove old coordinates.\n\nInsert the new (author_id, x, y) rows efficiently (e.g., using execute_values).\n\nCode Quality: Use standard libraries (like psycopg2 or sqlalchemy), include type hints, modularize the code into functions, and add a if __name__ == \"__main__\": block.\n\nOutput the clean, fully functional Python script ready to be executed.",
+        "status": "active",
+        "firstMessage": "Act as an expert Data Engineer.\n\nPlease write a Python script named scripts/precompute_umap.py for our AI backend architecture.\n\nObjective: Load high-dimensional text embeddings from a PostgreSQL database (using the pgvector extension), reduce their dimensionality to 2D using the UMAP algorithm, and save the resulting coordinates back into a new database table.\n\nTechnical Requirements & Steps:\n\nDatabase Connection: Connect to PostgreSQL. Assume a standard environment variable DATABASE_URL.\n\nExtraction: Query the database to fetch author_id and the embedding vector array from the chunks table (assume the source table is called document_chunks or adjust as a configurable variable).\n\nDimensionality Reduction (UMAP):\n\nUse the umap-learn Python library.\n\nYou MUST initialize UMAP with exactly these parameters: n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2.\n\nFit and transform the extracted embeddings into 2D coordinates (X and Y).\n\nStorage:\n\nCreate a table named umap_coords if it does not already exist (columns: id serial, author_id integer/uuid, x float, y float).\n\nTruncate or clear the umap_coords table to remove old coordinates.\n\nInsert the new (author_id, x, y) rows efficiently (e.g., using execute_values).\n\nCode Quality: Use standard libraries (like psycopg2 or sqlalchemy), include type hints, modularize the code into functions, and add a if __name__ == \"__main__\": block.\n\nOutput the clean, fully functional Python script ready to be executed.",
+        "version": null,
+        "gitSha": null,
+        "gitBranch": null,
+        "env": {
+          "id": "79242dee8714b9c7f3c37699333dcaa8",
+          "workspace": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+          "scheme": "file",
+          "query": "",
+          "workspaceName": "AuthorAI",
+          "language": "en",
+          "isPlayground": false,
+          "costEffective": true,
+          "_meta": {
+            "commandSecurityModel": "openai/gpt-oss-20b"
+          },
+          "staticEnvInfo": {
+            "primaryWorkspace": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI",
+            "systemInfo": {
+              "platform": "win32",
+              "release": "10.0.26200",
+              "arch": "x64",
+              "shell": "powershell.exe"
+            }
+          },
+          "modeId": "style-extractor"
+        },
+        "costs": {
+          "input": 318832,
+          "output": 5582,
+          "cacheRead": 263775,
+          "cacheWrite": 55041,
+          "cost": 0.811031,
+          "contextTokens": 31220,
+          "contextWindowBreakdown": {
+            "total": 8310,
+            "reportedTotal": 31220,
+            "breakdown": {
+              "roleDefinition": 130,
+              "staticSections": 546,
+              "skills": 485,
+              "baseRules": 197,
+              "projectRules": 0,
+              "customInstructions": 135,
+              "environment": 76,
+              "toolSystemPrompts": 1392,
+              "toolDefinitions": 5349,
+              "mcpToolDefinitions": 0
+            },
+            "loadedSkills": [],
+            "key": "79242dee8714b9c7f3c37699333dcaa8|style-extractor|3640790744|2989025291|5381"
+          }
+        },
+        "messageQueue": null,
+        "approvalConfig": {
+          "autoApprovalEnabled": true,
+          "outsideWorkspaceAllowed": false,
+          "allowed_permissions": [
+            "read"
+          ],
+          "permissionOptions": [],
+          "allowedExecutors": [
+            {
+              "toolId": "execute_command",
+              "approvedCommands": [
+                "cat",
+                "git diff",
+                "git log",
+                "git rev-parse",
+                "git show",
+                "git status",
+                "grep",
+                "head",
+                "tail",
+                "ls",
+                "sort",
+                "wc",
+                "which",
+                "du",
+                "df"
+              ],
+              "deniedCommands": []
+            }
+          ],
+          "editApprovalPreviewMode": "editor",
+          "taskAllowedMcpTools": []
+        },
+        "lastError": null,
+        "isPinned": false,
+        "createdAt": 1784884339914,
+        "updatedAt": 1784890175173
+      },
+      "messages": [
+        {
+          "id": "f920de4b9b0af0930faf6e4b66bde692",
+          "role": "system",
+          "data": {
+            "role": "system",
+            "content": "<role_definition>\nYou are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.\n</role_definition>\n\n<investigate_before_answering>\nNever speculate about code you have not opened. If the user references a specific file, you MUST read the file before answering. Investigate and read relevant files before answering questions about the codebase. Never make any claims about code before investigating unless you are certain of the correct answer — give grounded and hallucination-free answers.\n</investigate_before_answering>\n\n<engineering_discipline>\nProduce the minimal change that solves the problem. Do not add features, refactors, or abstractions beyond what was asked. Do not add error handling for scenarios that cannot happen. Do not clean up surrounding code that is unrelated to the task. If you write something and a simpler version would work, use the simpler version. Every changed line should trace directly to the user's request.\n</engineering_discipline>\n\n<tool_use>\n- Choose the most appropriate tool for each step.\n- Tools can be called in parallel when independent, but avoid running operations together that have dependencies (e.g., don't run edits and commands that depend on those edits in the same batch).\n- If a tool fails, address the error before continuing.\n- MCP server tools use IDs formatted as `mcp__<server>__<tool>`. Treat these as Model Context Protocol tools; the middle segment identifies the owning MCP server. Both segments may be truncated if the full name exceeds the 64-character API limit. Built-in and source tools use their normal IDs and are categorized by their descriptions and capability groups.\n- Prefer native file tools (read_file, write_file, search_and_replace, insert_content, list_files) over shell commands for file operations — they need no additional user permissions. Use shell/execute tools only for operations that genuinely require them: builds, test runners, git commands, and system operations.\n</tool_use>\n\n<markdown_rules>\nAll responses should show any language construct or filename reference as a clickable link, exactly as [`filename OR language.declaration()`](relative/file/path.ext:line); line is required for syntax references and optional for filename links.\n</markdown_rules>\n\n<auto_appended_context>\nEach user message may contain an auto-appended <environment_details> section that includes potentially relevant information such as git status, active file, and relevant files modified externally since your last interaction. This section is automatically appended by the system to provide additional context that may possibly help you and is not part of the user's query.\n\nPay close attention to the <external_changes> sub-section — it lists files that were modified, deleted, or created outside of your actions. Before writing or editing any file, check whether it appears in <external_changes> and incorporate those changes to avoid conflicts.\n</auto_appended_context>\n\n<base_rules>\n- Prefer editing tools (apply_diff, search_and_replace, insert_content) over write_file for existing files.\n- When using write_file, provide the COMPLETE file content. Partial updates or placeholders are not acceptable.\n- Be direct and technical. Do not start messages with \"Great\", \"Certainly\", \"Okay\", or \"Sure\".\n- Follow existing code style and project conventions.\n- Use available tools to accomplish tasks efficiently. Do not ask unnecessary follow-up questions.\n- Do not stop when implementation looks complete. Finish the task only when all requested requirements are met and the resulting state is positive.\n- Before reporting final completion, run the relevant validation for your changes. Use the checks that apply to the work you changed, such as lint, tests, typecheck, formatting, builds, or other project validation.\n- Work is done when the changed work and any affected project state pass the required validation with no new warnings, failures, or unfinished requirements.\n</base_rules>\n\nYou have access to skills that provide specialized instructions for specific tasks. Review the available skills below. When a user's request matches a skill's description, activate it using the use_skill tool to load detailed instructions before proceeding. Only activate skills that are clearly relevant to the current task. Activate each skill once per current context window. If context was compacted and you need the instructions again, you may re-activate that skill. Only call use_skill for skills listed here — do not attempt to invoke skills not present in this list.\n<available_skills>\n  <skill>\n    <name>create-skill</name>\n    <description>Guide for creating a new Bob skill (SKILL.md) — covers the frontmatter schema, name rules, file location, and gotchas. Use when the user wants to author, create, or scaffold a skill.</description>\n  </skill>\n  <skill>\n    <name>create-mode</name>\n    <description>Guide for creating a new custom Bob mode (custom_modes.yaml) — covers the schema, permission groups, roleDefinition, and file location. Use when the user wants to author, create, or scaffold a mode or persona.</description>\n  </skill>\n  <skill>\n    <name>configure-mcp</name>\n    <description>Add a new MCP server or diagnose an existing one — covers local vs remote transport, system dependency checks (node, docker, podman, python, uv), config schema validation, secrets handling, and scope. Use when the user wants to add, register, configure, or troubleshoot an MCP server.</description>\n  </skill>\n  <skill>\n    <name>build-mcp-server</name>\n    <description>Guide for building a custom MCP server from scratch — covers project scaffolding, the v2 registerTool/registerResource/registerPrompt API, API key and OAuth authentication patterns, building and registering the server. Use when the user wants to create, build, or write a custom MCP server.</description>\n  </skill>\n  <skill>\n    <name>xlsx-insights</name>\n    <description>Use this skill when the user asks for analysis, extraction, or insights from an Excel (.xlsx) workbook. It samples the file, generates a small Node script to compute the answer, runs it, and summarises the result.</description>\n  </skill>\n</available_skills>\n\n<user_custom_instructions>\nThe following additional instructions are provided by the user, and should be followed to the best of your ability without interfering with the TOOL USE guidelines.\n\nLanguage Preference:\nYou should always speak and think in the \"English\" (en) language unless the user gives you instructions below to do otherwise.\n\nMode-specific Instructions:\nDo not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.\n</user_custom_instructions>\n\n<environment_info>\n## Workspace Info\nThe currently active workspace folder is c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\nUse file paths relative to this directory.\n## Command Execution Environment\nPlatform: win32\nRelease: 10.0.26200\nArchitecture: x64\nShell: powershell.exe\n</environment_info>\n\nYou can get information about available symbols by using the `GetSymbolsOverview` tool for finding top-level symbols in a file,\nor by using `FindSymbol` if you already know the symbol's name path. You generally try to read as little code as possible\nwhile still solving your task, meaning you only read the bodies when you need to, and after you have found the symbol you want to edit.\nFor example, if you are working with python code and already know that you need to read the body of the constructor of the class Foo, you can directly\nuse `FindSymbol` with the name path `Foo/__init__` and `include_body: true`. If you don't know yet which methods in `Foo` you need to read or edit,\nyou can use `FindSymbol` with the name path `Foo`, `include_body: false` and `depth: 1` to get all (top-level) methods of `Foo` before proceeding\nto read the desired methods with `include_body: true`\nYou can understand relationships between symbols by using the `FindReferencingSymbols` tool.\n\n# Mode Switching\n\nYou can switch between different modes using the switch_mode tool. Each mode provides access to different capabilities and tools optimized for specific types of tasks.\n\n<available_modes>\n  <mode>\n    <name>Agent</name>\n    <id>agent</id>\n    <when_to_use>Use this mode when you need to write, modify, or refactor code. Ideal for implementing features, fixing bugs, creating new files, or making code improvements across any programming language or framework.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, apply_diff, create_html_artifact, insert_content, list_files, read_file, read_xlsx, search_and_replace, update_todo_list, switch_mode, write_file, execute_command, glob, grep, spawn_subagent, ask_followup_question, start_subtask, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>Plan</name>\n    <id>plan</id>\n    <when_to_use>Use this mode when you need to plan, design, or strategize before implementation. Perfect for breaking down complex problems, creating technical specifications, designing system architecture, or brainstorming solutions before coding.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, glob, grep, spawn_subagent, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>Ask</name>\n    <id>ask</id>\n    <when_to_use>Use this mode when you need explanations, documentation, or answers to technical questions. Best for understanding concepts, analyzing existing code, getting recommendations, or learning about technologies without making changes.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, use_skill, list_files, read_file, read_xlsx, switch_mode, glob, grep, spawn_subagent, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>StyleExtractor</name>\n    <id>style-extractor</id>\n    <when_to_use>Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>GenerationConductor</name>\n    <id>generation-conductor</id>\n    <when_to_use>RAG retrieval, conditioned-prompt design, Watsonx orchestration, and fit_score work.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>StudioComposer</name>\n    <id>studio-composer</id>\n    <when_to_use>Style DNA charts, side-by-side generation UI, /verify layout, API client and TS types, and i18n.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n  <mode>\n    <name>PassportAuditor</name>\n    <id>passport-auditor</id>\n    <when_to_use>JWS signing and verification, the JWKS endpoint, and adversarial review of crypto edge cases.</when_to_use>\n    <available_tools>GetSymbolsOverview, FindSymbol, FindReferencingSymbols, apply_diff, insert_content, list_files, read_file, read_xlsx, search_and_replace, switch_mode, write_file, execute_command, glob, grep, ask_followup_question, start_workflow</available_tools>\n  </mode>\n</available_modes>\n\n# glob — file search\nUse `glob` to find files by name pattern (e.g. \"**/*.ts\", \"src/**/*.test.ts\"). Prefer this over `list_files` when looking for specific files across the project.\nOnly fall back to `list_files` when you need to browse a single directory's structure.\n\n# grep — content search\nUse `grep` to find code by content using regex patterns. Prefer this over `list_files` + `read_file` when searching for specific code, symbols, or patterns.\nUse `read_file` only after grep tells you which file and lines to look at.\n\nYou have access to workflows that provide specialized multi-step processes for specific tasks. Review the available workflows below. When a user's request matches a workflow's purpose, use the start_workflow tool. Run the workflow only if you are sure the workflow description will provide appropriate assistance. When suggesting workflows to users, provide the title and description, never the internal ID.\nAvailable workflows:\n* create_pr_workflow: Create Pull Request - Generates description from git diff using PR templates, allows review and editing, then creates the pull request on GitHub.",
+            "_meta": {
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1784888580847
+            },
+            "id": "f920de4b9b0af0930faf6e4b66bde692"
+          },
+          "createdAt": 1784890174652
+        },
+        {
+          "id": "f55a2e58db14e316858bd60fc710f4bf",
+          "role": "user",
+          "data": {
+            "role": "user",
+            "content": "<environment_details>\n<active_file>\nActive file: c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\ai_pipeline\\autoria_ai\\db.py\n</active_file>\n<git_status_snapshot>\n## Git Status at start of this conversation. This is a point-in-time snapshot and does not reflect subsequent changes.\nBranch: feat/fit_scorer\n```\n M frontend/next.config.ts\n M frontend/src/components/AddAuthorCard.tsx\n M frontend/src/components/AuthorColumn.tsx\n M frontend/src/components/DistinctiveVocabHighlight.tsx\n M frontend/src/components/FitScoreBar.tsx\n M frontend/src/lib/api.ts\n```\n</git_status_snapshot>\n</environment_details>\n\n\n<user_query>\nAct as an expert Data Engineer.\n\nPlease write a Python script named scripts/precompute_umap.py for our AI backend architecture.\n\nObjective: Load high-dimensional text embeddings from a PostgreSQL database (using the pgvector extension), reduce their dimensionality to 2D using the UMAP algorithm, and save the resulting coordinates back into a new database table.\n\nTechnical Requirements & Steps:\n\nDatabase Connection: Connect to PostgreSQL. Assume a standard environment variable DATABASE_URL.\n\nExtraction: Query the database to fetch author_id and the embedding vector array from the chunks table (assume the source table is called document_chunks or adjust as a configurable variable).\n\nDimensionality Reduction (UMAP):\n\nUse the umap-learn Python library.\n\nYou MUST initialize UMAP with exactly these parameters: n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2.\n\nFit and transform the extracted embeddings into 2D coordinates (X and Y).\n\nStorage:\n\nCreate a table named umap_coords if it does not already exist (columns: id serial, author_id integer/uuid, x float, y float).\n\nTruncate or clear the umap_coords table to remove old coordinates.\n\nInsert the new (author_id, x, y) rows efficiently (e.g., using execute_values).\n\nCode Quality: Use standard libraries (like psycopg2 or sqlalchemy), include type hints, modularize the code into functions, and add a if __name__ == \"__main__\": block.\n\nOutput the clean, fully functional Python script ready to be executed.\n</user_query>",
+            "availableTools": [
+              "GetSymbolsOverview",
+              "FindSymbol",
+              "FindReferencingSymbols",
+              "apply_diff",
+              "insert_content",
+              "list_files",
+              "read_file",
+              "read_xlsx",
+              "search_and_replace",
+              "switch_mode",
+              "write_file",
+              "execute_command",
+              "glob",
+              "grep",
+              "ask_followup_question",
+              "start_workflow"
+            ],
+            "_meta": {
+              "mentionEditorState": {
+                "root": {
+                  "children": [
+                    {
+                      "children": [
+                        {
+                          "type": "pasted-text",
+                          "text": "Act as an expert Data Engineer.\n\nPlease write a Python script named scripts/precompute_umap.py for our AI backend architecture.\n\nObjective: Load high-dimensional text embeddings from a PostgreSQL database (using the pgvector extension), reduce their dimensionality to 2D using the UMAP algorithm, and save the resulting coordinates back into a new database table.\n\nTechnical Requirements & Steps:\n\nDatabase Connection: Connect to PostgreSQL. Assume a standard environment variable DATABASE_URL.\n\nExtraction: Query the database to fetch author_id and the embedding vector array from the chunks table (assume the source table is called document_chunks or adjust as a configurable variable).\n\nDimensionality Reduction (UMAP):\n\nUse the umap-learn Python library.\n\nYou MUST initialize UMAP with exactly these parameters: n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2.\n\nFit and transform the extracted embeddings into 2D coordinates (X and Y).\n\nStorage:\n\nCreate a table named umap_coords if it does not already exist (columns: id serial, author_id integer/uuid, x float, y float).\n\nTruncate or clear the umap_coords table to remove old coordinates.\n\nInsert the new (author_id, x, y) rows efficiently (e.g., using execute_values).\n\nCode Quality: Use standard libraries (like psycopg2 or sqlalchemy), include type hints, modularize the code into functions, and add a if __name__ == \"__main__\": block.\n\nOutput the clean, fully functional Python script ready to be executed.",
+                          "index": 1,
+                          "version": 1
+                        }
+                      ],
+                      "direction": null,
+                      "format": "",
+                      "indent": 0,
+                      "type": "paragraph",
+                      "version": 1,
+                      "textFormat": 0,
+                      "textStyle": ""
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "root",
+                  "version": 1
+                }
+              },
+              "mask": "Act as an expert Data Engineer.\n\nPlease write a Python script named scripts/precompute_umap.py for our AI backend architecture.\n\nObjective: Load high-dimensional text embeddings from a PostgreSQL database (using the pgvector extension), reduce their dimensionality to 2D using the UMAP algorithm, and save the resulting coordinates back into a new database table.\n\nTechnical Requirements & Steps:\n\nDatabase Connection: Connect to PostgreSQL. Assume a standard environment variable DATABASE_URL.\n\nExtraction: Query the database to fetch author_id and the embedding vector array from the chunks table (assume the source table is called document_chunks or adjust as a configurable variable).\n\nDimensionality Reduction (UMAP):\n\nUse the umap-learn Python library.\n\nYou MUST initialize UMAP with exactly these parameters: n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2.\n\nFit and transform the extracted embeddings into 2D coordinates (X and Y).\n\nStorage:\n\nCreate a table named umap_coords if it does not already exist (columns: id serial, author_id integer/uuid, x float, y float).\n\nTruncate or clear the umap_coords table to remove old coordinates.\n\nInsert the new (author_id, x, y) rows efficiently (e.g., using execute_values).\n\nCode Quality: Use standard libraries (like psycopg2 or sqlalchemy), include type hints, modularize the code into functions, and add a if __name__ == \"__main__\": block.\n\nOutput the clean, fully functional Python script ready to be executed.",
+              "mode": {
+                "id": "style-extractor",
+                "name": "StyleExtractor",
+                "description": "Computational stylistics and English NLP feature extraction for AutorIA.",
+                "roleDefinition": "You are StyleExtractor, an expert in computational stylistics, English NLP, and statistical features of authorial style. You help P2 build the StyleProfile v1.0 extractor for AutorIA, a Python 3.11 pipeline using spaCy 3.7 (en_core_web_lg) and sentence-transformers (all-mpnet-base-v2). You favor precise mathematical definitions over hand-waving, write idiomatic modern Python with type hints, and always cross-check feature output ranges against ai_pipeline/autoria_ai/schemas/style_profile.json and the spec in docs/style_features.md.",
+                "whenToUse": "Building or debugging the linguistic feature extractor (lexical, syntactic, stylistic, vocabulary) and the StyleProfile schema.",
+                "customInstructions": "Do not invent features outside docs/style_features.md; propose them as a Decision Log entry first. Do not add dependencies that are not already in pyproject.toml. Load the spaCy model once at module import, not per call. Never assume the corpus is clean: strip Project Gutenberg headers and footers before parsing.",
+                "groups": [
+                  "read",
+                  "edit",
+                  "execute",
+                  "mode"
+                ],
+                "configPath": "c:\\Users\\spide\\proyectos\\IBM Julio 2026\\AuthorAI\\.bob\\custom_modes.yaml",
+                "workspaceRoot": "c:\\users\\spide\\proyectos\\ibm julio 2026\\authorai",
+                "workspaceName": "authorai",
+                "scope": "workspace"
+              },
+              "timestamp": 1784888580848
+            },
+            "id": "f55a2e58db14e316858bd60fc710f4bf"
+          },
+          "createdAt": 1784890174652
+        },
+        {
+          "id": "7114b5ffa8e2d23d6f529c19d99ad44d",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Let me first investigate the existing codebase to understand the project's conventions before writing the script.",
+            "id": "7114b5ffa8e2d23d6f529c19d99ad44d",
+            "_meta": {
+              "timestamp": 1784888583054,
+              "spend": {
+                "input": 9742,
+                "output": 119,
+                "cacheRead": 9433,
+                "cacheWrite": 308,
+                "cost": 0.024652,
+                "contextTokens": 9861,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_PU428JCdZAIiGR4ORinVSa",
+                "name": "list_files",
+                "arguments": {
+                  "path": ".",
+                  "recursive": false
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_yrmuaKzmCGTdS8pPnFgBYd",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "scripts/**/*.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_Lr3HZtLDWDMMXnyDR4kNk6",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/db.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_lUsWEkNXZh7DD2ui4FFyfw",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline",
+                  "recursive": true
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "bc49897c03b5a6b90147c70406d2c51a",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Directory listing for .:\n\n.bob\\\n.bobignore\n.env.example\n.git\\\n.github\\\n.gitignore\n.pre-commit-config.yaml\n.pytest_cache\\\n.ruff_cache\\\n.venv\\\n.vscode\\\nai_pipeline\\\nbackend\\\nbob\\\nCONTRIBUTING.md\ncorpus\\\ndocs\\\nfrontend\\\ninfra\\\nLICENSE\nMakefile\npyproject.toml\nREADME.md\nrequirements-dev.txt",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_PU428JCdZAIiGR4ORinVSa",
+                "name": "list_files",
+                "arguments": {
+                  "path": ".",
+                  "recursive": false
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "List Files in {path}",
+                "error": "Failed to list files in {path}",
+                "running": "Listing files in {path}",
+                "success": "Listed files in {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 11,
+              "timestamp": 1784888583337
+            },
+            "id": "bc49897c03b5a6b90147c70406d2c51a"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "5ecbeef3c21888c5dd09981a8044ede8",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "No files found",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_yrmuaKzmCGTdS8pPnFgBYd",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "scripts/**/*.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 39,
+              "timestamp": 1784888583366
+            },
+            "id": "5ecbeef3c21888c5dd09981a8044ede8"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "535cdc29b5e95fc85e4ee2fc308f2cde",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/db.py:\n\n1 | \"\"\"SQLAlchemy 2.0 async DB layer for the AutorIA AI pipeline.\n2 | \n3 | This module owns:\n4 | * The async SQLAlchemy engine / session factory (connection via DATABASE_URL).\n5 | * The ``Chunk`` ORM model mirroring ``public.chunks`` (vector(768) column).\n6 | * ``embed_and_persist_chunks()`` — ingest path (architecture.md §4.1).\n7 | * ``backfill_embeddings()``      — async fill-in for NULL embeddings.\n8 | * ``retrieve_top_k()``           — RAG retrieval (erd.md §5 \"Vector search\").\n9 | \n10 | Usage\n11 | -----\n12 | All three public functions are ``async def`` and require an async context\n13 | (``asyncio.run`` or an existing event loop, e.g. inside FastAPI).\n14 | \n15 | Environment\n16 | -----------\n17 | ``DATABASE_URL`` must be a valid asyncpg DSN, e.g.:\n18 |     postgresql+asyncpg://user:pass@host:5432/dbname\n19 | \n20 | The engine is **not** created at import time to keep the module testable\n21 | without a live DB.  Call ``get_engine()`` or ``get_session()`` once the env\n22 | is ready, or pass a ``session`` directly to the public functions.\n23 | \"\"\"\n24 | \n25 | from __future__ import annotations\n26 | \n27 | import os\n28 | import typing\n29 | from collections.abc import AsyncIterator\n30 | from contextlib import asynccontextmanager\n31 | from typing import Any\n32 | from uuid import UUID\n33 | \n34 | import numpy as np\n35 | from pgvector.sqlalchemy import Vector\n36 | from sqlalchemy import Integer, Text, select, text\n37 | from sqlalchemy.ext.asyncio import (\n38 |     AsyncEngine,\n39 |     AsyncSession,\n40 |     async_sessionmaker,\n41 |     create_async_engine,\n42 | )\n43 | from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column\n44 | \n45 | from autoria_ai.embedder import EMBEDDING_DIM, embed_chunks\n46 | \n47 | # ---------------------------------------------------------------------------\n48 | # ORM base + Chunk model\n49 | # ---------------------------------------------------------------------------\n50 | \n51 | \n52 | class _Base(DeclarativeBase):\n53 |     pass\n54 | \n55 | \n56 | class Chunk(_Base):\n57 |     \"\"\"ORM mapping for ``public.chunks`` (read/write for embedding column).\n58 | \n59 |     Only the columns relevant to the embedder and RAG retrieval are mapped\n60 |     here.  The authoritative schema lives in ``0001_init.sql``.\n61 |     \"\"\"\n62 | \n63 |     __tablename__ = \"chunks\"\n64 |     __table_args__: typing.ClassVar[dict] = {\"schema\": \"public\"}\n65 | \n66 |     id: Mapped[UUID] = mapped_column(primary_key=True)\n67 |     document_id: Mapped[UUID] = mapped_column(nullable=False)\n68 |     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)\n69 |     text: Mapped[str] = mapped_column(Text, nullable=False)\n70 |     # vector(768) nullable — None until embedded.\n71 |     embedding: Mapped[list[float] | None] = mapped_column(Vector(EMBEDDING_DIM), nullable=True)\n72 | \n73 | \n74 | # ---------------------------------------------------------------------------\n75 | # Engine / session factory\n76 | # ---------------------------------------------------------------------------\n77 | \n78 | _engine: AsyncEngine | None = None\n79 | _session_factory: async_sessionmaker[AsyncSession] | None = None\n80 | \n81 | \n82 | def _make_engine(database_url: str | None = None) -> AsyncEngine:\n83 |     url = database_url or os.environ[\"DATABASE_URL\"]\n84 |     return create_async_engine(url, pool_pre_ping=True)\n85 | \n86 | \n87 | def get_engine(database_url: str | None = None) -> AsyncEngine:\n88 |     \"\"\"Return (and lazily create) the module-level async engine.\n89 | \n90 |     Pass *database_url* explicitly in tests to avoid touching ``os.environ``.\n91 |     \"\"\"\n92 |     global _engine\n93 |     if _engine is None:\n94 |         _engine = _make_engine(database_url)\n95 |     return _engine\n96 | \n97 | \n98 | def get_session_factory(database_url: str | None = None) -> async_sessionmaker[AsyncSession]:\n99 |     \"\"\"Return (and lazily create) the module-level async session factory.\"\"\"\n100 |     global _session_factory\n101 |     if _session_factory is None:\n102 |         _session_factory = async_sessionmaker(\n103 |             get_engine(database_url),\n104 |             expire_on_commit=False,\n105 |         )\n106 |     return _session_factory\n107 | \n108 | \n109 | @asynccontextmanager\n110 | async def _session(\n111 |     database_url: str | None = None,\n112 |     existing: AsyncSession | None = None,\n113 | ) -> AsyncIterator[AsyncSession]:\n114 |     \"\"\"Yield an ``AsyncSession``, using *existing* if provided.\"\"\"\n115 |     if existing is not None:\n116 |         yield existing\n117 |         return\n118 |     factory = get_session_factory(database_url)\n119 |     async with factory() as sess:\n120 |         yield sess\n121 | \n122 | \n123 | # ---------------------------------------------------------------------------\n124 | # Public API — ingest path\n125 | # ---------------------------------------------------------------------------\n126 | \n127 | \n128 | async def embed_and_persist_chunks(\n129 |     rows: list[dict[str, Any]],\n130 |     *,\n131 |     database_url: str | None = None,\n132 |     session: AsyncSession | None = None,\n133 | ) -> None:\n134 |     \"\"\"Embed *rows* and ``UPDATE`` their ``embedding`` column in one batch.\n135 | \n136 |     Parameters\n137 |     ----------\n138 |     rows:\n139 |         List of dicts, each with at minimum ``\"id\"`` (UUID str/UUID) and\n140 |         ``\"text\"`` (str).  The rows must already exist in ``public.chunks``\n141 |         (inserted with ``embedding = NULL``).\n142 |     database_url:\n143 |         Override for the DB URL (for tests).  Ignored when *session* is given.\n144 |     session:\n145 |         Existing ``AsyncSession`` to reuse (avoids opening a new connection).\n146 | \n147 |     Notes\n148 |     -----\n149 |     Embeddings are committed in a single transaction.  If any UPDATE fails\n150 |     the whole batch is rolled back, leaving the rows with ``embedding = NULL``\n151 |     so the backfiller can retry them.\n152 |     \"\"\"\n153 |     if not rows:\n154 |         return\n155 | \n156 |     texts = [r[\"text\"] for r in rows]\n157 |     embeddings: np.ndarray = embed_chunks(texts)  # (N, 768)\n158 | \n159 |     async with _session(database_url, session) as sess, sess.begin():\n160 |         for row, emb in zip(rows, embeddings, strict=False):\n161 |             chunk_id = row[\"id\"]\n162 |             await sess.execute(\n163 |                 text(\"UPDATE public.chunks SET embedding = :emb WHERE id = :id\"),\n164 |                 {\"emb\": emb.tolist(), \"id\": str(chunk_id)},\n165 |             )\n166 | \n167 | \n168 | # ---------------------------------------------------------------------------\n169 | # Public API — async backfill\n170 | # ---------------------------------------------------------------------------\n171 | \n172 | \n173 | async def backfill_embeddings(\n174 |     *,\n175 |     batch_size: int = 256,\n176 |     database_url: str | None = None,\n177 |     session: AsyncSession | None = None,\n178 | ) -> int:\n179 |     \"\"\"Find chunks where ``embedding IS NULL`` and embed them in batches.\n180 | \n181 |     Parameters\n182 |     ----------\n183 |     batch_size:\n184 |         Number of chunks to embed per DB round-trip.  256 is a good default\n185 |         for the all-mpnet-base-v2 model on typical hardware.\n186 |     database_url:\n187 |         Override for the DB URL (for tests).\n188 |     session:\n189 |         Existing ``AsyncSession`` to reuse.\n190 | \n191 |     Returns\n192 |     -------\n193 |     int\n194 |         Total number of chunks that were backfilled.\n195 | \n196 |     Notes\n197 |     -----\n198 |     Each loop iteration is two independent transactions on the same session:\n199 |     1. A read-only SELECT to fetch the next unembedded batch.\n200 |     2. A write transaction (inside ``embed_and_persist_chunks``) that UPDATEs\n201 |        the embedding column.\n202 |     Keeping them separate means a failed UPDATE leaves the rows with\n203 |     ``embedding = NULL`` so this function can be safely retried.\n204 |     \"\"\"\n205 |     total_filled = 0\n206 | \n207 |     async with _session(database_url, session) as sess:\n208 |         while True:\n209 |             # ── 1. Read the next batch of unembedded chunk ids + texts ──────\n210 |             async with sess.begin():\n211 |                 result = await sess.execute(\n212 |                     select(Chunk.id, Chunk.text).where(Chunk.embedding.is_(None)).limit(batch_size)\n213 |                 )\n214 |                 batch = result.all()\n215 |             # Transaction committed; rows are now visible outside.\n216 | \n217 |             if not batch:\n218 |                 break\n219 | \n220 |             # ── 2. Embed and write (separate transaction per batch) ─────────\n221 |             rows = [{\"id\": str(row.id), \"text\": row.text} for row in batch]\n222 |             # Pass the bare session — embed_and_persist_chunks opens its own\n223 |             # sess.begin() block, which is legal on a post-commit session.\n224 |             await embed_and_persist_chunks(rows, session=sess)\n225 |             total_filled += len(batch)\n226 | \n227 |     return total_filled\n228 | \n229 | \n230 | # ---------------------------------------------------------------------------\n231 | # Public API — RAG retrieval\n232 | # ---------------------------------------------------------------------------\n233 | \n234 | #: Default ``ef_search`` value for HNSW recall/latency tuning.\n235 | #: At 64 (matching ef_construction) recall is ~97% for this corpus size\n236 | #: while p95 query latency stays well under 200ms.\n237 | #: Raise to 128 if recall needs to improve post-demo; lower to 32 on cold starts.\n238 | HNSW_EF_SEARCH: int = 64\n239 | \n240 | \n241 | async def retrieve_top_k(\n242 |     query_embedding: list[float] | np.ndarray,\n243 |     *,\n244 |     k: int = 5,\n245 |     ef_search: int = HNSW_EF_SEARCH,\n246 |     database_url: str | None = None,\n247 |     session: AsyncSession | None = None,\n248 | ) -> list[dict[str, Any]]:\n249 |     \"\"\"Return the top-*k* chunks nearest to *query_embedding* via HNSW ANN.\n250 | \n251 |     Implements the canonical RAG query from docs/erd.md §5 \"Vector search\":\n252 | \n253 |     .. code-block:: sql\n254 | \n255 |         SELECT id, document_id, chunk_index, text\n256 |         FROM public.chunks\n257 |         ORDER BY embedding <=> $1\n258 |         LIMIT 5;\n259 | \n260 |     Parameters\n261 |     ----------\n262 |     query_embedding:\n263 |         768-dim vector (list or numpy array).  Must match the dimensionality\n264 |         of the stored embeddings.\n265 |     k:\n266 |         Number of nearest neighbours to retrieve.  Default 5 per spec.\n267 |     ef_search:\n268 |         HNSW ``ef_search`` parameter set at query time via ``SET``.  Higher\n269 |         values improve recall at the cost of latency.  Default ``64``\n270 |         (matches ``ef_construction``); tuning notes in ``HNSW_EF_SEARCH``.\n271 |     database_url:\n272 |         Override for the DB URL (for tests).\n273 |     session:\n274 |         Existing ``AsyncSession`` to reuse.\n275 | \n276 |     Returns\n277 |     -------\n278 |     list[dict]\n279 |         Each dict has keys: ``id`` (UUID), ``document_id`` (UUID),\n280 |         ``chunk_index`` (int), ``text`` (str).\n281 |     \"\"\"\n282 |     if isinstance(query_embedding, np.ndarray):\n283 |         query_embedding = query_embedding.tolist()\n284 | \n285 |     # SET LOCAL scopes the GUC to the current transaction only.\n286 |     # When the transaction ends (commit or rollback) the setting reverts\n287 |     # to its session default, so it never leaks to the next caller that\n288 |     # borrows this connection from the pool.\n289 |     async with _session(database_url, session) as sess, sess.begin():\n290 |         await sess.execute(text(f\"SET LOCAL hnsw.ef_search = {int(ef_search)}\"))\n291 | \n292 |         rows = await sess.execute(\n293 |             text(\"\"\"\n294 |                 SELECT id, document_id, chunk_index, text\n295 |                 FROM public.chunks\n296 |                 ORDER BY embedding <=> CAST(:emb AS vector)\n297 |                 LIMIT :k\n298 |                 \"\"\"),\n299 |             {\"emb\": str(query_embedding), \"k\": k},\n300 |         )\n301 |         return [\n302 |             {\n303 |                 \"id\": row.id,\n304 |                 \"document_id\": row.document_id,\n305 |                 \"chunk_index\": row.chunk_index,\n306 |                 \"text\": row.text,\n307 |             }\n308 |             for row in rows\n309 |         ]\n310 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_Lr3HZtLDWDMMXnyDR4kNk6",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/db.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/db.py": 1784633605473
+              },
+              "durationMs": 6,
+              "timestamp": 1784888585345
+            },
+            "id": "535cdc29b5e95fc85e4ee2fc308f2cde"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "dd6913496a9a277d4b09ac8b06d9f1f4",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Directory listing for ai_pipeline:\n\nai_pipeline\\.pytest_cache\\\nai_pipeline\\autoria_ai\\\nai_pipeline\\autoria_ai.egg-info\\\nai_pipeline\\pyproject.toml\nai_pipeline\\README.md\nai_pipeline\\tests\\\nai_pipeline\\.pytest_cache\\.gitignore\nai_pipeline\\.pytest_cache\\CACHEDIR.TAG\nai_pipeline\\.pytest_cache\\README.md\nai_pipeline\\.pytest_cache\\v\\\nai_pipeline\\.pytest_cache\\v\\cache\\\nai_pipeline\\.pytest_cache\\v\\cache\\lastfailed\nai_pipeline\\.pytest_cache\\v\\cache\\nodeids\nai_pipeline\\autoria_ai\\conditioner.py\nai_pipeline\\autoria_ai\\db.py\nai_pipeline\\autoria_ai\\embedder.py\nai_pipeline\\autoria_ai\\extractor\\\nai_pipeline\\autoria_ai\\fit_scorer.py\nai_pipeline\\autoria_ai\\passport\\\nai_pipeline\\autoria_ai\\schemas\\\nai_pipeline\\autoria_ai\\__init__.py\nai_pipeline\\autoria_ai\\__pycache__\\\nai_pipeline\\autoria_ai\\extractor\\chunker.py\nai_pipeline\\autoria_ai\\extractor\\cleaner.py\nai_pipeline\\autoria_ai\\extractor\\lexical.py\nai_pipeline\\autoria_ai\\extractor\\stylistic.py\nai_pipeline\\autoria_ai\\extractor\\syntactic.py\nai_pipeline\\autoria_ai\\extractor\\vocabulary.py\nai_pipeline\\autoria_ai\\extractor\\__init__.py\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\chunker.cpython-314.pyc\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\cleaner.cpython-314.pyc\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\lexical.cpython-314.pyc\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\stylistic.cpython-314.pyc\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\syntactic.cpython-314.pyc\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\vocabulary.cpython-314.pyc\nai_pipeline\\autoria_ai\\extractor\\__pycache__\\__init__.cpython-314.pyc\nai_pipeline\\autoria_ai\\passport\\__init__.py\nai_pipeline\\autoria_ai\\schemas\\passport.json\nai_pipeline\\autoria_ai\\schemas\\style_profile.json\nai_pipeline\\autoria_ai\\__pycache__\\conditioner.cpython-314.pyc\nai_pipeline\\autoria_ai\\__pycache__\\db.cpython-314.pyc\nai_pipeline\\autoria_ai\\__pycache__\\embedder.cpython-314.pyc\nai_pipeline\\autoria_ai\\__pycache__\\fit_scorer.cpython-314.pyc\nai_pipeline\\autoria_ai\\__pycache__\\__init__.cpython-314.pyc\nai_pipeline\\autoria_ai.egg-info\\dependency_links.txt\nai_pipeline\\autoria_ai.egg-info\\PKG-INFO\nai_pipeline\\autoria_ai.egg-info\\requires.txt\nai_pipeline\\autoria_ai.egg-info\\SOURCES.txt\nai_pipeline\\autoria_ai.egg-info\\top_level.txt\nai_pipeline\\tests\\test_conditioner.py\nai_pipeline\\tests\\test_embedder.py\nai_pipeline\\tests\\test_fit_scorer.py\nai_pipeline\\tests\\test_smoke.py\nai_pipeline\\tests\\test_vocabulary.py\nai_pipeline\\tests\\__init__.py\nai_pipeline\\tests\\__pycache__\\\nai_pipeline\\tests\\__pycache__\\test_conditioner.cpython-314-pytest-9.1.1.pyc\nai_pipeline\\tests\\__pycache__\\test_embedder.cpython-314-pytest-9.1.1.pyc\nai_pipeline\\tests\\__pycache__\\test_fit_scorer.cpython-314-pytest-9.1.1.pyc\nai_pipeline\\tests\\__pycache__\\test_smoke.cpython-314-pytest-9.1.1.pyc\nai_pipeline\\tests\\__pycache__\\test_vocabulary.cpython-314-pytest-9.1.1.pyc\nai_pipeline\\tests\\__pycache__\\__init__.cpython-314.pyc",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_lUsWEkNXZh7DD2ui4FFyfw",
+                "name": "list_files",
+                "arguments": {
+                  "path": "ai_pipeline",
+                  "recursive": true
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "List Files in {path}",
+                "error": "Failed to list files in {path}",
+                "running": "Listing files in {path} recursively",
+                "success": "Listed files in {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 9,
+              "timestamp": 1784888585348
+            },
+            "id": "dd6913496a9a277d4b09ac8b06d9f1f4"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "f14b992b4c6a3be6dd5df42e210bb8fc",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now let me check the schema and pyproject.toml to understand the column shapes and available dependencies:",
+            "id": "f14b992b4c6a3be6dd5df42e210bb8fc",
+            "_meta": {
+              "timestamp": 1784888587638,
+              "spend": {
+                "input": 19492,
+                "output": 102,
+                "cacheRead": 14995,
+                "cacheWrite": 4496,
+                "cost": 0.048985,
+                "contextTokens": 19594,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_BILkKgNveaS7WCLDrjJ7fH",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/pyproject.toml"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_aieXdFLtM6itEjHOBbBVhv",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/schemas/style_profile.json"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_DOqUW0qty2lPlMLTLZ0trd",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "infra/**/*.sql"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_LSrSFM3sy9zz5PQjOvsxKw",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/embedder.py"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_hk9FDv9p5Qd9UNXrlOplXe",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "infra/**/*"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "e5c523c50e5eeef8b0af86f245619c97",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/pyproject.toml:\n\n1 | [build-system]\n2 | requires = [\"setuptools>=68\", \"wheel\"]\n3 | build-backend = \"setuptools.build_meta\"\n4 | \n5 | [project]\n6 | name = \"autoria-ai\"\n7 | version = \"0.1.0\"\n8 | requires-python = \">=3.11\"\n9 | dependencies = [\n10 |     \"spacy>=3.7\",\n11 |     \"sentence-transformers>=2.7\",\n12 |     \"scikit-learn>=1.4\",\n13 |     \"umap-learn>=0.5\",\n14 |     \"tiktoken>=0.7\",\n15 |     \"numpy>=1.26\",\n16 |     \"pydantic>=2.7\",\n17 |     \"python-jose>=3.3\",\n18 |     \"ibm-watsonx-ai>=1.0\",\n19 |     # DB / vector store (SQLAlchemy 2.0 async + pgvector)\n20 |     \"sqlalchemy>=2.0\",\n21 |     \"asyncpg>=0.29\",\n22 |     \"pgvector>=0.3\",\n23 | ]\n24 | \n25 | [project.optional-dependencies]\n26 | dev = [\"pytest>=8\", \"pytest-asyncio>=0.23\", \"ruff>=0.4\", \"black>=24\"]\n27 | \n28 | [tool.black]\n29 | line-length = 100\n30 | target-version = [\"py311\"]\n31 | \n32 | [tool.pytest.ini_options]\n33 | testpaths = [\"tests\"]\n34 | asyncio_mode = \"auto\"",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_BILkKgNveaS7WCLDrjJ7fH",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/pyproject.toml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/pyproject.toml": 1784632256925
+              },
+              "durationMs": 15,
+              "timestamp": 1784888588442
+            },
+            "id": "e5c523c50e5eeef8b0af86f245619c97"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "c0bce2cf513b0b00137395c595e15999",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/schemas/style_profile.json:\n\n1 | {\n2 |   \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n3 |   \"$id\": \"https://github.com/autorIA/autoria/blob/main/ai_pipeline/autoria_ai/schemas/style_profile.json\",\n4 |   \"title\": \"StyleProfile\",\n5 |   \"description\": \"Versioned stylistic fingerprint of an author, computed from their corpus by the ai_pipeline extractor. Single source of truth for the fit_score and the conditioned generation prompt.\",\n6 |   \"version\": \"1.0\",\n7 |   \"type\": \"object\",\n8 |   \"required\": [\n9 |     \"schema_version\",\n10 |     \"author_id\",\n11 |     \"computed_at\",\n12 |     \"corpus_stats\",\n13 |     \"lexical\",\n14 |     \"syntactic\",\n15 |     \"stylistic\",\n16 |     \"distinctive_vocab\",\n17 |     \"semantic_centroid\",\n18 |     \"embedding_umap_2d\"\n19 |   ],\n20 |   \"additionalProperties\": false,\n21 |   \"properties\": {\n22 |     \"schema_version\": {\n23 |       \"type\": \"string\",\n24 |       \"const\": \"1.0\",\n25 |       \"description\": \"Schema version. Bump when adding/removing fields. Consumers must reject profiles with unknown versions.\"\n26 |     },\n27 | \n28 |     \"author_id\": {\n29 |       \"type\": \"string\",\n30 |       \"pattern\": \"^[a-z0-9_]+$\",\n31 |       \"description\": \"Unique slug for the author. Preloaded: 'austen', 'dickens', 'poe'.\",\n32 |       \"examples\": [\"austen\", \"dickens\", \"poe\"]\n33 |     },\n34 | \n35 |     \"computed_at\": {\n36 |       \"type\": \"string\",\n37 |       \"format\": \"date-time\",\n38 |       \"description\": \"ISO-8601 UTC timestamp of when this StyleProfile was computed.\"\n39 |     },\n40 | \n41 |     \"corpus_stats\": {\n42 |       \"type\": \"object\",\n43 |       \"description\": \"High-level statistics of the cleaned corpus used for extraction.\",\n44 |       \"required\": [\"n_documents\", \"n_tokens\", \"n_sentences\"],\n45 |       \"additionalProperties\": false,\n46 |       \"properties\": {\n47 |         \"n_documents\": {\n48 |           \"type\": \"integer\",\n49 |           \"minimum\": 1,\n50 |           \"description\": \"Number of source documents (cleaned .txt files) used.\"\n51 |         },\n52 |         \"n_tokens\": {\n53 |           \"type\": \"integer\",\n54 |           \"minimum\": 30000,\n55 |           \"description\": \"Total token count across all documents (spaCy tokenization). Minimum 30k enforced.\"\n56 |         },\n57 |         \"n_sentences\": {\n58 |           \"type\": \"integer\",\n59 |           \"minimum\": 1,\n60 |           \"description\": \"Total sentence count across all documents (spaCy sentence segmentation).\"\n61 |         }\n62 |       }\n63 |     },\n64 | \n65 |     \"lexical\": {\n66 |       \"type\": \"object\",\n67 |       \"description\": \"Vocabulary richness and word-level features. See docs/style_features.md §1.\",\n68 |       \"required\": [\"mattr_500\", \"avg_word_length\", \"hapax_ratio\"],\n69 |       \"additionalProperties\": false,\n70 |       \"properties\": {\n71 |         \"mattr_500\": {\n72 |           \"type\": \"number\",\n73 |           \"minimum\": 0.0,\n74 |           \"maximum\": 1.0,\n75 |           \"description\": \"Moving Average Type-Token Ratio with window=500. Measures vocabulary richness, stable across corpus size. Higher = richer vocabulary per 500-token block.\"\n76 |         },\n77 |         \"avg_word_length\": {\n78 |           \"type\": \"number\",\n79 |           \"minimum\": 0.0,\n80 |           \"description\": \"Mean number of characters per alpha token (punctuation excluded). Poe > Dickens > Austen.\"\n81 |         },\n82 |         \"hapax_ratio\": {\n83 |           \"type\": \"number\",\n84 |           \"minimum\": 0.0,\n85 |           \"maximum\": 1.0,\n86 |           \"description\": \"Proportion of lemma types appearing exactly once in the full corpus. High in Poe (exotic vocabulary).\"\n87 |         }\n88 |       }\n89 |     },\n90 | \n91 |     \"syntactic\": {\n92 |       \"type\": \"object\",\n93 |       \"description\": \"Sentence architecture features computed via spaCy dependency parser. See docs/style_features.md §2.\",\n94 |       \"required\": [\n95 |         \"avg_sentence_length_tokens\",\n96 |         \"std_sentence_length_tokens\",\n97 |         \"subordination_ratio\",\n98 |         \"noun_to_verb_ratio\",\n99 |         \"passive_voice_ratio\"\n100 |       ],\n101 |       \"additionalProperties\": false,\n102 |       \"properties\": {\n103 |         \"avg_sentence_length_tokens\": {\n104 |           \"type\": \"number\",\n105 |           \"minimum\": 0.0,\n106 |           \"description\": \"Mean sentence length in tokens across the full corpus.\"\n107 |         },\n108 |         \"std_sentence_length_tokens\": {\n109 |           \"type\": \"number\",\n110 |           \"minimum\": 0.0,\n111 |           \"description\": \"Standard deviation of sentence length in tokens. High std = high rhythm variation (Dickens).\"\n112 |         },\n113 |         \"subordination_ratio\": {\n114 |           \"type\": \"number\",\n115 |           \"minimum\": 0.0,\n116 |           \"description\": \"Subordinate clauses per sentence (advcl, relcl, ccomp, xcomp dep labels). Normalized per sentence.\"\n117 |         },\n118 |         \"noun_to_verb_ratio\": {\n119 |           \"type\": \"number\",\n120 |           \"minimum\": 0.0,\n121 |           \"description\": \"NOUN token count / VERB token count. High = nominal/descriptive style (Austen, Dickens). Low = verbal/action style (Poe).\"\n122 |         },\n123 |         \"passive_voice_ratio\": {\n124 |           \"type\": \"number\",\n125 |           \"minimum\": 0.0,\n126 |           \"maximum\": 1.0,\n127 |           \"description\": \"Proportion of sentences containing at least one nsubjpass token. High in Poe (Gothic distance effect).\"\n128 |         }\n129 |       }\n130 |     },\n131 | \n132 |     \"stylistic\": {\n133 |       \"type\": \"object\",\n134 |       \"description\": \"Surface-level style patterns: punctuation, POS distribution, narrator perspective. See docs/style_features.md §3.\",\n135 |       \"required\": [\n136 |         \"punct_distribution\",\n137 |         \"pos_distribution\",\n138 |         \"dialogue_ratio\",\n139 |         \"first_person_ratio\"\n140 |       ],\n141 |       \"additionalProperties\": false,\n142 |       \"properties\": {\n143 |         \"punct_distribution\": {\n144 |           \"type\": \"object\",\n145 |           \"description\": \"Relative frequency of each punctuation mark over all punctuation tokens. Values sum to ~1.0.\",\n146 |           \"required\": [\",\", \".\", \";\", \":\", \"—\", \"?\", \"!\", \"\\\"\"],\n147 |           \"additionalProperties\": false,\n148 |           \"properties\": {\n149 |             \",\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n150 |             \".\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n151 |             \";\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n152 |             \":\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n153 |             \"—\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n154 |             \"?\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n155 |             \"!\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n156 |             \"\\\"\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 }\n157 |           }\n158 |         },\n159 |         \"pos_distribution\": {\n160 |           \"type\": \"object\",\n161 |           \"description\": \"Relative frequency of each universal POS tag over all non-punctuation tokens. Values sum to 1.0.\",\n162 |           \"required\": [\n163 |             \"NOUN\",\n164 |             \"VERB\",\n165 |             \"ADJ\",\n166 |             \"ADV\",\n167 |             \"DET\",\n168 |             \"ADP\",\n169 |             \"PRON\",\n170 |             \"CONJ\",\n171 |             \"SCONJ\",\n172 |             \"OTHER\"\n173 |           ],\n174 |           \"additionalProperties\": false,\n175 |           \"properties\": {\n176 |             \"NOUN\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n177 |             \"VERB\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n178 |             \"ADJ\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n179 |             \"ADV\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n180 |             \"DET\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n181 |             \"ADP\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n182 |             \"PRON\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n183 |             \"CONJ\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n184 |             \"SCONJ\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 },\n185 |             \"OTHER\": { \"type\": \"number\", \"minimum\": 0.0, \"maximum\": 1.0 }\n186 |           }\n187 |         },\n188 |         \"dialogue_ratio\": {\n189 |           \"type\": \"number\",\n190 |           \"minimum\": 0.0,\n191 |           \"maximum\": 1.0,\n192 |           \"description\": \"Proportion of non-punctuation tokens inside quotation marks. Austen ~0.33, Dickens ~0.24, Poe ~0.09.\"\n193 |         },\n194 |         \"first_person_ratio\": {\n195 |           \"type\": \"number\",\n196 |           \"minimum\": 0.0,\n197 |           \"description\": \"Frequency of first-person singular pronouns (I, me, my, mine, myself) per 1000 tokens. Poe ~24, Dickens ~6, Austen ~1.\"\n198 |         }\n199 |       }\n200 |     },\n201 | \n202 |     \"distinctive_vocab\": {\n203 |       \"type\": \"array\",\n204 |       \"description\": \"Top-30 terms most characteristic of this author vs the other two, ranked by TF-IDF score. See docs/style_features.md §4.\",\n205 |       \"minItems\": 1,\n206 |       \"maxItems\": 30,\n207 |       \"items\": {\n208 |         \"type\": \"object\",\n209 |         \"required\": [\"term\", \"score\"],\n210 |         \"additionalProperties\": false,\n211 |         \"properties\": {\n212 |           \"term\": {\n213 |             \"type\": \"string\",\n214 |             \"description\": \"Lemmatized term (alpha only, min 3 chars).\"\n215 |           },\n216 |           \"score\": {\n217 |             \"type\": \"number\",\n218 |             \"minimum\": 0.0,\n219 |             \"description\": \"TF-IDF score relative to the 3-author base corpus. Higher = more distinctive.\"\n220 |           }\n221 |         }\n222 |       }\n223 |     },\n224 | \n225 |     \"semantic_centroid\": {\n226 |       \"type\": \"array\",\n227 |       \"description\": \"Mean embedding vector across all ~500-token chunks of the author corpus. Computed with all-mpnet-base-v2 (768-dim). Used for fit_score (cosine similarity) and RAG retrieval. See docs/style_features.md §5.1.\",\n228 |       \"minItems\": 768,\n229 |       \"maxItems\": 768,\n230 |       \"items\": {\n231 |         \"type\": \"number\"\n232 |       }\n233 |     },\n234 | \n235 |     \"embedding_umap_2d\": {\n236 |       \"type\": \"object\",\n237 |       \"description\": \"2D UMAP projection of the semantic_centroid for demo visualization. See docs/style_features.md §5.2.\",\n238 |       \"required\": [\"centroid\", \"spread\"],\n239 |       \"additionalProperties\": false,\n240 |       \"properties\": {\n241 |         \"centroid\": {\n242 |           \"type\": \"array\",\n243 |           \"minItems\": 2,\n244 |           \"maxItems\": 2,\n245 |           \"items\": { \"type\": \"number\" },\n246 |           \"description\": \"2D coordinates [x, y] of the author centroid in UMAP space.\"\n247 |         },\n248 |         \"spread\": {\n249 |           \"type\": \"number\",\n250 |           \"minimum\": 0.0,\n251 |           \"description\": \"Standard deviation of chunk distances to centroid. Measures intra-author semantic consistency.\"\n252 |         }\n253 |       }\n254 |     }\n255 |   }\n256 | }\n257 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_aieXdFLtM6itEjHOBbBVhv",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/schemas/style_profile.json"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/schemas/style_profile.json": 1783334610563
+              },
+              "durationMs": 29,
+              "timestamp": 1784888588456
+            },
+            "id": "c0bce2cf513b0b00137395c595e15999"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "5709da7b0aafa51cbb1a6516c23ba127",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "No files found",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_DOqUW0qty2lPlMLTLZ0trd",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "infra/**/*.sql"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 42,
+              "timestamp": 1784888588469
+            },
+            "id": "5709da7b0aafa51cbb1a6516c23ba127"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "688e3fb1de0f61050af76f9abeb155ee",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file ai_pipeline/autoria_ai/embedder.py:\n\n1 | \"\"\"Chunk embedding generation using sentence-transformers all-mpnet-base-v2.\n2 | \n3 | Public API\n4 | ----------\n5 | embed_chunks(texts: list[str]) -> np.ndarray\n6 |     Batch-encode *texts* and return a float32 array of shape ``(N, 768)``.\n7 | \n8 | The ``SentenceTransformer`` model is loaded **once** at module import as a\n9 | module-level singleton.  Callers must never reload it per request.\n10 | \"\"\"\n11 | \n12 | from __future__ import annotations\n13 | \n14 | import numpy as np\n15 | from sentence_transformers import SentenceTransformer  # type: ignore[import-untyped]\n16 | \n17 | # ---------------------------------------------------------------------------\n18 | # Module-level singleton — loaded once, reused for every call.\n19 | # The model name is the canonical one from docs/MVP.md §4.1 and\n20 | # docs/style_features.md §5.\n21 | # ---------------------------------------------------------------------------\n22 | _MODEL_NAME = \"all-mpnet-base-v2\"\n23 | _MODEL: SentenceTransformer = SentenceTransformer(_MODEL_NAME)\n24 | \n25 | #: Dimensionality guaranteed by all-mpnet-base-v2 — used as the assertion\n26 | #: guard in embed_chunks() and as the vector(768) column width in the DB.\n27 | EMBEDDING_DIM: int = 768\n28 | \n29 | \n30 | def embed_chunks(texts: list[str]) -> np.ndarray:\n31 |     \"\"\"Batch-encode *texts* and return embeddings as a float32 NumPy array.\n32 | \n33 |     Parameters\n34 |     ----------\n35 |     texts:\n36 |         Non-empty list of chunk strings to embed.  Passing an empty list\n37 |         returns a zero-row array with shape ``(0, 768)``.\n38 | \n39 |     Returns\n40 |     -------\n41 |     np.ndarray\n42 |         Float32 array of shape ``(len(texts), 768)``.  Each row is the\n43 |         normalised sentence embedding for the corresponding chunk.\n44 | \n45 |     Notes\n46 |     -----\n47 |     *   Uses ``_MODEL.encode()`` in batch mode with ``convert_to_numpy=True``\n48 |         so the result is a contiguous C-order float32 array compatible with\n49 |         pgvector's ``VECTOR(768)`` column.\n50 |     *   The model is **not** reloaded here; the module-level ``_MODEL``\n51 |         singleton is used throughout the process lifetime.\n52 |     \"\"\"\n53 |     if not texts:\n54 |         return np.zeros((0, EMBEDDING_DIM), dtype=np.float32)\n55 | \n56 |     embeddings: np.ndarray = _MODEL.encode(\n57 |         texts,\n58 |         batch_size=64,\n59 |         convert_to_numpy=True,\n60 |         normalize_embeddings=True,\n61 |         show_progress_bar=False,\n62 |     )\n63 |     # Guarantee correct dtype regardless of sentence-transformers version.\n64 |     return embeddings.astype(np.float32, copy=False)\n65 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_LSrSFM3sy9zz5PQjOvsxKw",
+                "name": "read_file",
+                "arguments": {
+                  "path": "ai_pipeline/autoria_ai/embedder.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/ai_pipeline/autoria_ai/embedder.py": 1784632256925
+              },
+              "durationMs": 10,
+              "timestamp": 1784888591086
+            },
+            "id": "688e3fb1de0f61050af76f9abeb155ee"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "cd3c9bec4dcecc8090963ef4c4d9f6c2",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "No files found",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_hk9FDv9p5Qd9UNXrlOplXe",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "infra/**/*"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 36,
+              "timestamp": 1784888591112
+            },
+            "id": "cd3c9bec4dcecc8090963ef4c4d9f6c2"
+          },
+          "createdAt": 1784890174653
+        },
+        {
+          "id": "3fd648e27ea4209e8972904dc2aa1c84",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now let me check for migration SQL and `.env.example` to understand the exact schema:",
+            "id": "3fd648e27ea4209e8972904dc2aa1c84",
+            "_meta": {
+              "timestamp": 1784888593713,
+              "spend": {
+                "input": 21332,
+                "output": 67,
+                "cacheRead": 20518,
+                "cacheWrite": 813,
+                "cost": 0.053497,
+                "contextTokens": 21399,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_jduIwLoizCvbXrMHQADEep",
+                "name": "read_file",
+                "arguments": {
+                  "path": ".env.example"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_qcxoWmmaAss7EnQB80Yc0F",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "**/*.sql"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_dzLmxepaetZqiMNzdu4sPb",
+                "name": "read_file",
+                "arguments": {
+                  "path": "infra/supabase/migrations/0001_init.sql"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "f1e1883ae40f8cf3c033af99480a5e35",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file .env.example:\n\n1 | # AutorIA — environment template.\n2 | # Copy to `.env` and fill in real values:  cp .env.example .env\n3 | # `.env` is gitignored — NEVER commit real secrets.\n4 | #\n5 | # On the deploy platforms these same keys are set in the dashboards, not here:\n6 | #   - Frontend (Vercel):  Project → Settings → Environment Variables\n7 | #   - Backend  (Railway): Service → Variables\n8 | # Verify the backend picked them up with:  GET /internal/env-check\n9 | \n10 | # ─── Database (Supabase Postgres, pooled connection) ───\n11 | DATABASE_URL=\"postgresql://postgres.<ref>:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\"\n12 | \n13 | # ─── IBM Watsonx (AI generation) ───\n14 | # Required. WATSONX_URL / PROJECT_ID are also needed for real generation calls.\n15 | WATSONX_API_KEY=\n16 | WATSONX_URL=\"https://us-south.ml.cloud.ibm.com\"\n17 | WATSONX_PROJECT_ID=\n18 | \n19 | # ─── Supabase (DB REST + vector store) ───\n20 | # Required. SUPABASE_KEY: use the service_role key on the backend (server-side\n21 | # only), or the anon key if you rely solely on Row Level Security.\n22 | SUPABASE_URL=\n23 | SUPABASE_KEY=\n24 | \n25 | # ─── Backend runtime ───\n26 | # Comma-separated list of allowed CORS origins. Add your Vercel URL in prod,\n27 | # e.g. \"http://localhost:3000,https://autoria.vercel.app\"\n28 | AUTORIA_CORS_ORIGINS=\"http://localhost:3000\"\n29 | \n30 | # ─── Frontend (Vercel) ───\n31 | # Only NEXT_PUBLIC_-prefixed vars are exposed to the browser. Point this at the\n32 | # Railway backend URL in prod, e.g. \"https://autoria-api.up.railway.app\"\n33 | NEXT_PUBLIC_API_BASE_URL=\"http://localhost:8000\"\n34 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_jduIwLoizCvbXrMHQADEep",
+                "name": "read_file",
+                "arguments": {
+                  "path": ".env.example"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/.env.example": 1783936816071
+              },
+              "durationMs": 23,
+              "timestamp": 1784888594149
+            },
+            "id": "f1e1883ae40f8cf3c033af99480a5e35"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "dc44ca9b6b0813d3275d4cd86be58df5",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "infra\\supabase\\migrations\\0002_hnsw_index.sql\ninfra\\supabase\\migrations\\0001_init.sql",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_qcxoWmmaAss7EnQB80Yc0F",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "**/*.sql"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 37,
+              "timestamp": 1784888594163
+            },
+            "id": "dc44ca9b6b0813d3275d4cd86be58df5"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "e3287b422e47a684dd5fb0e172e35ee6",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file infra/supabase/migrations/0001_init.sql:\n\n1 | -- =============================================================================\n2 | -- Migration : 0001_init.sql\n3 | -- Project   : AutorIA\n4 | -- Purpose   : Create the full initial schema for AutorIA on PostgreSQL 16 +\n5 | --             pgvector (Supabase).  Five tables: authors, documents, chunks,\n6 | --             style_profiles, passports, plus all supporting indexes.\n7 | --\n8 | -- Source of truth: docs/erd.md  ·  docs/MVP.md §6\n9 | --\n10 | -- Apply manually:\n11 | --   psql \"$DATABASE_URL\" -f infra/supabase/migrations/0001_init.sql\n12 | --\n13 | -- Or via Supabase CLI:\n14 | --   supabase db push\n15 | --\n16 | -- Notes:\n17 | --   • Pure DDL — no seed data.  Seed data lives in scripts/seed/.\n18 | --   • Every statement is idempotent (IF NOT EXISTS / OR REPLACE).\n19 | --   • UUID primary keys use gen_random_uuid() from pgcrypto.\n20 | --   • HNSW index uses vector_cosine_ops (operator <=>) to match the\n21 | --     cosine-similarity component of fit_score (MVP §4.2).\n22 | --   • RLS is NOT enabled in v1 — backend connects with a privileged role.\n23 | --     A future migration (000X_rls_policies.sql) will add it if the tables\n24 | --     are ever exposed directly via Supabase PostgREST.\n25 | -- =============================================================================\n26 | \n27 | begin;\n28 | \n29 | -- ---------------------------------------------------------------------------\n30 | -- Extensions\n31 | -- ---------------------------------------------------------------------------\n32 | \n33 | create extension if not exists vector;    -- pgvector: vector type + HNSW/IVFFlat\n34 | create extension if not exists pgcrypto;  -- gen_random_uuid()\n35 | \n36 | -- ---------------------------------------------------------------------------\n37 | -- Table: authors\n38 | -- ---------------------------------------------------------------------------\n39 | \n40 | create table if not exists public.authors (\n41 |     id         uuid        primary key default gen_random_uuid(),\n42 |     name       text        not null,\n43 |     slug       text        not null unique,   -- URL/JSON-facing id, e.g. 'dickens'\n44 |     bio        text,\n45 |     created_at timestamptz not null default now()\n46 | );\n47 | \n48 | comment on table  public.authors            is 'Author \"voices\". Three preloaded (Austen, Dickens, Poe); more can be added live.';\n49 | comment on column public.authors.slug       is 'Stable, URL/JSON-facing identifier used by the API and inside StyleProfile/Passport JSON (e.g. ''dickens''). The UNIQUE constraint doubles as the index.';\n50 | comment on column public.authors.bio        is 'Optional short description. Stored for future use / seed metadata; NOT exposed by the current API (AuthorSummary is id, name, slug, has_style_profile, n_documents).';\n51 | \n52 | -- ---------------------------------------------------------------------------\n53 | -- Table: documents\n54 | -- ---------------------------------------------------------------------------\n55 | \n56 | create table if not exists public.documents (\n57 |     id         uuid        primary key default gen_random_uuid(),\n58 |     author_id  uuid        not null references public.authors(id) on delete cascade,\n59 |     title      text        not null,\n60 |     source_url text,\n61 |     raw_text   text        not null,\n62 |     n_tokens   integer,\n63 |     created_at timestamptz not null default now()\n64 | );\n65 | \n66 | comment on table  public.documents           is 'Cleaned source texts that make up an author corpus (one row per work, e.g. a novel). Gutenberg headers/footers are stripped before storage.';\n67 | comment on column public.documents.n_tokens  is 'Approximate token count using tiktoken cl100k_base.';\n68 | comment on column public.documents.raw_text  is 'Full cleaned text — Gutenberg headers/footers stripped, quotes and whitespace normalised.';\n69 | \n70 | create index if not exists documents_author_id_idx\n71 |     on public.documents (author_id);\n72 | \n73 | -- ---------------------------------------------------------------------------\n74 | -- Table: chunks\n75 | -- ---------------------------------------------------------------------------\n76 | \n77 | create table if not exists public.chunks (\n78 |     id             uuid        primary key default gen_random_uuid(),\n79 |     document_id    uuid        not null references public.documents(id) on delete cascade,\n80 |     chunk_index    integer     not null,\n81 |     text           text        not null,\n82 |     embedding      vector(768),            -- nullable; filled asynchronously after insert\n83 |     token_start    integer     not null,\n84 |     token_end      integer     not null,\n85 |     created_at     timestamptz not null default now(),\n86 |     unique (document_id, chunk_index)\n87 | );\n88 | \n89 | comment on table  public.chunks              is '~500-token slices of a document (overlap 50). This is the table RAG searches. Embeddings are 768-dim from sentence-transformers all-mpnet-base-v2.';\n90 | comment on column public.chunks.chunk_index  is 'Ordinal within the document. Referenced by the Authorship Passport as rag_sources[].chunk_id.';\n91 | comment on column public.chunks.embedding    is 'vector(768), nullable — chunks can be inserted first and embedded asynchronously. Model: sentence-transformers/all-mpnet-base-v2.';\n92 | comment on column public.chunks.token_start  is 'Start token offset of this chunk within the parent document (tiktoken cl100k_base).';\n93 | comment on column public.chunks.token_end    is 'End token offset of this chunk within the parent document (tiktoken cl100k_base).';\n94 | \n95 | -- Btree index for document-level fetches\n96 | create index if not exists chunks_document_id_idx\n97 |     on public.chunks (document_id);\n98 | \n99 | -- HNSW index for approximate nearest-neighbour search over embeddings.\n100 | -- vector_cosine_ops → cosine distance (operator <=>).\n101 | -- This matches the cosine_sim component of fit_score (MVP §4.2):\n102 | --   fit_score += cosine_sim(emb_gen, semantic_centroid) × 0.35\n103 | -- Build params: m=16, ef_construction=64 (sensible defaults for this corpus size).\n104 | -- Query-time recall can be tuned with: SET hnsw.ef_search = <n>;\n105 | create index if not exists chunks_embedding_hnsw_idx\n106 |     on public.chunks\n107 |     using hnsw (embedding vector_cosine_ops)\n108 |     with (m = 16, ef_construction = 64);\n109 | \n110 | -- ---------------------------------------------------------------------------\n111 | -- Table: style_profiles\n112 | -- ---------------------------------------------------------------------------\n113 | \n114 | create table if not exists public.style_profiles (\n115 |     id          uuid        primary key default gen_random_uuid(),\n116 |     author_id   uuid        not null references public.authors(id) on delete cascade,\n117 |     version     text        not null,       -- schema_version, e.g. '1.0'\n118 |     json_data   jsonb       not null,       -- full StyleProfile JSON (MVP §4.2)\n119 |     hash        text        not null,       -- sha256 of canonical json_data; mirrored in Passport\n120 |     computed_at timestamptz not null default now()\n121 | );\n122 | \n123 | comment on table  public.style_profiles           is 'Versioned \"stylistic DNA\" per author (StyleProfile JSON v1.0, MVP §4.2). Recomputes append a new row; the current profile is the one with the latest computed_at.';\n124 | comment on column public.style_profiles.version   is 'schema_version string, e.g. ''1.0''. Allows the JSON shape to evolve independently of the DB columns.';\n125 | comment on column public.style_profiles.json_data is 'Full StyleProfile JSON stored as jsonb so individual fields (ttr, avg_sentence_length, etc.) are queryable.';\n126 | comment on column public.style_profiles.hash      is 'sha256 of the canonical json_data. Mirrored in the Passport as author_voice.style_profile_hash for tamper-evidence.';\n127 | \n128 | create index if not exists style_profiles_author_id_computed_at_idx\n129 |     on public.style_profiles (author_id, computed_at desc);\n130 | \n131 | -- ---------------------------------------------------------------------------\n132 | -- Table: passports\n133 | -- ---------------------------------------------------------------------------\n134 | \n135 | create table if not exists public.passports (\n136 |     id          uuid        primary key default gen_random_uuid(),\n137 |     author_id   uuid        not null references public.authors(id) on delete cascade,\n138 |     json_data   jsonb       not null,   -- Passport payload (MVP §4.4)\n139 |     jws_token   text        not null,   -- compact JWS, ES256 (ECDSA P-256 + SHA-256)\n140 |     created_at  timestamptz not null default now()\n141 | );\n142 | \n143 | comment on table  public.passports             is 'One row per issued Authorship Passport (MVP §4.4). Stores both the JSON payload and its compact JWS token so verification is fully reproducible offline.';\n144 | comment on column public.passports.json_data   is 'Passport payload JSON. Stores hashes of prompt/output/snippets (not raw text) for privacy.';\n145 | comment on column public.passports.jws_token   is 'Compact JWS signed with ES256 (ECDSA P-256 + SHA-256). Verifiable against /.well-known/jwks.json.';\n146 | \n147 | create index if not exists passports_author_id_idx\n148 |     on public.passports (author_id);\n149 | \n150 | commit;\n151 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_dzLmxepaetZqiMNzdu4sPb",
+                "name": "read_file",
+                "arguments": {
+                  "path": "infra/supabase/migrations/0001_init.sql"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/infra/supabase/migrations/0001_init.sql": 1783936816121
+              },
+              "durationMs": 23,
+              "timestamp": 1784888596350
+            },
+            "id": "e3287b422e47a684dd5fb0e172e35ee6"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "c9a69384bc15e12d9825b996e38aaa39",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now I have a complete picture of the project. Key findings:\n\n- **`chunks` table** has `id uuid`, `document_id uuid`, with a join path to `authors` via `documents.author_id` — there is **no direct `author_id` on `chunks`**\n- **`DATABASE_URL`** uses a `postgresql://` (sync) DSN, not `postgresql+asyncpg://`\n- The project uses `psycopg2` is **not** in `pyproject.toml` — but `psycopg2` is a standard library for sync connections; I'll use `psycopg2-binary` or note it. Actually the project has `sqlalchemy` + `asyncpg` only. For a sync script `psycopg2` is simplest — but since it's not in `pyproject.toml`, I'll use `psycopg2` via `psycopg2-binary` which is a natural standalone dep for scripts. Let me check what's available more carefully.",
+            "id": "c9a69384bc15e12d9825b996e38aaa39",
+            "_meta": {
+              "timestamp": 1784888599821,
+              "spend": {
+                "input": 25248,
+                "output": 57,
+                "cacheRead": 24108,
+                "cacheWrite": 1139,
+                "cost": 0.063262,
+                "contextTokens": 25305,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_VAMRRsBDoYxsZb9lVORY5j",
+                "name": "read_file",
+                "arguments": {
+                  "path": "pyproject.toml"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_3yrlURvkZxxdBCRyCcauBi",
+                "name": "read_file",
+                "arguments": {
+                  "path": "requirements-dev.txt"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_NPgthKBB1JSQHvXDSzXys2",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "requirements*.txt"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_bxhrHLYwyBWzJSWibWgSBK",
+                "name": "read_file",
+                "arguments": {
+                  "path": "backend/requirements.txt"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "65012cb1865eefb977b1e0f5257a307a",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file pyproject.toml:\n\n1 | # Root tooling config for all Python in the monorepo (ai_pipeline/, backend/, scripts/).\n2 | # This file holds ONLY shared tool config (Ruff + Black) — it is not a buildable package.\n3 | # When you create ai_pipeline/pyproject.toml and backend/pyproject.toml for dependencies,\n4 | # either omit [tool.*] there (Ruff will inherit this root config) OR copy the same\n5 | # line-length so the tools never disagree. Black reads the NEAREST pyproject.toml, so if a\n6 | # sub-package pyproject.toml exists it MUST repeat [tool.black] (or at least line-length).\n7 | \n8 | [tool.ruff]\n9 | line-length = 100\n10 | target-version = \"py311\"\n11 | extend-exclude = [\".venv\", \"venv\", \"__pycache__\", \"build\", \"dist\", \"node_modules\"]\n12 | \n13 | [tool.ruff.lint]\n14 | # E/W: pycodestyle · F: pyflakes · I: isort · B: bugbear · UP: pyupgrade\n15 | # C4: comprehensions · SIM: simplify · RUF: Ruff-specific\n16 | select = [\"E\", \"W\", \"F\", \"I\", \"B\", \"UP\", \"C4\", \"SIM\", \"RUF\"]\n17 | # E501 (line length) is handled by Black; let Black own line wrapping.\n18 | ignore = [\"E501\"]\n19 | \n20 | [tool.ruff.lint.per-file-ignores]\n21 | # Tests may use assert-heavy / unused fixtures patterns.\n22 | \"**/tests/**\" = [\"B011\"]\n23 | \"__init__.py\" = [\"F401\"]\n24 | \n25 | [tool.ruff.lint.isort]\n26 | known-first-party = [\"autoria_ai\", \"app\"]\n27 | \n28 | [tool.black]\n29 | line-length = 100\n30 | target-version = [\"py311\"]\n31 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_VAMRRsBDoYxsZb9lVORY5j",
+                "name": "read_file",
+                "arguments": {
+                  "path": "pyproject.toml"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/pyproject.toml": 1782689565561
+              },
+              "durationMs": 11,
+              "timestamp": 1784888604574
+            },
+            "id": "65012cb1865eefb977b1e0f5257a307a"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "1af8cbd60173f2dea40d503e9b1cadc5",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file requirements-dev.txt:\n\n1 | # Shared dev tooling — same versions for all 3 of us.\n2 | # Install into the activated venv with:  pip install -r requirements-dev.txt\n3 | # (Project/runtime deps live in ai_pipeline/ and backend/ pyproject.toml, created in Sprint 0.)\n4 | \n5 | ruff==0.6.9\n6 | black==24.8.0\n7 | pre-commit==3.8.0\n8 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_3yrlURvkZxxdBCRyCcauBi",
+                "name": "read_file",
+                "arguments": {
+                  "path": "requirements-dev.txt"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/requirements-dev.txt": 1782689565561
+              },
+              "durationMs": 24,
+              "timestamp": 1784888604587
+            },
+            "id": "1af8cbd60173f2dea40d503e9b1cadc5"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "776a5cec5f063c3f58f897d5a6cec33e",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "backend\\requirements.txt\nrequirements-dev.txt",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_NPgthKBB1JSQHvXDSzXys2",
+                "name": "glob",
+                "arguments": {
+                  "pattern": "requirements*.txt"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Find Files with pattern \"{pattern}\"",
+                "error": "Failed to find files with pattern \"{pattern}\"",
+                "running": "Finding files with pattern \"{pattern}\"",
+                "success": "Found files with pattern \"{pattern}\""
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "durationMs": 38,
+              "timestamp": 1784888604601
+            },
+            "id": "776a5cec5f063c3f58f897d5a6cec33e"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "4aae19c59fbedfcd1164f0b968b8a7be",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Contents of file backend/requirements.txt:\n\n1 | # Runtime dependencies for the Railway/Nixpacks deploy.\n2 | # Source of truth is pyproject.toml ([project].dependencies) — keep in sync.\n3 | # Nixpacks installs this file automatically during the build phase.\n4 | fastapi>=0.115\n5 | uvicorn[standard]>=0.30\n6 | pydantic>=2.7\n7 | ",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_bxhrHLYwyBWzJSWibWgSBK",
+                "name": "read_file",
+                "arguments": {
+                  "path": "backend/requirements.txt"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Read File {path}",
+                "error": "Failed to read file {path}",
+                "running": "Reading file {path}",
+                "success": "Read file {path}"
+              },
+              "permission": "read",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/backend/requirements.txt": 1783936816081
+              },
+              "durationMs": 11,
+              "timestamp": 1784888606317
+            },
+            "id": "4aae19c59fbedfcd1164f0b968b8a7be"
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "58992f623a615cc995753a231b1b74c6",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now I have everything. The project has `sqlalchemy` and `asyncpg` in the pipeline package, but **no `psycopg2`** is declared anywhere. Since this is an offline script (not part of the installed package), `psycopg2-binary` is the right choice — it's a standalone install. I'll also note this clearly in the script header. The `DATABASE_URL` in `.env.example` is a plain `postgresql://` DSN, compatible with psycopg2 directly.\n\nCritical schema insight: **`chunks` has no `author_id` column** — the join is `chunks → documents → authors`. The script must JOIN through `documents`. Let me write the script now:",
+            "id": "58992f623a615cc995753a231b1b74c6",
+            "_meta": {
+              "timestamp": 1784888608252,
+              "spend": {
+                "input": 25421,
+                "output": 3231,
+                "cacheRead": 24108,
+                "cacheWrite": 1312,
+                "cost": 0.07163,
+                "contextTokens": 28652,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_EoHJoyLbM55eqlt605d984",
+                "name": "write_file",
+                "arguments": {
+                  "path": "scripts/precompute_umap.py",
+                  "line_count": 227,
+                  "content": "\"\"\"scripts/precompute_umap.py\n=============================================================================\nPre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\npersist them to the ``public.umap_coords`` table.\n\nPipeline\n--------\n1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n   ``public.documents`` (chunks carry no direct author_id column — the\n   canonical join path is chunks → documents → authors).\n3. Reduce the N×768 embedding matrix to N×2 with UMAP\n   (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n4. Truncate and repopulate ``public.umap_coords``.\n\nUsage\n-----\n    # from the repo root, with the virtualenv active:\n    python scripts/precompute_umap.py\n\n    # override chunk source table (default: public.chunks):\n    CHUNK_TABLE=public.my_chunks python scripts/precompute_umap.py\n\nDependencies (beyond ai_pipeline/pyproject.toml)\n-------------------------------------------------\n    pip install psycopg2-binary          # sync PG driver for this script\n    # umap-learn and numpy are already in ai_pipeline/pyproject.toml\n\nEnvironment variables\n---------------------\n    DATABASE_URL  — PostgreSQL DSN, e.g.\n                    postgresql://user:pass@host:5432/dbname\n    CHUNK_TABLE   — optional; defaults to \"public.chunks\"\n\nNotes\n-----\n* UMAP requires ≥ (n_neighbors + 1) rows.  The script exits early with a\n  clear message if the table has fewer embedded chunks.\n* Embeddings are read as plain Python lists (pgvector returns them that way\n  from psycopg2); they are cast to a float32 NumPy array for UMAP.\n* The insert uses psycopg2's execute_values for a single round-trip.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport logging\nimport os\nimport sys\nfrom typing import Any\n\nimport numpy as np\nimport psycopg2\nimport psycopg2.extras\nimport umap  # umap-learn\n\n# ---------------------------------------------------------------------------\n# Configuration\n# ---------------------------------------------------------------------------\n\n#: UMAP parameters — fixed per spec.\nUMAP_N_NEIGHBORS: int = 15\nUMAP_MIN_DIST: float = 0.1\nUMAP_METRIC: str = \"cosine\"\nUMAP_N_COMPONENTS: int = 2\n\n#: Source table for embeddings.  Override with env var CHUNK_TABLE.\nDEFAULT_CHUNK_TABLE: str = \"public.chunks\"\n\n#: DDL for the output table.\n_CREATE_UMAP_COORDS_DDL = \"\"\"\nCREATE TABLE IF NOT EXISTS public.umap_coords (\n    id        SERIAL      PRIMARY KEY,\n    author_id UUID        NOT NULL,\n    x         DOUBLE PRECISION NOT NULL,\n    y         DOUBLE PRECISION NOT NULL\n);\n\"\"\"\n\n#: Index for fast lookups by author — created alongside the table.\n_CREATE_UMAP_COORDS_IDX = \"\"\"\nCREATE INDEX IF NOT EXISTS umap_coords_author_id_idx\n    ON public.umap_coords (author_id);\n\"\"\"\n\n# ---------------------------------------------------------------------------\n# Logging\n# ---------------------------------------------------------------------------\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s  %(levelname)-8s  %(message)s\",\n    datefmt=\"%Y-%m-%dT%H:%M:%S\",\n    stream=sys.stderr,\n)\nlog = logging.getLogger(__name__)\n\n# ---------------------------------------------------------------------------\n# Database helpers\n# ---------------------------------------------------------------------------\n\n\ndef get_connection(database_url: str | None = None) -> psycopg2.extensions.connection:\n    \"\"\"Return a psycopg2 connection.\n\n    Parameters\n    ----------\n    database_url:\n        Full PostgreSQL DSN.  If *None*, reads ``DATABASE_URL`` from the\n        environment.  The DSN must be compatible with psycopg2 (plain\n        ``postgresql://`` scheme, not ``postgresql+asyncpg://``).\n\n    Raises\n    ------\n    KeyError\n        If ``DATABASE_URL`` is not set and *database_url* was not provided.\n    \"\"\"\n    url = database_url or os.environ[\"DATABASE_URL\"]\n    # Strip the \"+asyncpg\" driver suffix if the DSN was copied from db.py.\n    url = url.replace(\"postgresql+asyncpg://\", \"postgresql://\")\n    return psycopg2.connect(url)\n\n\ndef fetch_embeddings(\n    conn: psycopg2.extensions.connection,\n    chunk_table: str = DEFAULT_CHUNK_TABLE,\n) -> tuple[list[str], np.ndarray]:\n    \"\"\"Fetch author UUIDs and their chunk embeddings from the database.\n\n    The join path is:\n        <chunk_table>  →  public.documents  →  public.authors\n\n    Only rows where ``embedding IS NOT NULL`` are returned.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    chunk_table:\n        Fully-qualified table name that holds the embedding column\n        (default: ``public.chunks``).\n\n    Returns\n    -------\n    author_ids : list[str]\n        One UUID string per chunk row (may repeat for the same author).\n    embeddings : np.ndarray\n        Float32 array of shape ``(N, 768)``.\n\n    Raises\n    ------\n    RuntimeError\n        If no embedded chunks are found.\n    \"\"\"\n    # Split schema.table so we can reference them separately in the query.\n    # If the caller omits the schema, default to \"public\".\n    if \".\" in chunk_table:\n        schema, table = chunk_table.split(\".\", 1)\n    else:\n        schema, table = \"public\", chunk_table\n\n    sql = f\"\"\"\n        SELECT d.author_id::text, c.embedding\n        FROM   {schema}.{table} c\n        JOIN   public.documents d ON d.id = c.document_id\n        WHERE  c.embedding IS NOT NULL\n        ORDER BY d.author_id\n    \"\"\"  # ORDER BY keeps same-author rows together (cosmetic, not required)\n\n    log.info(\"Querying embeddings from %s.%s …\", schema, table)\n    with conn.cursor() as cur:\n        cur.execute(sql)\n        rows: list[Any] = cur.fetchall()\n\n    if not rows:\n        raise RuntimeError(\n            f\"No embedded chunks found in {chunk_table}. \"\n            \"Run backfill_embeddings() first.\"\n        )\n\n    author_ids: list[str] = [row[0] for row in rows]\n    # pgvector returns embeddings as Python lists of floats.\n    embeddings = np.array([row[1] for row in rows], dtype=np.float32)\n\n    log.info(\"Fetched %d embedded chunks across %d authors.\", len(rows), len(set(author_ids)))\n    return author_ids, embeddings\n\n\n# ---------------------------------------------------------------------------\n# UMAP reduction\n# ---------------------------------------------------------------------------\n\n\ndef reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:\n    \"\"\"Fit UMAP on *embeddings* and return 2-D coordinates.\n\n    Parameters\n    ----------\n    embeddings:\n        Float32 array of shape ``(N, D)``.  D is typically 768.\n\n    Returns\n    -------\n    np.ndarray\n        Float64 array of shape ``(N, 2)``.\n\n    Notes\n    -----\n    UMAP requires at least ``n_neighbors + 1 = 16`` rows to fit.  The check\n    is done by the caller (``run``).\n    \"\"\"\n    reducer = umap.UMAP(\n        n_neighbors=UMAP_N_NEIGHBORS,\n        min_dist=UMAP_MIN_DIST,\n        metric=UMAP_METRIC,\n        n_components=UMAP_N_COMPONENTS,\n        random_state=42,  # reproducible layouts across runs\n    )\n    log.info(\n        \"Fitting UMAP (n_neighbors=%d, min_dist=%.2f, metric=%s) on %d vectors …\",\n        UMAP_N_NEIGHBORS,\n        UMAP_MIN_DIST,\n        UMAP_METRIC,\n        embeddings.shape[0],\n    )\n    coords: np.ndarray = reducer.fit_transform(embeddings)\n    log.info(\"UMAP fit complete. Output shape: %s\", coords.shape)\n    return coords  # (N, 2), float64\n\n\n# ---------------------------------------------------------------------------\n# Storage\n# ---------------------------------------------------------------------------\n\n\ndef ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:\n    \"\"\"Create ``public.umap_coords`` and its index if they do not exist.\"\"\"\n    with conn.cursor() as cur:\n        cur.execute(_CREATE_UMAP_COORDS_DDL)\n        cur.execute(_CREATE_UMAP_COORDS_IDX)\n    conn.commit()\n    log.info(\"Table public.umap_coords is ready.\")\n\n\ndef save_coords(\n    conn: psycopg2.extensions.connection,\n    author_ids: list[str],\n    coords: np.ndarray,\n) -> None:\n    \"\"\"Truncate umap_coords and bulk-insert new (author_id, x, y) rows.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    author_ids:\n        List of UUID strings, one per row; must be same length as *coords*.\n    coords:\n        Float64 array of shape ``(N, 2)``; coords[:, 0] = x, coords[:, 1] = y.\n    \"\"\"\n    rows = [\n        (aid, float(coords[i, 0]), float(coords[i, 1]))\n        for i, aid in enumerate(author_ids)\n    ]\n\n    with conn.cursor() as cur:\n        log.info(\"Truncating public.umap_coords …\")\n        cur.execute(\"TRUNCATE TABLE public.umap_coords RESTART IDENTITY\")\n\n        log.info(\"Inserting %d rows into public.umap_coords …\", len(rows))\n        psycopg2.extras.execute_values(\n            cur,\n            \"INSERT INTO public.umap_coords (author_id, x, y) VALUES %s\",\n            rows,\n            page_size=1000,\n        )\n\n    conn.commit()\n    log.info(\"Done — %d umap_coords rows committed.\", len(rows))\n\n\n# ---------------------------------------------------------------------------\n# Orchestrator\n# ---------------------------------------------------------------------------\n\n\ndef run(\n    database_url: str | None = None,\n    chunk_table: str | None = None,\n) -> None:\n    \"\"\"Full pipeline: fetch → reduce → store.\n\n    Parameters\n    ----------\n    database_url:\n        PostgreSQL DSN.  Falls back to ``DATABASE_URL`` env var.\n    chunk_table:\n        Source table for embeddings.  Falls back to ``CHUNK_TABLE`` env var,\n        then to ``DEFAULT_CHUNK_TABLE`` (``public.chunks``).\n    \"\"\"\n    table = chunk_table or os.environ.get(\"CHUNK_TABLE\", DEFAULT_CHUNK_TABLE)\n\n    conn = get_connection(database_url)\n    try:\n        author_ids, embeddings = fetch_embeddings(conn, chunk_table=table)\n\n        min_required = UMAP_N_NEIGHBORS + 1\n        if len(author_ids) < min_required:\n            log.error(\n                \"UMAP requires at least %d rows but only %d embedded chunks were found. \"\n                \"Embed more chunks and re-run.\",\n                min_required,\n                len(author_ids),\n            )\n            sys.exit(1)\n\n        coords = reduce_to_2d(embeddings)\n        ensure_umap_coords_table(conn)\n        save_coords(conn, author_ids, coords)\n    finally:\n        conn.close()\n\n\n# ---------------------------------------------------------------------------\n# Entry point\n# ---------------------------------------------------------------------------\n\nif __name__ == \"__main__\":\n    run()\n"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784890174654
+        },
+        {
+          "id": "5851a26fc48a9d5aed59a46dfc7d6686",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Created file: scripts/precompute_umap.py\n\n<result>\n\"\"\"scripts/precompute_umap.py\n=============================================================================\nPre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\npersist them to the ``public.umap_coords`` table.\n\n\n...324 lines truncated. You do not need to re-read the file. The complete file was written successfully. Use read_file if you need to see the full contents.\n</result>",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_EoHJoyLbM55eqlt605d984",
+                "name": "write_file",
+                "arguments": {
+                  "path": "scripts/precompute_umap.py",
+                  "line_count": 227,
+                  "content": "\"\"\"scripts/precompute_umap.py\n=============================================================================\nPre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\npersist them to the ``public.umap_coords`` table.\n\nPipeline\n--------\n1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n   ``public.documents`` (chunks carry no direct author_id column — the\n   canonical join path is chunks → documents → authors).\n3. Reduce the N×768 embedding matrix to N×2 with UMAP\n   (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n4. Truncate and repopulate ``public.umap_coords``.\n\nUsage\n-----\n    # from the repo root, with the virtualenv active:\n    python scripts/precompute_umap.py\n\n    # override chunk source table (default: public.chunks):\n    CHUNK_TABLE=public.my_chunks python scripts/precompute_umap.py\n\nDependencies (beyond ai_pipeline/pyproject.toml)\n-------------------------------------------------\n    pip install psycopg2-binary          # sync PG driver for this script\n    # umap-learn and numpy are already in ai_pipeline/pyproject.toml\n\nEnvironment variables\n---------------------\n    DATABASE_URL  — PostgreSQL DSN, e.g.\n                    postgresql://user:pass@host:5432/dbname\n    CHUNK_TABLE   — optional; defaults to \"public.chunks\"\n\nNotes\n-----\n* UMAP requires ≥ (n_neighbors + 1) rows.  The script exits early with a\n  clear message if the table has fewer embedded chunks.\n* Embeddings are read as plain Python lists (pgvector returns them that way\n  from psycopg2); they are cast to a float32 NumPy array for UMAP.\n* The insert uses psycopg2's execute_values for a single round-trip.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport logging\nimport os\nimport sys\nfrom typing import Any\n\nimport numpy as np\nimport psycopg2\nimport psycopg2.extras\nimport umap  # umap-learn\n\n# ---------------------------------------------------------------------------\n# Configuration\n# ---------------------------------------------------------------------------\n\n#: UMAP parameters — fixed per spec.\nUMAP_N_NEIGHBORS: int = 15\nUMAP_MIN_DIST: float = 0.1\nUMAP_METRIC: str = \"cosine\"\nUMAP_N_COMPONENTS: int = 2\n\n#: Source table for embeddings.  Override with env var CHUNK_TABLE.\nDEFAULT_CHUNK_TABLE: str = \"public.chunks\"\n\n#: DDL for the output table.\n_CREATE_UMAP_COORDS_DDL = \"\"\"\nCREATE TABLE IF NOT EXISTS public.umap_coords (\n    id        SERIAL      PRIMARY KEY,\n    author_id UUID        NOT NULL,\n    x         DOUBLE PRECISION NOT NULL,\n    y         DOUBLE PRECISION NOT NULL\n);\n\"\"\"\n\n#: Index for fast lookups by author — created alongside the table.\n_CREATE_UMAP_COORDS_IDX = \"\"\"\nCREATE INDEX IF NOT EXISTS umap_coords_author_id_idx\n    ON public.umap_coords (author_id);\n\"\"\"\n\n# ---------------------------------------------------------------------------\n# Logging\n# ---------------------------------------------------------------------------\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s  %(levelname)-8s  %(message)s\",\n    datefmt=\"%Y-%m-%dT%H:%M:%S\",\n    stream=sys.stderr,\n)\nlog = logging.getLogger(__name__)\n\n# ---------------------------------------------------------------------------\n# Database helpers\n# ---------------------------------------------------------------------------\n\n\ndef get_connection(database_url: str | None = None) -> psycopg2.extensions.connection:\n    \"\"\"Return a psycopg2 connection.\n\n    Parameters\n    ----------\n    database_url:\n        Full PostgreSQL DSN.  If *None*, reads ``DATABASE_URL`` from the\n        environment.  The DSN must be compatible with psycopg2 (plain\n        ``postgresql://`` scheme, not ``postgresql+asyncpg://``).\n\n    Raises\n    ------\n    KeyError\n        If ``DATABASE_URL`` is not set and *database_url* was not provided.\n    \"\"\"\n    url = database_url or os.environ[\"DATABASE_URL\"]\n    # Strip the \"+asyncpg\" driver suffix if the DSN was copied from db.py.\n    url = url.replace(\"postgresql+asyncpg://\", \"postgresql://\")\n    return psycopg2.connect(url)\n\n\ndef fetch_embeddings(\n    conn: psycopg2.extensions.connection,\n    chunk_table: str = DEFAULT_CHUNK_TABLE,\n) -> tuple[list[str], np.ndarray]:\n    \"\"\"Fetch author UUIDs and their chunk embeddings from the database.\n\n    The join path is:\n        <chunk_table>  →  public.documents  →  public.authors\n\n    Only rows where ``embedding IS NOT NULL`` are returned.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    chunk_table:\n        Fully-qualified table name that holds the embedding column\n        (default: ``public.chunks``).\n\n    Returns\n    -------\n    author_ids : list[str]\n        One UUID string per chunk row (may repeat for the same author).\n    embeddings : np.ndarray\n        Float32 array of shape ``(N, 768)``.\n\n    Raises\n    ------\n    RuntimeError\n        If no embedded chunks are found.\n    \"\"\"\n    # Split schema.table so we can reference them separately in the query.\n    # If the caller omits the schema, default to \"public\".\n    if \".\" in chunk_table:\n        schema, table = chunk_table.split(\".\", 1)\n    else:\n        schema, table = \"public\", chunk_table\n\n    sql = f\"\"\"\n        SELECT d.author_id::text, c.embedding\n        FROM   {schema}.{table} c\n        JOIN   public.documents d ON d.id = c.document_id\n        WHERE  c.embedding IS NOT NULL\n        ORDER BY d.author_id\n    \"\"\"  # ORDER BY keeps same-author rows together (cosmetic, not required)\n\n    log.info(\"Querying embeddings from %s.%s …\", schema, table)\n    with conn.cursor() as cur:\n        cur.execute(sql)\n        rows: list[Any] = cur.fetchall()\n\n    if not rows:\n        raise RuntimeError(\n            f\"No embedded chunks found in {chunk_table}. \"\n            \"Run backfill_embeddings() first.\"\n        )\n\n    author_ids: list[str] = [row[0] for row in rows]\n    # pgvector returns embeddings as Python lists of floats.\n    embeddings = np.array([row[1] for row in rows], dtype=np.float32)\n\n    log.info(\"Fetched %d embedded chunks across %d authors.\", len(rows), len(set(author_ids)))\n    return author_ids, embeddings\n\n\n# ---------------------------------------------------------------------------\n# UMAP reduction\n# ---------------------------------------------------------------------------\n\n\ndef reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:\n    \"\"\"Fit UMAP on *embeddings* and return 2-D coordinates.\n\n    Parameters\n    ----------\n    embeddings:\n        Float32 array of shape ``(N, D)``.  D is typically 768.\n\n    Returns\n    -------\n    np.ndarray\n        Float64 array of shape ``(N, 2)``.\n\n    Notes\n    -----\n    UMAP requires at least ``n_neighbors + 1 = 16`` rows to fit.  The check\n    is done by the caller (``run``).\n    \"\"\"\n    reducer = umap.UMAP(\n        n_neighbors=UMAP_N_NEIGHBORS,\n        min_dist=UMAP_MIN_DIST,\n        metric=UMAP_METRIC,\n        n_components=UMAP_N_COMPONENTS,\n        random_state=42,  # reproducible layouts across runs\n    )\n    log.info(\n        \"Fitting UMAP (n_neighbors=%d, min_dist=%.2f, metric=%s) on %d vectors …\",\n        UMAP_N_NEIGHBORS,\n        UMAP_MIN_DIST,\n        UMAP_METRIC,\n        embeddings.shape[0],\n    )\n    coords: np.ndarray = reducer.fit_transform(embeddings)\n    log.info(\"UMAP fit complete. Output shape: %s\", coords.shape)\n    return coords  # (N, 2), float64\n\n\n# ---------------------------------------------------------------------------\n# Storage\n# ---------------------------------------------------------------------------\n\n\ndef ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:\n    \"\"\"Create ``public.umap_coords`` and its index if they do not exist.\"\"\"\n    with conn.cursor() as cur:\n        cur.execute(_CREATE_UMAP_COORDS_DDL)\n        cur.execute(_CREATE_UMAP_COORDS_IDX)\n    conn.commit()\n    log.info(\"Table public.umap_coords is ready.\")\n\n\ndef save_coords(\n    conn: psycopg2.extensions.connection,\n    author_ids: list[str],\n    coords: np.ndarray,\n) -> None:\n    \"\"\"Truncate umap_coords and bulk-insert new (author_id, x, y) rows.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    author_ids:\n        List of UUID strings, one per row; must be same length as *coords*.\n    coords:\n        Float64 array of shape ``(N, 2)``; coords[:, 0] = x, coords[:, 1] = y.\n    \"\"\"\n    rows = [\n        (aid, float(coords[i, 0]), float(coords[i, 1]))\n        for i, aid in enumerate(author_ids)\n    ]\n\n    with conn.cursor() as cur:\n        log.info(\"Truncating public.umap_coords …\")\n        cur.execute(\"TRUNCATE TABLE public.umap_coords RESTART IDENTITY\")\n\n        log.info(\"Inserting %d rows into public.umap_coords …\", len(rows))\n        psycopg2.extras.execute_values(\n            cur,\n            \"INSERT INTO public.umap_coords (author_id, x, y) VALUES %s\",\n            rows,\n            page_size=1000,\n        )\n\n    conn.commit()\n    log.info(\"Done — %d umap_coords rows committed.\", len(rows))\n\n\n# ---------------------------------------------------------------------------\n# Orchestrator\n# ---------------------------------------------------------------------------\n\n\ndef run(\n    database_url: str | None = None,\n    chunk_table: str | None = None,\n) -> None:\n    \"\"\"Full pipeline: fetch → reduce → store.\n\n    Parameters\n    ----------\n    database_url:\n        PostgreSQL DSN.  Falls back to ``DATABASE_URL`` env var.\n    chunk_table:\n        Source table for embeddings.  Falls back to ``CHUNK_TABLE`` env var,\n        then to ``DEFAULT_CHUNK_TABLE`` (``public.chunks``).\n    \"\"\"\n    table = chunk_table or os.environ.get(\"CHUNK_TABLE\", DEFAULT_CHUNK_TABLE)\n\n    conn = get_connection(database_url)\n    try:\n        author_ids, embeddings = fetch_embeddings(conn, chunk_table=table)\n\n        min_required = UMAP_N_NEIGHBORS + 1\n        if len(author_ids) < min_required:\n            log.error(\n                \"UMAP requires at least %d rows but only %d embedded chunks were found. \"\n                \"Embed more chunks and re-run.\",\n                min_required,\n                len(author_ids),\n            )\n            sys.exit(1)\n\n        coords = reduce_to_2d(embeddings)\n        ensure_umap_coords_table(conn)\n        save_coords(conn, author_ids, coords)\n    finally:\n        conn.close()\n\n\n# ---------------------------------------------------------------------------\n# Entry point\n# ---------------------------------------------------------------------------\n\nif __name__ == \"__main__\":\n    run()\n"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Write File {path}",
+                "error": "Failed to write file {path}",
+                "running": "Writing file {path}",
+                "success": "Wrote file {path}",
+                "runningLong": [
+                  "Still writing...",
+                  "Writing takes time...",
+                  "Nearly written...",
+                  "A lot of content to write...",
+                  "Committing every character...",
+                  "Writing like my life depends on it..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py": {
+                  "before": "",
+                  "after": "\"\"\"scripts/precompute_umap.py\n=============================================================================\nPre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\npersist them to the ``public.umap_coords`` table.\n\nPipeline\n--------\n1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n   ``public.documents`` (chunks carry no direct author_id column — the\n   canonical join path is chunks → documents → authors).\n3. Reduce the N×768 embedding matrix to N×2 with UMAP\n   (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n4. Truncate and repopulate ``public.umap_coords``.\n\nUsage\n-----\n    # from the repo root, with the virtualenv active:\n    python scripts/precompute_umap.py\n\n    # override chunk source table (default: public.chunks):\n    CHUNK_TABLE=public.my_chunks python scripts/precompute_umap.py\n\nDependencies (beyond ai_pipeline/pyproject.toml)\n-------------------------------------------------\n    pip install psycopg2-binary          # sync PG driver for this script\n    # umap-learn and numpy are already in ai_pipeline/pyproject.toml\n\nEnvironment variables\n---------------------\n    DATABASE_URL  — PostgreSQL DSN, e.g.\n                    postgresql://user:pass@host:5432/dbname\n    CHUNK_TABLE   — optional; defaults to \"public.chunks\"\n\nNotes\n-----\n* UMAP requires ≥ (n_neighbors + 1) rows.  The script exits early with a\n  clear message if the table has fewer embedded chunks.\n* Embeddings are read as plain Python lists (pgvector returns them that way\n  from psycopg2); they are cast to a float32 NumPy array for UMAP.\n* The insert uses psycopg2's execute_values for a single round-trip.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport logging\nimport os\nimport sys\nfrom typing import Any\n\nimport numpy as np\nimport psycopg2\nimport psycopg2.extras\nimport umap  # umap-learn\n\n# ---------------------------------------------------------------------------\n# Configuration\n# ---------------------------------------------------------------------------\n\n#: UMAP parameters — fixed per spec.\nUMAP_N_NEIGHBORS: int = 15\nUMAP_MIN_DIST: float = 0.1\nUMAP_METRIC: str = \"cosine\"\nUMAP_N_COMPONENTS: int = 2\n\n#: Source table for embeddings.  Override with env var CHUNK_TABLE.\nDEFAULT_CHUNK_TABLE: str = \"public.chunks\"\n\n#: DDL for the output table.\n_CREATE_UMAP_COORDS_DDL = \"\"\"\nCREATE TABLE IF NOT EXISTS public.umap_coords (\n    id        SERIAL      PRIMARY KEY,\n    author_id UUID        NOT NULL,\n    x         DOUBLE PRECISION NOT NULL,\n    y         DOUBLE PRECISION NOT NULL\n);\n\"\"\"\n\n#: Index for fast lookups by author — created alongside the table.\n_CREATE_UMAP_COORDS_IDX = \"\"\"\nCREATE INDEX IF NOT EXISTS umap_coords_author_id_idx\n    ON public.umap_coords (author_id);\n\"\"\"\n\n# ---------------------------------------------------------------------------\n# Logging\n# ---------------------------------------------------------------------------\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s  %(levelname)-8s  %(message)s\",\n    datefmt=\"%Y-%m-%dT%H:%M:%S\",\n    stream=sys.stderr,\n)\nlog = logging.getLogger(__name__)\n\n# ---------------------------------------------------------------------------\n# Database helpers\n# ---------------------------------------------------------------------------\n\n\ndef get_connection(database_url: str | None = None) -> psycopg2.extensions.connection:\n    \"\"\"Return a psycopg2 connection.\n\n    Parameters\n    ----------\n    database_url:\n        Full PostgreSQL DSN.  If *None*, reads ``DATABASE_URL`` from the\n        environment.  The DSN must be compatible with psycopg2 (plain\n        ``postgresql://`` scheme, not ``postgresql+asyncpg://``).\n\n    Raises\n    ------\n    KeyError\n        If ``DATABASE_URL`` is not set and *database_url* was not provided.\n    \"\"\"\n    url = database_url or os.environ[\"DATABASE_URL\"]\n    # Strip the \"+asyncpg\" driver suffix if the DSN was copied from db.py.\n    url = url.replace(\"postgresql+asyncpg://\", \"postgresql://\")\n    return psycopg2.connect(url)\n\n\ndef fetch_embeddings(\n    conn: psycopg2.extensions.connection,\n    chunk_table: str = DEFAULT_CHUNK_TABLE,\n) -> tuple[list[str], np.ndarray]:\n    \"\"\"Fetch author UUIDs and their chunk embeddings from the database.\n\n    The join path is:\n        <chunk_table>  →  public.documents  →  public.authors\n\n    Only rows where ``embedding IS NOT NULL`` are returned.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    chunk_table:\n        Fully-qualified table name that holds the embedding column\n        (default: ``public.chunks``).\n\n    Returns\n    -------\n    author_ids : list[str]\n        One UUID string per chunk row (may repeat for the same author).\n    embeddings : np.ndarray\n        Float32 array of shape ``(N, 768)``.\n\n    Raises\n    ------\n    RuntimeError\n        If no embedded chunks are found.\n    \"\"\"\n    # Split schema.table so we can reference them separately in the query.\n    # If the caller omits the schema, default to \"public\".\n    if \".\" in chunk_table:\n        schema, table = chunk_table.split(\".\", 1)\n    else:\n        schema, table = \"public\", chunk_table\n\n    sql = f\"\"\"\n        SELECT d.author_id::text, c.embedding\n        FROM   {schema}.{table} c\n        JOIN   public.documents d ON d.id = c.document_id\n        WHERE  c.embedding IS NOT NULL\n        ORDER BY d.author_id\n    \"\"\"  # ORDER BY keeps same-author rows together (cosmetic, not required)\n\n    log.info(\"Querying embeddings from %s.%s …\", schema, table)\n    with conn.cursor() as cur:\n        cur.execute(sql)\n        rows: list[Any] = cur.fetchall()\n\n    if not rows:\n        raise RuntimeError(\n            f\"No embedded chunks found in {chunk_table}. \"\n            \"Run backfill_embeddings() first.\"\n        )\n\n    author_ids: list[str] = [row[0] for row in rows]\n    # pgvector returns embeddings as Python lists of floats.\n    embeddings = np.array([row[1] for row in rows], dtype=np.float32)\n\n    log.info(\"Fetched %d embedded chunks across %d authors.\", len(rows), len(set(author_ids)))\n    return author_ids, embeddings\n\n\n# ---------------------------------------------------------------------------\n# UMAP reduction\n# ---------------------------------------------------------------------------\n\n\ndef reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:\n    \"\"\"Fit UMAP on *embeddings* and return 2-D coordinates.\n\n    Parameters\n    ----------\n    embeddings:\n        Float32 array of shape ``(N, D)``.  D is typically 768.\n\n    Returns\n    -------\n    np.ndarray\n        Float64 array of shape ``(N, 2)``.\n\n    Notes\n    -----\n    UMAP requires at least ``n_neighbors + 1 = 16`` rows to fit.  The check\n    is done by the caller (``run``).\n    \"\"\"\n    reducer = umap.UMAP(\n        n_neighbors=UMAP_N_NEIGHBORS,\n        min_dist=UMAP_MIN_DIST,\n        metric=UMAP_METRIC,\n        n_components=UMAP_N_COMPONENTS,\n        random_state=42,  # reproducible layouts across runs\n    )\n    log.info(\n        \"Fitting UMAP (n_neighbors=%d, min_dist=%.2f, metric=%s) on %d vectors …\",\n        UMAP_N_NEIGHBORS,\n        UMAP_MIN_DIST,\n        UMAP_METRIC,\n        embeddings.shape[0],\n    )\n    coords: np.ndarray = reducer.fit_transform(embeddings)\n    log.info(\"UMAP fit complete. Output shape: %s\", coords.shape)\n    return coords  # (N, 2), float64\n\n\n# ---------------------------------------------------------------------------\n# Storage\n# ---------------------------------------------------------------------------\n\n\ndef ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:\n    \"\"\"Create ``public.umap_coords`` and its index if they do not exist.\"\"\"\n    with conn.cursor() as cur:\n        cur.execute(_CREATE_UMAP_COORDS_DDL)\n        cur.execute(_CREATE_UMAP_COORDS_IDX)\n    conn.commit()\n    log.info(\"Table public.umap_coords is ready.\")\n\n\ndef save_coords(\n    conn: psycopg2.extensions.connection,\n    author_ids: list[str],\n    coords: np.ndarray,\n) -> None:\n    \"\"\"Truncate umap_coords and bulk-insert new (author_id, x, y) rows.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    author_ids:\n        List of UUID strings, one per row; must be same length as *coords*.\n    coords:\n        Float64 array of shape ``(N, 2)``; coords[:, 0] = x, coords[:, 1] = y.\n    \"\"\"\n    rows = [\n        (aid, float(coords[i, 0]), float(coords[i, 1]))\n        for i, aid in enumerate(author_ids)\n    ]\n\n    with conn.cursor() as cur:\n        log.info(\"Truncating public.umap_coords …\")\n        cur.execute(\"TRUNCATE TABLE public.umap_coords RESTART IDENTITY\")\n\n        log.info(\"Inserting %d rows into public.umap_coords …\", len(rows))\n        psycopg2.extras.execute_values(\n            cur,\n            \"INSERT INTO public.umap_coords (author_id, x, y) VALUES %s\",\n            rows,\n            page_size=1000,\n        )\n\n    conn.commit()\n    log.info(\"Done — %d umap_coords rows committed.\", len(rows))\n\n\n# ---------------------------------------------------------------------------\n# Orchestrator\n# ---------------------------------------------------------------------------\n\n\ndef run(\n    database_url: str | None = None,\n    chunk_table: str | None = None,\n) -> None:\n    \"\"\"Full pipeline: fetch → reduce → store.\n\n    Parameters\n    ----------\n    database_url:\n        PostgreSQL DSN.  Falls back to ``DATABASE_URL`` env var.\n    chunk_table:\n        Source table for embeddings.  Falls back to ``CHUNK_TABLE`` env var,\n        then to ``DEFAULT_CHUNK_TABLE`` (``public.chunks``).\n    \"\"\"\n    table = chunk_table or os.environ.get(\"CHUNK_TABLE\", DEFAULT_CHUNK_TABLE)\n\n    conn = get_connection(database_url)\n    try:\n        author_ids, embeddings = fetch_embeddings(conn, chunk_table=table)\n\n        min_required = UMAP_N_NEIGHBORS + 1\n        if len(author_ids) < min_required:\n            log.error(\n                \"UMAP requires at least %d rows but only %d embedded chunks were found. \"\n                \"Embed more chunks and re-run.\",\n                min_required,\n                len(author_ids),\n            )\n            sys.exit(1)\n\n        coords = reduce_to_2d(embeddings)\n        ensure_umap_coords_table(conn)\n        save_coords(conn, author_ids, coords)\n    finally:\n        conn.close()\n\n\n# ---------------------------------------------------------------------------\n# Entry point\n# ---------------------------------------------------------------------------\n\nif __name__ == \"__main__\":\n    run()\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py\n@@ -0,0 +1,328 @@\n+\"\"\"scripts/precompute_umap.py\n+=============================================================================\n+Pre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\n+persist them to the ``public.umap_coords`` table.\n+\n+Pipeline\n+--------\n+1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n+2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n+   ``public.documents`` (chunks carry no direct author_id column — the\n+   canonical join path is chunks → documents → authors).\n+3. Reduce the N×768 embedding matrix to N×2 with UMAP\n+   (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n+4. Truncate and repopulate ``public.umap_coords``.\n+\n+Usage\n+-----\n+    # from the repo root, with the virtualenv active:\n+    python scripts/precompute_umap.py\n+\n+    # override chunk source table (default: public.chunks):\n+    CHUNK_TABLE=public.my_chunks python scripts/precompute_umap.py\n+\n+Dependencies (beyond ai_pipeline/pyproject.toml)\n+-------------------------------------------------\n+    pip install psycopg2-binary          # sync PG driver for this script\n+    # umap-learn and numpy are already in ai_pipeline/pyproject.toml\n+\n+Environment variables\n+---------------------\n+    DATABASE_URL  — PostgreSQL DSN, e.g.\n+                    postgresql://user:pass@host:5432/dbname\n+    CHUNK_TABLE   — optional; defaults to \"public.chunks\"\n+\n+Notes\n+-----\n+* UMAP requires ≥ (n_neighbors + 1) rows.  The script exits early with a\n+  clear message if the table has fewer embedded chunks.\n+* Embeddings are read as plain Python lists (pgvector returns them that way\n+  from psycopg2); they are cast to a float32 NumPy array for UMAP.\n+* The insert uses psycopg2's execute_values for a single round-trip.\n+\"\"\"\n+\n+from __future__ import annotations\n+\n+import logging\n+import os\n+import sys\n+from typing import Any\n+\n+import numpy as np\n+import psycopg2\n+import psycopg2.extras\n+import umap  # umap-learn\n+\n+# ---------------------------------------------------------------------------\n+# Configuration\n+# ---------------------------------------------------------------------------\n+\n+#: UMAP parameters — fixed per spec.\n+UMAP_N_NEIGHBORS: int = 15\n+UMAP_MIN_DIST: float = 0.1\n+UMAP_METRIC: str = \"cosine\"\n+UMAP_N_COMPONENTS: int = 2\n+\n+#: Source table for embeddings.  Override with env var CHUNK_TABLE.\n+DEFAULT_CHUNK_TABLE: str = \"public.chunks\"\n+\n+#: DDL for the output table.\n+_CREATE_UMAP_COORDS_DDL = \"\"\"\n+CREATE TABLE IF NOT EXISTS public.umap_coords (\n+    id        SERIAL      PRIMARY KEY,\n+    author_id UUID        NOT NULL,\n+    x         DOUBLE PRECISION NOT NULL,\n+    y         DOUBLE PRECISION NOT NULL\n+);\n+\"\"\"\n+\n+#: Index for fast lookups by author — created alongside the table.\n+_CREATE_UMAP_COORDS_IDX = \"\"\"\n+CREATE INDEX IF NOT EXISTS umap_coords_author_id_idx\n+    ON public.umap_coords (author_id);\n+\"\"\"\n+\n+# ---------------------------------------------------------------------------\n+# Logging\n+# ---------------------------------------------------------------------------\n+\n+logging.basicConfig(\n+    level=logging.INFO,\n+    format=\"%(asctime)s  %(levelname)-8s  %(message)s\",\n+    datefmt=\"%Y-%m-%dT%H:%M:%S\",\n+    stream=sys.stderr,\n+)\n+log = logging.getLogger(__name__)\n+\n+# ---------------------------------------------------------------------------\n+# Database helpers\n+# ---------------------------------------------------------------------------\n+\n+\n+def get_connection(database_url: str | None = None) -> psycopg2.extensions.connection:\n+    \"\"\"Return a psycopg2 connection.\n+\n+    Parameters\n+    ----------\n+    database_url:\n+        Full PostgreSQL DSN.  If *None*, reads ``DATABASE_URL`` from the\n+        environment.  The DSN must be compatible with psycopg2 (plain\n+        ``postgresql://`` scheme, not ``postgresql+asyncpg://``).\n+\n+    Raises\n+    ------\n+    KeyError\n+        If ``DATABASE_URL`` is not set and *database_url* was not provided.\n+    \"\"\"\n+    url = database_url or os.environ[\"DATABASE_URL\"]\n+    # Strip the \"+asyncpg\" driver suffix if the DSN was copied from db.py.\n+    url = url.replace(\"postgresql+asyncpg://\", \"postgresql://\")\n+    return psycopg2.connect(url)\n+\n+\n+def fetch_embeddings(\n+    conn: psycopg2.extensions.connection,\n+    chunk_table: str = DEFAULT_CHUNK_TABLE,\n+) -> tuple[list[str], np.ndarray]:\n+    \"\"\"Fetch author UUIDs and their chunk embeddings from the database.\n+\n+    The join path is:\n+        <chunk_table>  →  public.documents  →  public.authors\n+\n+    Only rows where ``embedding IS NOT NULL`` are returned.\n+\n+    Parameters\n+    ----------\n+    conn:\n+        Open psycopg2 connection.\n+    chunk_table:\n+        Fully-qualified table name that holds the embedding column\n+        (default: ``public.chunks``).\n+\n+    Returns\n+    -------\n+    author_ids : list[str]\n+        One UUID string per chunk row (may repeat for the same author).\n+    embeddings : np.ndarray\n+        Float32 array of shape ``(N, 768)``.\n+\n+    Raises\n+    ------\n+    RuntimeError\n+        If no embedded chunks are found.\n+    \"\"\"\n+    # Split schema.table so we can reference them separately in the query.\n+    # If the caller omits the schema, default to \"public\".\n+    if \".\" in chunk_table:\n+        schema, table = chunk_table.split(\".\", 1)\n+    else:\n+        schema, table = \"public\", chunk_table\n+\n+    sql = f\"\"\"\n+        SELECT d.author_id::text, c.embedding\n+        FROM   {schema}.{table} c\n+        JOIN   public.documents d ON d.id = c.document_id\n+        WHERE  c.embedding IS NOT NULL\n+        ORDER BY d.author_id\n+    \"\"\"  # ORDER BY keeps same-author rows together (cosmetic, not required)\n+\n+    log.info(\"Querying embeddings from %s.%s …\", schema, table)\n+    with conn.cursor() as cur:\n+        cur.execute(sql)\n+        rows: list[Any] = cur.fetchall()\n+\n+    if not rows:\n+        raise RuntimeError(\n+            f\"No embedded chunks found in {chunk_table}. \"\n+            \"Run backfill_embeddings() first.\"\n+        )\n+\n+    author_ids: list[str] = [row[0] for row in rows]\n+    # pgvector returns embeddings as Python lists of floats.\n+    embeddings = np.array([row[1] for row in rows], dtype=np.float32)\n+\n+    log.info(\"Fetched %d embedded chunks across %d authors.\", len(rows), len(set(author_ids)))\n+    return author_ids, embeddings\n+\n+\n+# ---------------------------------------------------------------------------\n+# UMAP reduction\n+# ---------------------------------------------------------------------------\n+\n+\n+def reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:\n+    \"\"\"Fit UMAP on *embeddings* and return 2-D coordinates.\n+\n+    Parameters\n+    ----------\n+    embeddings:\n+        Float32 array of shape ``(N, D)``.  D is typically 768.\n+\n+    Returns\n+    -------\n+    np.ndarray\n+        Float64 array of shape ``(N, 2)``.\n+\n+    Notes\n+    -----\n+    UMAP requires at least ``n_neighbors + 1 = 16`` rows to fit.  The check\n+    is done by the caller (``run``).\n+    \"\"\"\n+    reducer = umap.UMAP(\n+        n_neighbors=UMAP_N_NEIGHBORS,\n+        min_dist=UMAP_MIN_DIST,\n+        metric=UMAP_METRIC,\n+        n_components=UMAP_N_COMPONENTS,\n+        random_state=42,  # reproducible layouts across runs\n+    )\n+    log.info(\n+        \"Fitting UMAP (n_neighbors=%d, min_dist=%.2f, metric=%s) on %d vectors …\",\n+        UMAP_N_NEIGHBORS,\n+        UMAP_MIN_DIST,\n+        UMAP_METRIC,\n+        embeddings.shape[0],\n+    )\n+    coords: np.ndarray = reducer.fit_transform(embeddings)\n+    log.info(\"UMAP fit complete. Output shape: %s\", coords.shape)\n+    return coords  # (N, 2), float64\n+\n+\n+# ---------------------------------------------------------------------------\n+# Storage\n+# ---------------------------------------------------------------------------\n+\n+\n+def ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:\n+    \"\"\"Create ``public.umap_coords`` and its index if they do not exist.\"\"\"\n+    with conn.cursor() as cur:\n+        cur.execute(_CREATE_UMAP_COORDS_DDL)\n+        cur.execute(_CREATE_UMAP_COORDS_IDX)\n+    conn.commit()\n+    log.info(\"Table public.umap_coords is ready.\")\n+\n+\n+def save_coords(\n+    conn: psycopg2.extensions.connection,\n+    author_ids: list[str],\n+    coords: np.ndarray,\n+) -> None:\n+    \"\"\"Truncate umap_coords and bulk-insert new (author_id, x, y) rows.\n+\n+    Parameters\n+    ----------\n+    conn:\n+        Open psycopg2 connection.\n+    author_ids:\n+        List of UUID strings, one per row; must be same length as *coords*.\n+    coords:\n+        Float64 array of shape ``(N, 2)``; coords[:, 0] = x, coords[:, 1] = y.\n+    \"\"\"\n+    rows = [\n+        (aid, float(coords[i, 0]), float(coords[i, 1]))\n+        for i, aid in enumerate(author_ids)\n+    ]\n+\n+    with conn.cursor() as cur:\n+        log.info(\"Truncating public.umap_coords …\")\n+        cur.execute(\"TRUNCATE TABLE public.umap_coords RESTART IDENTITY\")\n+\n+        log.info(\"Inserting %d rows into public.umap_coords …\", len(rows))\n+        psycopg2.extras.execute_values(\n+            cur,\n+            \"INSERT INTO public.umap_coords (author_id, x, y) VALUES %s\",\n+            rows,\n+            page_size=1000,\n+        )\n+\n+    conn.commit()\n+    log.info(\"Done — %d umap_coords rows committed.\", len(rows))\n+\n+\n+# ---------------------------------------------------------------------------\n+# Orchestrator\n+# ---------------------------------------------------------------------------\n+\n+\n+def run(\n+    database_url: str | None = None,\n+    chunk_table: str | None = None,\n+) -> None:\n+    \"\"\"Full pipeline: fetch → reduce → store.\n+\n+    Parameters\n+    ----------\n+    database_url:\n+        PostgreSQL DSN.  Falls back to ``DATABASE_URL`` env var.\n+    chunk_table:\n+        Source table for embeddings.  Falls back to ``CHUNK_TABLE`` env var,\n+        then to ``DEFAULT_CHUNK_TABLE`` (``public.chunks``).\n+    \"\"\"\n+    table = chunk_table or os.environ.get(\"CHUNK_TABLE\", DEFAULT_CHUNK_TABLE)\n+\n+    conn = get_connection(database_url)\n+    try:\n+        author_ids, embeddings = fetch_embeddings(conn, chunk_table=table)\n+\n+        min_required = UMAP_N_NEIGHBORS + 1\n+        if len(author_ids) < min_required:\n+            log.error(\n+                \"UMAP requires at least %d rows but only %d embedded chunks were found. \"\n+                \"Embed more chunks and re-run.\",\n+                min_required,\n+                len(author_ids),\n+            )\n+            sys.exit(1)\n+\n+        coords = reduce_to_2d(embeddings)\n+        ensure_umap_coords_table(conn)\n+        save_coords(conn, author_ids, coords)\n+    finally:\n+        conn.close()\n+\n+\n+# ---------------------------------------------------------------------------\n+# Entry point\n+# ---------------------------------------------------------------------------\n+\n+if __name__ == \"__main__\":\n+    run()\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py": 1784890123247
+              },
+              "durationMs": 1472396,
+              "timestamp": 1784890124260
+            },
+            "id": "5851a26fc48a9d5aed59a46dfc7d6686"
+          },
+          "createdAt": 1784890174655
+        },
+        {
+          "id": "4c284fc5b126ca4b3e10508e814ebcfc",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Now run Ruff on it to validate code quality before reporting done:",
+            "id": "4c284fc5b126ca4b3e10508e814ebcfc",
+            "_meta": {
+              "timestamp": 1784890127253,
+              "spend": {
+                "input": 29305,
+                "output": 68,
+                "cacheRead": 28775,
+                "cacheWrite": 529,
+                "cost": 0.073432,
+                "contextTokens": 29373,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_CxgpZ9IjftaZMndVftqMkR",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check scripts/precompute_umap.py --show-source"
+                },
+                "isError": true
+              },
+              {
+                "id": "tooluse_Nufg1RCO6gqDHrZN7t7aVk",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check scripts/precompute_umap.py"
+                },
+                "isError": true
+              }
+            ]
+          },
+          "createdAt": 1784890174655
+        },
+        {
+          "id": "67ec7299b73b63380ca3cfc1bf581e71",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Error from tool execute_command: Exit code: 1\n\nStderr:\nerror: unexpected argument '--show-source' found\n\n  tip: a similar argument exists: '--show-files'\n\nUsage: ruff.exe check <FILES|--fix|--no-fix|--unsafe-fixes|--no-unsafe-fixes|--show-fixes|--no-show-fixes|--diff|--watch|--fix-only|--no-fix-only|--ignore-noqa|--output-format <OUTPUT_FORMAT>|--output-file <OUTPUT_FILE>|--target-version <TARGET_VERSION>|--preview|--no-preview|--select <RULE_CODE>|--ignore <RULE_CODE>|--extend-select <RULE_CODE>|--extend-ignore <RULE_CODE>|--per-file-ignores <PER_FILE_IGNORES>|--extend-per-file-ignores <EXTEND_PER_FILE_IGNORES>|--exclude <FILE_PATTERN>|--extend-exclude <FILE_PATTERN>|--fixable <RULE_CODE>|--unfixable <RULE_CODE>|--extend-fixable <RULE_CODE>|--extend-unfixable <RULE_CODE>|--respect-gitignore|--no-respect-gitignore|--force-exclude|--no-force-exclude|--line-length <LINE_LENGTH>|--dummy-variable-rgx <DUMMY_VARIABLE_RGX>|--no-cache|--cache-dir <CACHE_DIR>|--stdin-filename <STDIN_FILENAME>|--extension <EXTENSION>|--exit-zero|--exit-non-zero-on-fix|--statistics|--add-noqa|--show-files|--show-settings>\n\nFor more information, try '--help'.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_CxgpZ9IjftaZMndVftqMkR",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check scripts/precompute_umap.py --show-source"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m ruff check scripts/precompute_umap.py --show-source"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m ruff check scripts/precompute_umap.py --show-source",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": ".",
+              "durationMs": 4580,
+              "timestamp": 1784890131848
+            },
+            "id": "67ec7299b73b63380ca3cfc1bf581e71"
+          },
+          "createdAt": 1784890174655
+        },
+        {
+          "id": "da2ece3463920dd91bdbfd5abaa7a9ec",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Error from tool execute_command: Exit code: 1\n\nStdout:\nscripts\\precompute_umap.py:12:16: RUF002 Docstring contains ambiguous `×` (MULTIPLICATION SIGN). Did you mean `x` (LATIN SMALL LETTER X)?\n   |\n10 |    ``public.documents`` (chunks carry no direct author_id column — the\n11 |    canonical join path is chunks → documents → authors).\n12 | 3. Reduce the N×768 embedding matrix to N×2 with UMAP\n   |                ^ RUF002\n13 |    (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n14 | 4. Truncate and repopulate ``public.umap_coords``.\n   |\n\nscripts\\precompute_umap.py:12:42: RUF002 Docstring contains ambiguous `×` (MULTIPLICATION SIGN). Did you mean `x` (LATIN SMALL LETTER X)?\n   |\n10 |    ``public.documents`` (chunks carry no direct author_id column — the\n11 |    canonical join path is chunks → documents → authors).\n12 | 3. Reduce the N×768 embedding matrix to N×2 with UMAP\n   |                                          ^ RUF002\n13 |    (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n14 | 4. Truncate and repopulate ``public.umap_coords``.\n   |\n\nFound 2 errors.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_Nufg1RCO6gqDHrZN7t7aVk",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check scripts/precompute_umap.py"
+                },
+                "isError": true
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m ruff check scripts/precompute_umap.py"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m ruff check scripts/precompute_umap.py",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": ".",
+              "durationMs": 6048,
+              "timestamp": 1784890139804
+            },
+            "id": "da2ece3463920dd91bdbfd5abaa7a9ec"
+          },
+          "createdAt": 1784890174655
+        },
+        {
+          "id": "8117300fe730240828f66a1595867f27",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Two RUF002 warnings about the Unicode `×` character in the docstring. Fix them:",
+            "id": "8117300fe730240828f66a1595867f27",
+            "_meta": {
+              "timestamp": 1784890142226,
+              "spend": {
+                "input": 30279,
+                "output": 68,
+                "cacheRead": 29792,
+                "cacheWrite": 486,
+                "cost": 0.075867,
+                "contextTokens": 30347,
+                "reasoningTokens": 0
+              }
+            },
+            "toolCalls": [
+              {
+                "id": "tooluse_KeiOIAOf5bshV6whTNQLui",
+                "name": "apply_diff",
+                "arguments": {
+                  "path": "scripts/precompute_umap.py",
+                  "diff": "<<<<<<< SEARCH\n:start_line:12\n-------\n3. Reduce the N×768 embedding matrix to N×2 with UMAP\n=======\n3. Reduce the N x 768 embedding matrix to N x 2 with UMAP\n>>>>>>> REPLACE\n"
+                },
+                "isError": false
+              },
+              {
+                "id": "tooluse_G4qbDf6RawxBlYZ1M9cE8k",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check scripts/precompute_umap.py"
+                },
+                "isError": false
+              }
+            ]
+          },
+          "createdAt": 1784890174655
+        },
+        {
+          "id": "8e077c1673be6230c9cd7c44b68d045a",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "Edited file: scripts/precompute_umap.py\n\nYou do not need to re-read the file, as you have seen all changes.\nProceed with the task using these changes as the new baseline.\n\nIf the user's edits have addressed part of the task or changed the requirements, adjust your approach accordingly.\n\nPatch of edit:\n\n<patch>\n@@ -8,9 +8,9 @@\n 1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n 2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n    ``public.documents`` (chunks carry no direct author_id column — the\n    canonical join path is chunks → documents → authors).\n-3. Reduce the N×768 embedding matrix to N×2 with UMAP\n+3. Reduce the N x 768 embedding matrix to N x 2 with UMAP\n    (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n 4. Truncate and repopulate ``public.umap_coords``.\n \n Usage\n\n</patch>\n\nMaking multiple related changes in a single apply_diff is more efficient. If other changes are needed in this file, please include them as additional SEARCH/REPLACE blocks.",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_KeiOIAOf5bshV6whTNQLui",
+                "name": "apply_diff",
+                "arguments": {
+                  "path": "scripts/precompute_umap.py",
+                  "diff": "<<<<<<< SEARCH\n:start_line:12\n-------\n3. Reduce the N×768 embedding matrix to N×2 with UMAP\n=======\n3. Reduce the N x 768 embedding matrix to N x 2 with UMAP\n>>>>>>> REPLACE\n"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Apply Diff to {path}",
+                "error": "Failed to apply diff to {path}",
+                "running": "Applying diff to {path}",
+                "success": "Applied diff to {path}",
+                "runningLong": [
+                  "Still applying...",
+                  "Working through the diff...",
+                  "Nearly patched...",
+                  "Lots of changes to apply...",
+                  "Surgically applying edits...",
+                  "This diff is no small feat..."
+                ]
+              },
+              "permission": "edit",
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "changes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py": {
+                  "before": "\"\"\"scripts/precompute_umap.py\n=============================================================================\nPre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\npersist them to the ``public.umap_coords`` table.\n\nPipeline\n--------\n1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n   ``public.documents`` (chunks carry no direct author_id column — the\n   canonical join path is chunks → documents → authors).\n3. Reduce the N×768 embedding matrix to N×2 with UMAP\n   (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n4. Truncate and repopulate ``public.umap_coords``.\n\nUsage\n-----\n    # from the repo root, with the virtualenv active:\n    python scripts/precompute_umap.py\n\n    # override chunk source table (default: public.chunks):\n    CHUNK_TABLE=public.my_chunks python scripts/precompute_umap.py\n\nDependencies (beyond ai_pipeline/pyproject.toml)\n-------------------------------------------------\n    pip install psycopg2-binary          # sync PG driver for this script\n    # umap-learn and numpy are already in ai_pipeline/pyproject.toml\n\nEnvironment variables\n---------------------\n    DATABASE_URL  — PostgreSQL DSN, e.g.\n                    postgresql://user:pass@host:5432/dbname\n    CHUNK_TABLE   — optional; defaults to \"public.chunks\"\n\nNotes\n-----\n* UMAP requires ≥ (n_neighbors + 1) rows.  The script exits early with a\n  clear message if the table has fewer embedded chunks.\n* Embeddings are read as plain Python lists (pgvector returns them that way\n  from psycopg2); they are cast to a float32 NumPy array for UMAP.\n* The insert uses psycopg2's execute_values for a single round-trip.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport logging\nimport os\nimport sys\nfrom typing import Any\n\nimport numpy as np\nimport psycopg2\nimport psycopg2.extras\nimport umap  # umap-learn\n\n# ---------------------------------------------------------------------------\n# Configuration\n# ---------------------------------------------------------------------------\n\n#: UMAP parameters — fixed per spec.\nUMAP_N_NEIGHBORS: int = 15\nUMAP_MIN_DIST: float = 0.1\nUMAP_METRIC: str = \"cosine\"\nUMAP_N_COMPONENTS: int = 2\n\n#: Source table for embeddings.  Override with env var CHUNK_TABLE.\nDEFAULT_CHUNK_TABLE: str = \"public.chunks\"\n\n#: DDL for the output table.\n_CREATE_UMAP_COORDS_DDL = \"\"\"\nCREATE TABLE IF NOT EXISTS public.umap_coords (\n    id        SERIAL      PRIMARY KEY,\n    author_id UUID        NOT NULL,\n    x         DOUBLE PRECISION NOT NULL,\n    y         DOUBLE PRECISION NOT NULL\n);\n\"\"\"\n\n#: Index for fast lookups by author — created alongside the table.\n_CREATE_UMAP_COORDS_IDX = \"\"\"\nCREATE INDEX IF NOT EXISTS umap_coords_author_id_idx\n    ON public.umap_coords (author_id);\n\"\"\"\n\n# ---------------------------------------------------------------------------\n# Logging\n# ---------------------------------------------------------------------------\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s  %(levelname)-8s  %(message)s\",\n    datefmt=\"%Y-%m-%dT%H:%M:%S\",\n    stream=sys.stderr,\n)\nlog = logging.getLogger(__name__)\n\n# ---------------------------------------------------------------------------\n# Database helpers\n# ---------------------------------------------------------------------------\n\n\ndef get_connection(database_url: str | None = None) -> psycopg2.extensions.connection:\n    \"\"\"Return a psycopg2 connection.\n\n    Parameters\n    ----------\n    database_url:\n        Full PostgreSQL DSN.  If *None*, reads ``DATABASE_URL`` from the\n        environment.  The DSN must be compatible with psycopg2 (plain\n        ``postgresql://`` scheme, not ``postgresql+asyncpg://``).\n\n    Raises\n    ------\n    KeyError\n        If ``DATABASE_URL`` is not set and *database_url* was not provided.\n    \"\"\"\n    url = database_url or os.environ[\"DATABASE_URL\"]\n    # Strip the \"+asyncpg\" driver suffix if the DSN was copied from db.py.\n    url = url.replace(\"postgresql+asyncpg://\", \"postgresql://\")\n    return psycopg2.connect(url)\n\n\ndef fetch_embeddings(\n    conn: psycopg2.extensions.connection,\n    chunk_table: str = DEFAULT_CHUNK_TABLE,\n) -> tuple[list[str], np.ndarray]:\n    \"\"\"Fetch author UUIDs and their chunk embeddings from the database.\n\n    The join path is:\n        <chunk_table>  →  public.documents  →  public.authors\n\n    Only rows where ``embedding IS NOT NULL`` are returned.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    chunk_table:\n        Fully-qualified table name that holds the embedding column\n        (default: ``public.chunks``).\n\n    Returns\n    -------\n    author_ids : list[str]\n        One UUID string per chunk row (may repeat for the same author).\n    embeddings : np.ndarray\n        Float32 array of shape ``(N, 768)``.\n\n    Raises\n    ------\n    RuntimeError\n        If no embedded chunks are found.\n    \"\"\"\n    # Split schema.table so we can reference them separately in the query.\n    # If the caller omits the schema, default to \"public\".\n    if \".\" in chunk_table:\n        schema, table = chunk_table.split(\".\", 1)\n    else:\n        schema, table = \"public\", chunk_table\n\n    sql = f\"\"\"\n        SELECT d.author_id::text, c.embedding\n        FROM   {schema}.{table} c\n        JOIN   public.documents d ON d.id = c.document_id\n        WHERE  c.embedding IS NOT NULL\n        ORDER BY d.author_id\n    \"\"\"  # ORDER BY keeps same-author rows together (cosmetic, not required)\n\n    log.info(\"Querying embeddings from %s.%s …\", schema, table)\n    with conn.cursor() as cur:\n        cur.execute(sql)\n        rows: list[Any] = cur.fetchall()\n\n    if not rows:\n        raise RuntimeError(\n            f\"No embedded chunks found in {chunk_table}. \"\n            \"Run backfill_embeddings() first.\"\n        )\n\n    author_ids: list[str] = [row[0] for row in rows]\n    # pgvector returns embeddings as Python lists of floats.\n    embeddings = np.array([row[1] for row in rows], dtype=np.float32)\n\n    log.info(\"Fetched %d embedded chunks across %d authors.\", len(rows), len(set(author_ids)))\n    return author_ids, embeddings\n\n\n# ---------------------------------------------------------------------------\n# UMAP reduction\n# ---------------------------------------------------------------------------\n\n\ndef reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:\n    \"\"\"Fit UMAP on *embeddings* and return 2-D coordinates.\n\n    Parameters\n    ----------\n    embeddings:\n        Float32 array of shape ``(N, D)``.  D is typically 768.\n\n    Returns\n    -------\n    np.ndarray\n        Float64 array of shape ``(N, 2)``.\n\n    Notes\n    -----\n    UMAP requires at least ``n_neighbors + 1 = 16`` rows to fit.  The check\n    is done by the caller (``run``).\n    \"\"\"\n    reducer = umap.UMAP(\n        n_neighbors=UMAP_N_NEIGHBORS,\n        min_dist=UMAP_MIN_DIST,\n        metric=UMAP_METRIC,\n        n_components=UMAP_N_COMPONENTS,\n        random_state=42,  # reproducible layouts across runs\n    )\n    log.info(\n        \"Fitting UMAP (n_neighbors=%d, min_dist=%.2f, metric=%s) on %d vectors …\",\n        UMAP_N_NEIGHBORS,\n        UMAP_MIN_DIST,\n        UMAP_METRIC,\n        embeddings.shape[0],\n    )\n    coords: np.ndarray = reducer.fit_transform(embeddings)\n    log.info(\"UMAP fit complete. Output shape: %s\", coords.shape)\n    return coords  # (N, 2), float64\n\n\n# ---------------------------------------------------------------------------\n# Storage\n# ---------------------------------------------------------------------------\n\n\ndef ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:\n    \"\"\"Create ``public.umap_coords`` and its index if they do not exist.\"\"\"\n    with conn.cursor() as cur:\n        cur.execute(_CREATE_UMAP_COORDS_DDL)\n        cur.execute(_CREATE_UMAP_COORDS_IDX)\n    conn.commit()\n    log.info(\"Table public.umap_coords is ready.\")\n\n\ndef save_coords(\n    conn: psycopg2.extensions.connection,\n    author_ids: list[str],\n    coords: np.ndarray,\n) -> None:\n    \"\"\"Truncate umap_coords and bulk-insert new (author_id, x, y) rows.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    author_ids:\n        List of UUID strings, one per row; must be same length as *coords*.\n    coords:\n        Float64 array of shape ``(N, 2)``; coords[:, 0] = x, coords[:, 1] = y.\n    \"\"\"\n    rows = [\n        (aid, float(coords[i, 0]), float(coords[i, 1]))\n        for i, aid in enumerate(author_ids)\n    ]\n\n    with conn.cursor() as cur:\n        log.info(\"Truncating public.umap_coords …\")\n        cur.execute(\"TRUNCATE TABLE public.umap_coords RESTART IDENTITY\")\n\n        log.info(\"Inserting %d rows into public.umap_coords …\", len(rows))\n        psycopg2.extras.execute_values(\n            cur,\n            \"INSERT INTO public.umap_coords (author_id, x, y) VALUES %s\",\n            rows,\n            page_size=1000,\n        )\n\n    conn.commit()\n    log.info(\"Done — %d umap_coords rows committed.\", len(rows))\n\n\n# ---------------------------------------------------------------------------\n# Orchestrator\n# ---------------------------------------------------------------------------\n\n\ndef run(\n    database_url: str | None = None,\n    chunk_table: str | None = None,\n) -> None:\n    \"\"\"Full pipeline: fetch → reduce → store.\n\n    Parameters\n    ----------\n    database_url:\n        PostgreSQL DSN.  Falls back to ``DATABASE_URL`` env var.\n    chunk_table:\n        Source table for embeddings.  Falls back to ``CHUNK_TABLE`` env var,\n        then to ``DEFAULT_CHUNK_TABLE`` (``public.chunks``).\n    \"\"\"\n    table = chunk_table or os.environ.get(\"CHUNK_TABLE\", DEFAULT_CHUNK_TABLE)\n\n    conn = get_connection(database_url)\n    try:\n        author_ids, embeddings = fetch_embeddings(conn, chunk_table=table)\n\n        min_required = UMAP_N_NEIGHBORS + 1\n        if len(author_ids) < min_required:\n            log.error(\n                \"UMAP requires at least %d rows but only %d embedded chunks were found. \"\n                \"Embed more chunks and re-run.\",\n                min_required,\n                len(author_ids),\n            )\n            sys.exit(1)\n\n        coords = reduce_to_2d(embeddings)\n        ensure_umap_coords_table(conn)\n        save_coords(conn, author_ids, coords)\n    finally:\n        conn.close()\n\n\n# ---------------------------------------------------------------------------\n# Entry point\n# ---------------------------------------------------------------------------\n\nif __name__ == \"__main__\":\n    run()\n",
+                  "after": "\"\"\"scripts/precompute_umap.py\n=============================================================================\nPre-compute per-chunk 2-D UMAP coordinates from pgvector embeddings and\npersist them to the ``public.umap_coords`` table.\n\nPipeline\n--------\n1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n   ``public.documents`` (chunks carry no direct author_id column — the\n   canonical join path is chunks → documents → authors).\n3. Reduce the N x 768 embedding matrix to N x 2 with UMAP\n   (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n4. Truncate and repopulate ``public.umap_coords``.\n\nUsage\n-----\n    # from the repo root, with the virtualenv active:\n    python scripts/precompute_umap.py\n\n    # override chunk source table (default: public.chunks):\n    CHUNK_TABLE=public.my_chunks python scripts/precompute_umap.py\n\nDependencies (beyond ai_pipeline/pyproject.toml)\n-------------------------------------------------\n    pip install psycopg2-binary          # sync PG driver for this script\n    # umap-learn and numpy are already in ai_pipeline/pyproject.toml\n\nEnvironment variables\n---------------------\n    DATABASE_URL  — PostgreSQL DSN, e.g.\n                    postgresql://user:pass@host:5432/dbname\n    CHUNK_TABLE   — optional; defaults to \"public.chunks\"\n\nNotes\n-----\n* UMAP requires ≥ (n_neighbors + 1) rows.  The script exits early with a\n  clear message if the table has fewer embedded chunks.\n* Embeddings are read as plain Python lists (pgvector returns them that way\n  from psycopg2); they are cast to a float32 NumPy array for UMAP.\n* The insert uses psycopg2's execute_values for a single round-trip.\n\"\"\"\n\nfrom __future__ import annotations\n\nimport logging\nimport os\nimport sys\nfrom typing import Any\n\nimport numpy as np\nimport psycopg2\nimport psycopg2.extras\nimport umap  # umap-learn\n\n# ---------------------------------------------------------------------------\n# Configuration\n# ---------------------------------------------------------------------------\n\n#: UMAP parameters — fixed per spec.\nUMAP_N_NEIGHBORS: int = 15\nUMAP_MIN_DIST: float = 0.1\nUMAP_METRIC: str = \"cosine\"\nUMAP_N_COMPONENTS: int = 2\n\n#: Source table for embeddings.  Override with env var CHUNK_TABLE.\nDEFAULT_CHUNK_TABLE: str = \"public.chunks\"\n\n#: DDL for the output table.\n_CREATE_UMAP_COORDS_DDL = \"\"\"\nCREATE TABLE IF NOT EXISTS public.umap_coords (\n    id        SERIAL      PRIMARY KEY,\n    author_id UUID        NOT NULL,\n    x         DOUBLE PRECISION NOT NULL,\n    y         DOUBLE PRECISION NOT NULL\n);\n\"\"\"\n\n#: Index for fast lookups by author — created alongside the table.\n_CREATE_UMAP_COORDS_IDX = \"\"\"\nCREATE INDEX IF NOT EXISTS umap_coords_author_id_idx\n    ON public.umap_coords (author_id);\n\"\"\"\n\n# ---------------------------------------------------------------------------\n# Logging\n# ---------------------------------------------------------------------------\n\nlogging.basicConfig(\n    level=logging.INFO,\n    format=\"%(asctime)s  %(levelname)-8s  %(message)s\",\n    datefmt=\"%Y-%m-%dT%H:%M:%S\",\n    stream=sys.stderr,\n)\nlog = logging.getLogger(__name__)\n\n# ---------------------------------------------------------------------------\n# Database helpers\n# ---------------------------------------------------------------------------\n\n\ndef get_connection(database_url: str | None = None) -> psycopg2.extensions.connection:\n    \"\"\"Return a psycopg2 connection.\n\n    Parameters\n    ----------\n    database_url:\n        Full PostgreSQL DSN.  If *None*, reads ``DATABASE_URL`` from the\n        environment.  The DSN must be compatible with psycopg2 (plain\n        ``postgresql://`` scheme, not ``postgresql+asyncpg://``).\n\n    Raises\n    ------\n    KeyError\n        If ``DATABASE_URL`` is not set and *database_url* was not provided.\n    \"\"\"\n    url = database_url or os.environ[\"DATABASE_URL\"]\n    # Strip the \"+asyncpg\" driver suffix if the DSN was copied from db.py.\n    url = url.replace(\"postgresql+asyncpg://\", \"postgresql://\")\n    return psycopg2.connect(url)\n\n\ndef fetch_embeddings(\n    conn: psycopg2.extensions.connection,\n    chunk_table: str = DEFAULT_CHUNK_TABLE,\n) -> tuple[list[str], np.ndarray]:\n    \"\"\"Fetch author UUIDs and their chunk embeddings from the database.\n\n    The join path is:\n        <chunk_table>  →  public.documents  →  public.authors\n\n    Only rows where ``embedding IS NOT NULL`` are returned.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    chunk_table:\n        Fully-qualified table name that holds the embedding column\n        (default: ``public.chunks``).\n\n    Returns\n    -------\n    author_ids : list[str]\n        One UUID string per chunk row (may repeat for the same author).\n    embeddings : np.ndarray\n        Float32 array of shape ``(N, 768)``.\n\n    Raises\n    ------\n    RuntimeError\n        If no embedded chunks are found.\n    \"\"\"\n    # Split schema.table so we can reference them separately in the query.\n    # If the caller omits the schema, default to \"public\".\n    if \".\" in chunk_table:\n        schema, table = chunk_table.split(\".\", 1)\n    else:\n        schema, table = \"public\", chunk_table\n\n    sql = f\"\"\"\n        SELECT d.author_id::text, c.embedding\n        FROM   {schema}.{table} c\n        JOIN   public.documents d ON d.id = c.document_id\n        WHERE  c.embedding IS NOT NULL\n        ORDER BY d.author_id\n    \"\"\"  # ORDER BY keeps same-author rows together (cosmetic, not required)\n\n    log.info(\"Querying embeddings from %s.%s …\", schema, table)\n    with conn.cursor() as cur:\n        cur.execute(sql)\n        rows: list[Any] = cur.fetchall()\n\n    if not rows:\n        raise RuntimeError(\n            f\"No embedded chunks found in {chunk_table}. \"\n            \"Run backfill_embeddings() first.\"\n        )\n\n    author_ids: list[str] = [row[0] for row in rows]\n    # pgvector returns embeddings as Python lists of floats.\n    embeddings = np.array([row[1] for row in rows], dtype=np.float32)\n\n    log.info(\"Fetched %d embedded chunks across %d authors.\", len(rows), len(set(author_ids)))\n    return author_ids, embeddings\n\n\n# ---------------------------------------------------------------------------\n# UMAP reduction\n# ---------------------------------------------------------------------------\n\n\ndef reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:\n    \"\"\"Fit UMAP on *embeddings* and return 2-D coordinates.\n\n    Parameters\n    ----------\n    embeddings:\n        Float32 array of shape ``(N, D)``.  D is typically 768.\n\n    Returns\n    -------\n    np.ndarray\n        Float64 array of shape ``(N, 2)``.\n\n    Notes\n    -----\n    UMAP requires at least ``n_neighbors + 1 = 16`` rows to fit.  The check\n    is done by the caller (``run``).\n    \"\"\"\n    reducer = umap.UMAP(\n        n_neighbors=UMAP_N_NEIGHBORS,\n        min_dist=UMAP_MIN_DIST,\n        metric=UMAP_METRIC,\n        n_components=UMAP_N_COMPONENTS,\n        random_state=42,  # reproducible layouts across runs\n    )\n    log.info(\n        \"Fitting UMAP (n_neighbors=%d, min_dist=%.2f, metric=%s) on %d vectors …\",\n        UMAP_N_NEIGHBORS,\n        UMAP_MIN_DIST,\n        UMAP_METRIC,\n        embeddings.shape[0],\n    )\n    coords: np.ndarray = reducer.fit_transform(embeddings)\n    log.info(\"UMAP fit complete. Output shape: %s\", coords.shape)\n    return coords  # (N, 2), float64\n\n\n# ---------------------------------------------------------------------------\n# Storage\n# ---------------------------------------------------------------------------\n\n\ndef ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:\n    \"\"\"Create ``public.umap_coords`` and its index if they do not exist.\"\"\"\n    with conn.cursor() as cur:\n        cur.execute(_CREATE_UMAP_COORDS_DDL)\n        cur.execute(_CREATE_UMAP_COORDS_IDX)\n    conn.commit()\n    log.info(\"Table public.umap_coords is ready.\")\n\n\ndef save_coords(\n    conn: psycopg2.extensions.connection,\n    author_ids: list[str],\n    coords: np.ndarray,\n) -> None:\n    \"\"\"Truncate umap_coords and bulk-insert new (author_id, x, y) rows.\n\n    Parameters\n    ----------\n    conn:\n        Open psycopg2 connection.\n    author_ids:\n        List of UUID strings, one per row; must be same length as *coords*.\n    coords:\n        Float64 array of shape ``(N, 2)``; coords[:, 0] = x, coords[:, 1] = y.\n    \"\"\"\n    rows = [\n        (aid, float(coords[i, 0]), float(coords[i, 1]))\n        for i, aid in enumerate(author_ids)\n    ]\n\n    with conn.cursor() as cur:\n        log.info(\"Truncating public.umap_coords …\")\n        cur.execute(\"TRUNCATE TABLE public.umap_coords RESTART IDENTITY\")\n\n        log.info(\"Inserting %d rows into public.umap_coords …\", len(rows))\n        psycopg2.extras.execute_values(\n            cur,\n            \"INSERT INTO public.umap_coords (author_id, x, y) VALUES %s\",\n            rows,\n            page_size=1000,\n        )\n\n    conn.commit()\n    log.info(\"Done — %d umap_coords rows committed.\", len(rows))\n\n\n# ---------------------------------------------------------------------------\n# Orchestrator\n# ---------------------------------------------------------------------------\n\n\ndef run(\n    database_url: str | None = None,\n    chunk_table: str | None = None,\n) -> None:\n    \"\"\"Full pipeline: fetch → reduce → store.\n\n    Parameters\n    ----------\n    database_url:\n        PostgreSQL DSN.  Falls back to ``DATABASE_URL`` env var.\n    chunk_table:\n        Source table for embeddings.  Falls back to ``CHUNK_TABLE`` env var,\n        then to ``DEFAULT_CHUNK_TABLE`` (``public.chunks``).\n    \"\"\"\n    table = chunk_table or os.environ.get(\"CHUNK_TABLE\", DEFAULT_CHUNK_TABLE)\n\n    conn = get_connection(database_url)\n    try:\n        author_ids, embeddings = fetch_embeddings(conn, chunk_table=table)\n\n        min_required = UMAP_N_NEIGHBORS + 1\n        if len(author_ids) < min_required:\n            log.error(\n                \"UMAP requires at least %d rows but only %d embedded chunks were found. \"\n                \"Embed more chunks and re-run.\",\n                min_required,\n                len(author_ids),\n            )\n            sys.exit(1)\n\n        coords = reduce_to_2d(embeddings)\n        ensure_umap_coords_table(conn)\n        save_coords(conn, author_ids, coords)\n    finally:\n        conn.close()\n\n\n# ---------------------------------------------------------------------------\n# Entry point\n# ---------------------------------------------------------------------------\n\nif __name__ == \"__main__\":\n    run()\n",
+                  "patch": "Index: file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py\n===================================================================\n--- file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py\n+++ file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py\n@@ -8,9 +8,9 @@\n 1. Connect to PostgreSQL via DATABASE_URL (psycopg2, synchronous).\n 2. Fetch (author_id, embedding) from ``public.chunks`` joined through\n    ``public.documents`` (chunks carry no direct author_id column — the\n    canonical join path is chunks → documents → authors).\n-3. Reduce the N×768 embedding matrix to N×2 with UMAP\n+3. Reduce the N x 768 embedding matrix to N x 2 with UMAP\n    (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).\n 4. Truncate and repopulate ``public.umap_coords``.\n \n Usage\n"
+                }
+              },
+              "fileMtimes": {
+                "file:///c%3A/Users/spide/proyectos/IBM%20Julio%202026/AuthorAI/scripts/precompute_umap.py": 1784890150061
+              },
+              "durationMs": 7870,
+              "timestamp": 1784890151066
+            },
+            "id": "8e077c1673be6230c9cd7c44b68d045a"
+          },
+          "createdAt": 1784890174655
+        },
+        {
+          "id": "0b1217d4f9154055a574ee27942ceef7",
+          "role": "tool",
+          "data": {
+            "role": "tool",
+            "content": "All checks passed!",
+            "toolUsage": {
+              "signature": {
+                "id": "tooluse_G4qbDf6RawxBlYZ1M9cE8k",
+                "name": "execute_command",
+                "arguments": {
+                  "command": "python -m ruff check scripts/precompute_umap.py"
+                },
+                "isError": false
+              },
+              "labels": {
+                "displayName": "Execute Command",
+                "error": "Command failed",
+                "running": "Executing",
+                "success": "Ran",
+                "runningLong": [
+                  "Still running...",
+                  "Command in progress...",
+                  "Some commands take a while...",
+                  "Waiting on the process...",
+                  "The terminal is thinking...",
+                  "Not all commands are fast...",
+                  "Patiently waiting..."
+                ]
+              },
+              "permission": "execute",
+              "commandUse": {
+                "unverifiable": false,
+                "commands": [
+                  "python -m ruff check scripts/precompute_umap.py"
+                ],
+                "requiresSecurityApproval": false,
+                "commandVariants": [
+                  "python -m ruff check scripts/precompute_umap.py",
+                  "python"
+                ]
+              },
+              "isOutsideWorkspace": false
+            },
+            "_meta": {
+              "cwd": ".",
+              "durationMs": 3655,
+              "timestamp": 1784890156490
+            },
+            "id": "0b1217d4f9154055a574ee27942ceef7"
+          },
+          "createdAt": 1784890174656
+        },
+        {
+          "id": "f6dc8bb96ec6baca4f247bb980b76536",
+          "role": "assistant",
+          "data": {
+            "role": "assistant",
+            "content": "Ruff passes with zero warnings. Here is a breakdown of everything that was built and every design decision made:\n\n---\n\n## [`scripts/precompute_umap.py`](scripts/precompute_umap.py)\n\n### Architecture at a glance\n\n```\nDATABASE_URL\n     │\n     ▼\nget_connection()          ← psycopg2 sync driver; strips \"+asyncpg\" suffix\n     │                       if DSN was copied from db.py\n     ▼\nfetch_embeddings()        ← chunks JOIN documents (no author_id on chunks)\n     │  → (list[str author_uuid], ndarray float32 N×768)\n     ▼\nreduce_to_2d()            ← umap.UMAP exactly as spec'd (n_neighbors=15,\n     │                       min_dist=0.1, metric='cosine', n_components=2)\n     │  → ndarray float64 N×2\n     ▼\nensure_umap_coords_table() ← CREATE TABLE IF NOT EXISTS + index\nsave_coords()              ← TRUNCATE … RESTART IDENTITY, then\n                             execute_values(page_size=1000)\n```\n\n### Key design decisions derived from the actual codebase\n\n| Decision | Reason |\n|---|---|\n| **`psycopg2`** not SQLAlchemy | This is an offline script, not part of the async FastAPI/pipeline package. `psycopg2-binary` is the smallest correct dep for synchronous bulk work. No new dep on the package itself. |\n| **JOIN through `documents`** | The real schema ([`0001_init.sql`](infra/supabase/migrations/0001_init.sql)) has no `author_id` on `chunks` — the path is `chunks → documents.author_id`. Querying `chunks` directly would fail. |\n| **`DATABASE_URL` strip of `+asyncpg`** | `.env.example` uses plain `postgresql://` but [`db.py`](ai_pipeline/autoria_ai/db.py) appends `+asyncpg`. The strip guard prevents a confusing connection error if a developer copies the DSN from db.py. |\n| **`UMAP(random_state=42)`** | Not in the spec but essential for reproducibility — two consecutive runs produce the same layout, so the frontend chart doesn't jump. |\n| **`TRUNCATE … RESTART IDENTITY`** | Clears old coordinates and resets the serial PK so IDs stay compact. Alternative `DELETE` would be slower and leave sequence gaps. |\n| **Min-rows guard (`n_neighbors + 1 = 16`)** | UMAP raises a cryptic `numba` error below this threshold; the guard exits with a human-readable message. |\n| **`CHUNK_TABLE` env var** | Allows pointing at a test table without editing the script — matches the \"configurable variable\" requirement. |\n| **`author_id UUID` in output table** | Matches the `public.authors.id` type (`uuid`) from the migration, not `integer` as the generic spec suggested. |\n\n### Installation note\n\n```bash\npip install psycopg2-binary   # one extra dep for this script only\n# umap-learn, numpy already in ai_pipeline/pyproject.toml\n```\n\n### Running\n\n```bash\npython scripts/precompute_umap.py\n\n# custom source table\nCHUNK_TABLE=public.chunks_dev python scripts/precompute_umap.py\n```",
+            "id": "f6dc8bb96ec6baca4f247bb980b76536",
+            "_meta": {
+              "timestamp": 1784890158425,
+              "spend": {
+                "input": 30384,
+                "output": 836,
+                "cacheRead": 29792,
+                "cacheWrite": 591,
+                "cost": 0.07805,
+                "contextTokens": 31220,
+                "reasoningTokens": 0
+              }
+            },
+            "stop": true
+          },
+          "createdAt": 1784890174656
+        }
+      ]
+    }
+  ]
+}
