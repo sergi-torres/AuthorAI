@@ -142,16 +142,81 @@ export interface GenerateRequest {
   prompt: string;
 }
 
+/** Mirrors AuthorVoiceRef in api_contract.yaml — PassportPayload.author_voice. */
+export interface AuthorVoiceRef {
+  id: string;
+  /** SHA-256 hash of the style profile used. Pattern: ^sha256:[a-f0-9]{64}$ */
+  style_profile_hash: string;
+  style_profile_version: string;
+}
+
+/** Mirrors GenerationMetadata in api_contract.yaml — PassportPayload.generation. */
+export interface GenerationMetadata {
+  model_provider: string;
+  model_id: string;
+  /** SHA-256 of user prompt (privacy-preserving). Pattern: ^sha256:[a-f0-9]{64}$ */
+  user_prompt_hash: string;
+  /** SHA-256 of AutorIA output text. Pattern: ^sha256:[a-f0-9]{64}$ */
+  output_hash: string;
+  output_length_tokens: number;
+}
+
+/** Mirrors RagSourceRef in api_contract.yaml — PassportPayload.rag_sources items. */
+export interface RagSourceRef {
+  doc_id: string;
+  chunk_id: number;
+  /** SHA-256 of the retrieved chunk. Pattern: ^sha256:[a-f0-9]{64}$ */
+  snippet_hash: string;
+}
+
+/** Mirrors ContributionBreakdown in api_contract.yaml — PassportPayload.contribution. */
+export interface ContributionBreakdown {
+  human_pct: number;
+  ai_pct: number;
+  note: string;
+}
+
+/**
+ * Mirrors PassportPayload v1.0 in api_contract.yaml — the unsigned body inside
+ * PassportEnvelope.json_payload. See docs/MVP.md §4.4.
+ */
+export interface PassportPayload {
+  /** Always "1.0" for this version of the schema. */
+  schema_version: "1.0";
+  /** UUID identifying this specific passport. */
+  passport_id: string;
+  /** ISO 8601 date-time of generation. */
+  generated_at: string;
+  /** Reference to the author voice used. */
+  author_voice: AuthorVoiceRef;
+  /** Metadata about the generation run. */
+  generation: GenerationMetadata;
+  /** RAG chunks that influenced the output. */
+  rag_sources: RagSourceRef[];
+  /** Human vs AI contribution breakdown. */
+  contribution: ContributionBreakdown;
+  /** Style fit vs target StyleProfile, integer 0–100. */
+  fit_score: number;
+  /** URL for verifying this passport. */
+  verifier_url: string;
+}
+
+/**
+ * Mirrors PassportEnvelope in api_contract.yaml — the wrapper returned by
+ * POST /api/generate inside GenerateResponse.passport.
+ */
+export interface PassportEnvelope {
+  /** Compact JWS (ES256) over json_payload. */
+  jws_token: string;
+  json_payload: PassportPayload;
+}
+
 /**
  * Mirrors GenerateResponse in api_contract.yaml — 200 from POST /api/generate.
- *
- * NOTE (#19): PassportEnvelope is typed as `unknown` here — the Passport UI
- * is out of scope for this issue. Full typing will be added in the Passport
- * issue once the verify/display flow is built.
  */
 export interface GenerateResponse {
   vanilla: GenerationOutput;
   autoria: GenerationOutput;
-  /** OUT OF SCOPE for #19 — typed as unknown; will be narrowed in the Passport issue. */
-  passport: unknown;
+  /** Null when the backend hasn't implemented signing yet (see backend #26). */
+  passport: PassportEnvelope | null;
 }

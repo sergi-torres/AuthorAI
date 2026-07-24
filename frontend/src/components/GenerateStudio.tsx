@@ -8,7 +8,8 @@ import type { GenerationState } from "@/components/AuthorColumn";
 import { Button } from "@/components/ui/button";
 import { generateText } from "@/lib/api";
 import { en } from "@/lib/i18n/en";
-import type { AuthorCardData } from "@/lib/types";
+import { downloadPassport } from "@/lib/passport";
+import type { AuthorCardData, PassportEnvelope } from "@/lib/types";
 
 interface GenerateStudioProps {
   author: AuthorCardData;
@@ -35,10 +36,9 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
 
   /**
    * Passport from the most recent GenerateResponse.
-   * Remains `null` until the backend returns a non-null passport.
-   * Full handling (download / verify) deferred to #42 / #29.
+   * Remains `null` until the backend returns a non-null passport (#26).
    */
-  const [passport, setPassport] = useState<unknown>(null);
+  const [passport, setPassport] = useState<PassportEnvelope | null>(null);
 
   /**
    * Distinctive terms from the StyleProfile — optional enhancement.
@@ -94,8 +94,9 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
     vanillaState.status === "success" && autoriaState.status === "success";
 
   const handleGeneratePassport = useCallback(() => {
-    // TODO(#42): download formatted passport JSON
-  }, []);
+    if (passport === null) return;
+    downloadPassport(passport);
+  }, [passport]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -137,6 +138,7 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
             variant="outline"
             disabled={passport === null}
             onClick={handleGeneratePassport}
+            aria-label={en.studio.passportDownloadAriaLabel}
           >
             {en.studio.passportButton}
           </Button>
