@@ -142,16 +142,127 @@ export interface GenerateRequest {
   prompt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Authorship Passport types — mirrors PassportPayload and related schemas
+// in api_contract.yaml (PassportEnvelope, AuthorVoiceRef, GenerationMetadata,
+// RagSourceRef, ContributionBreakdown) plus the verify endpoint types.
+// ---------------------------------------------------------------------------
+
+/** Mirrors AuthorVoiceRef in api_contract.yaml. */
+export interface AuthorVoiceRef {
+  /** Author slug (e.g. "dickens") — matches authors.slug. */
+  id: string;
+  /** SHA-256 hash of the StyleProfile used (format: sha256:<64 hex chars>). */
+  style_profile_hash: string;
+  /** StyleProfile schema version (e.g. "1.0"). */
+  style_profile_version: string;
+}
+
+/** Mirrors GenerationMetadata in api_contract.yaml. */
+export interface GenerationMetadata {
+  /** e.g. "ibm/watsonx" */
+  model_provider: string;
+  /** e.g. "meta-llama/llama-3-3-70b-instruct" */
+  model_id: string;
+  /** SHA-256 of the user prompt — privacy-preserving, never raw text. */
+  user_prompt_hash: string;
+  /** SHA-256 of the AutorIA output text — tamper-evidence. */
+  output_hash: string;
+  /** Token count of the generated output. */
+  output_length_tokens: number;
+}
+
+/** Mirrors RagSourceRef in api_contract.yaml. */
+export interface RagSourceRef {
+  /** Source document identifier / slug. */
+  doc_id: string;
+  /** Ordinal chunk index within the document. */
+  chunk_id: number;
+  /** SHA-256 of the retrieved chunk text. */
+  snippet_hash: string;
+}
+
+/** Mirrors ContributionBreakdown in api_contract.yaml. */
+export interface ContributionBreakdown {
+  /** Percentage of human contribution (0–100). v1 always 0. */
+  human_pct: number;
+  /** Percentage of AI contribution (0–100). v1 always 100. */
+  ai_pct: number;
+  /** Optional free-text clarification. */
+  note?: string;
+}
+
+/** Mirrors PassportPayload in api_contract.yaml — the decoded JWS body v1.0. */
+export interface PassportPayload {
+  schema_version: "1.0";
+  /** UUID v4 uniquely identifying this passport. */
+  passport_id: string;
+  /** ISO-8601 UTC issuance timestamp. */
+  generated_at: string;
+  author_voice: AuthorVoiceRef;
+  generation: GenerationMetadata;
+  /** Retrieved passages that conditioned the generation; may be empty. */
+  rag_sources: RagSourceRef[];
+  contribution: ContributionBreakdown;
+  /** Style-fit integer 0–100 vs the target StyleProfile. */
+  fit_score: number;
+  /** URL of the /verify page. Optional per passport_schema.md §4.1. */
+  verifier_url?: string;
+}
+
+/** Mirrors PassportEnvelope in api_contract.yaml — field inside GenerateResponse. */
+export interface PassportEnvelope {
+  /** Compact JWS (ES256) — three base64url segments joined by dots. */
+  jws_token: string;
+  json_payload: PassportPayload;
+}
+
+// ---------------------------------------------------------------------------
+// Verify endpoint types (POST /api/passports/verify)
+// ---------------------------------------------------------------------------
+
+/**
+ * Union of all error codes returned by the verify endpoint.
+ * Mirrors VerifyError.code enum in api_contract.yaml.
+ */
+export type VerifyErrorCode =
+  | "invalid_token"
+  | "invalid_signature"
+  | "unknown_kid"
+  | "unsupported_algorithm"
+  | "schema_mismatch"
+  | "jwks_unavailable";
+
+/** Mirrors VerifyError in api_contract.yaml. */
+export interface VerifyError {
+  code: VerifyErrorCode;
+  /** Backend-provided human-readable message (may differ from UI copy). */
+  message: string;
+}
+
+/**
+ * Mirrors VerifyResponse in api_contract.yaml.
+ * Always HTTP 200; valid=false means a crypto/schema failure, not a server error.
+ */
+export interface VerifyResponse {
+  valid: boolean;
+  /** Decoded payload when valid; null when signature/schema check failed. */
+  payload: PassportPayload | null;
+  errors: VerifyError[];
+}
+
+/** Mirrors VerifyRequest in api_contract.yaml — body for POST /api/passports/verify. */
+export interface VerifyRequest {
+  /** Compact serialized JWS from passport.jws_token. */
+  jws_token: string;
+}
+
 /**
  * Mirrors GenerateResponse in api_contract.yaml — 200 from POST /api/generate.
- *
- * NOTE (#19): PassportEnvelope is typed as `unknown` here — the Passport UI
- * is out of scope for this issue. Full typing will be added in the Passport
- * issue once the verify/display flow is built.
+ * `passport` is now fully typed as PassportEnvelope (narrowed from `unknown` in #19).
  */
 export interface GenerateResponse {
   vanilla: GenerationOutput;
   autoria: GenerationOutput;
-  /** OUT OF SCOPE for #19 — typed as unknown; will be narrowed in the Passport issue. */
-  passport: unknown;
+  passport: PassportEnvelope;
 }

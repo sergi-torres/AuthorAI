@@ -20,6 +20,7 @@ export const en = {
 
   nav: {
     home: "Authors",
+    verify: "Verify Passport",
   },
 
   authorSelector: {
@@ -160,9 +161,89 @@ export const en = {
   },
 
   verify: {
-    verifiedTitle: "Verified",
+    // Page
+    pageTitle: "Verify Authorship Passport",
+    pageSubtitle:
+      "Paste a compact JWS token or upload a .jws/.json file to verify its authenticity.",
+
+    // Input modes
+    tabPaste: "Paste token",
+    tabUpload: "Upload file",
+    tokenLabel: "JWS token",
+    tokenPlaceholder:
+      "eyJhbGciOiJFUzI1NiIsInR5cCI6InBhc3Nwb3J0K2p3cyIsImtpZCI6ImF1dG9yaWEtMjAyNi0wNyJ9…",
+    fileLabel: "Passport file (.jws or .json)",
+    fileButton: "Choose file",
+    fileEmpty: "No file selected",
+
+    // Actions
+    verifyButton: "Verify",
+    verifyingButton: "Verifying…",
+    clearButton: "Clear",
+    retryButton: "Retry",
+
+    // Verdict banners
+    verifiedTitle: "Verified ✓",
     verifiedSubtitle: "This Authorship Passport is authentic and untampered.",
-    invalidTitle: "Verification failed",
+    invalidTitle: "Verification failed ✗",
+
+    // Payload table field labels
+    fieldPassportId: "Passport ID",
+    fieldSchemaVersion: "Schema version",
+    fieldGeneratedAt: "Generated at",
+    fieldAuthorVoice: "Author voice",
+    fieldStyleProfileHash: "Style profile hash",
+    fieldStyleProfileVersion: "Style profile version",
+    fieldModelProvider: "Model provider",
+    fieldModel: "Model",
+    fieldPromptHash: "Prompt hash",
+    fieldOutputHash: "Output hash",
+    fieldOutputLength: "Output length",
+    fieldFitScore: "Style-fit score",
+    fieldRagSources: "RAG sources",
+    fieldRagDoc: "Document",
+    fieldRagChunk: "Chunk",
+    fieldRagSnippetHash: "Snippet hash",
+    fieldContributionAi: "AI contribution",
+    fieldContributionHuman: "Human contribution",
+    fieldVerifierUrl: "Verifier URL",
+    ragSourcesEmpty: "No RAG sources",
+
+    // Units / formatters
+    tokens: (n: number) => `${n} tokens`,
+    percentage: (n: number) => `${n}%`,
+
+    // Copy affordance
+    copyHashTitle: "Copy full hash",
+    copyHashDone: "✓",
+    copyHashIcon: "⎘",
+
+    // Raw JSON toggle
+    rawJsonToggleShow: "Show raw JSON",
+    rawJsonToggleHide: "Hide raw JSON",
+
+    // Network / unreachable state
+    networkErrorTitle: "Could not reach the verification service",
+    networkErrorBody:
+      "The server may be starting up. Wait a moment and try again.",
+
+    // Idle state
+    idleHeading: "Ready to verify",
+    idleBody:
+      "Paste a compact JWS token above or upload a .jws/.json file to begin.",
+
+    // Error code → user-facing message (copy verbatim from passport_schema.md §8.2,
+    // keyed by the contract's VerifyErrorCode enum values).
+    errorMessages: {
+      invalid_token:
+        "This doesn't look like a valid Authorship Passport token.",
+      unsupported_algorithm: "Unsupported signature algorithm — rejected.",
+      unknown_kid: "Signed with an unknown key. Could not verify.",
+      invalid_signature:
+        "Signature invalid — this Passport may have been altered.",
+      schema_mismatch: "Passport contents don't match the expected format.",
+      jwks_unavailable: "Couldn't reach the key directory. Try again shortly.",
+    } as Record<string, string>,
   },
 } as const;
 

@@ -8,6 +8,9 @@ import type {
   GenerateRequest,
   GenerateResponse,
   StyleProfile,
+  VerifyRequest,
+  VerifyResponse,
+  VerifyErrorCode,
 } from "@/lib/types";
 
 /**
@@ -125,5 +128,46 @@ export async function generateText(
     return parseOrThrow<GenerateResponse>(res, "POST /api/generate");
   } finally {
     clearTimeout(timerId);
+  }
+}
+
+/**
+ * POST /api/passports/verify — verify a compact JWS Authorship Passport.
+ *
+ * Per contract: verification always returns HTTP 200 (valid or invalid).
+ * Non-200 responses (5xx, network failure) are caught and synthesised into
+ * a VerifyResponse with valid=false and a jwks_unavailable error so the
+ * caller always gets a typed result — never a thrown exception.
+ *
+ * The UI MUST NOT parse the JWS itself — only call this function.
+ */
+export async function verifyPassport(
+  jwsToken: string,
+): Promise<VerifyResponse> {
+  const unreachable = (detail: string): VerifyResponse => ({
+    valid: false,
+    payload: null,
+    errors: [
+      {
+        code: "jwks_unavailable" satisfies VerifyErrorCode,
+        message: `Network error: ${detail}`,
+      },
+    ],
+  });
+
+  try {
+    const body: VerifyRequest = { jws_token: jwsToken };
+    const res = await fetch(`${API_BASE}/api/passports/verify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      return unreachable(`HTTP ${res.status}`);
+    }
+    return res.json() as Promise<VerifyResponse>;
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : "unknown";
+    return unreachable(detail);
   }
 }
