@@ -9,8 +9,8 @@ Implements docs/api_contract.yaml.
 from __future__ import annotations
 
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -42,9 +42,7 @@ def _warmup_generation_stack() -> None:
 
     orchestrate = generate._load_orchestrator()
     if orchestrate is None:
-        logger.warning(
-            "Skipping generation warmup: autoria_ai.generator not importable."
-        )
+        logger.warning("Skipping generation warmup: autoria_ai.generator not importable.")
         return
     try:
         from autoria_ai.generator import warmup_models
@@ -53,9 +51,7 @@ def _warmup_generation_stack() -> None:
         warmup_models()
         logger.info("Generation NLP models ready.")
     except Exception:
-        logger.exception(
-            "Generation model warmup failed; first /api/generate may be slow or 503."
-        )
+        logger.exception("Generation model warmup failed; first /api/generate may be slow or 503.")
 
 
 @asynccontextmanager

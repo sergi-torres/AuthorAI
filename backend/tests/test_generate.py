@@ -136,7 +136,11 @@ _STUB_PASSPORT_PAYLOAD: dict[str, Any] = {
 
 _STUB_ORCHESTRATE_RESULT: dict[str, Any] = {
     "vanilla": {"text": "A plain London street.", "fit_score": 35, "latency_ms": 1200},
-    "autoria": {"text": "The fog crept in on little cat feet.", "fit_score": 72, "latency_ms": 1200},
+    "autoria": {
+        "text": "The fog crept in on little cat feet.",
+        "fit_score": 72,
+        "latency_ms": 1200,
+    },
     "passport": {
         "jws_token": "eyJ.stub.token",
         "json_payload": _STUB_PASSPORT_PAYLOAD,
@@ -377,17 +381,13 @@ def test_422_empty_prompt():
 
 def test_422_prompt_too_long():
     client = TestClient(app, raise_server_exceptions=False)
-    resp = client.post(
-        "/api/generate", json={"author_id": "dickens", "prompt": "x" * 4001}
-    )
+    resp = client.post("/api/generate", json={"author_id": "dickens", "prompt": "x" * 4001})
     assert resp.status_code == 422
 
 
 def test_422_missing_author_id():
     client = TestClient(app, raise_server_exceptions=False)
-    resp = client.post(
-        "/api/generate", json={"prompt": "Write something."}
-    )
+    resp = client.post("/api/generate", json={"prompt": "Write something."})
     assert resp.status_code == 422
 
 
@@ -613,9 +613,9 @@ def test_passport_json_payload_has_no_raw_prompt():
             return [s for item in obj for s in _all_strings(item)]
         return []
 
-    assert raw_prompt not in _all_strings(payload), (
-        "Raw prompt must not appear verbatim in the passport json_payload"
-    )
+    assert raw_prompt not in _all_strings(
+        payload
+    ), "Raw prompt must not appear verbatim in the passport json_payload"
 
 
 def test_passport_json_payload_has_user_prompt_hash():
@@ -697,10 +697,14 @@ def test_passport_db_failure_response_still_contains_passport():
     with patch("app.routes.generate.get_client", return_value=sb):
         _gen_route._ORCHESTRATE_FN = orchestrate
         _gen_route._IMPORT_ERROR = None
-        body = TestClient(app, raise_server_exceptions=False).post(
-            "/api/generate",
-            json={"author_id": "dickens", "prompt": "A foggy night."},
-        ).json()
+        body = (
+            TestClient(app, raise_server_exceptions=False)
+            .post(
+                "/api/generate",
+                json={"author_id": "dickens", "prompt": "A foggy night."},
+            )
+            .json()
+        )
 
     assert "passport" in body
     assert body["passport"]["jws_token"]

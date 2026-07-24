@@ -161,9 +161,8 @@ async def generate_text(body: GenerateRequest) -> GenerateResponse:
     try:
         # Import here so the name is available for the except clause below;
         # the module is already cached by _load_orchestrator's sys.path setup.
-        from app.services.watsonx_client import WatsonxError
-
         from app.config import settings
+        from app.services.watsonx_client import WatsonxError
 
         result: dict[str, Any] = await orchestrate(
             prompt=body.prompt,

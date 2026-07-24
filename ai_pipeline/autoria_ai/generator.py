@@ -44,9 +44,7 @@ _GENERATION_PARAMS: dict[str, Any] = {
     "top_p": 0.9,
 }
 
-_CONTRIBUTION_NOTE = (
-    "v1: 100% AI-assisted. Human-edit tracking is in the roadmap."
-)
+_CONTRIBUTION_NOTE = "v1: 100% AI-assisted. Human-edit tracking is in the roadmap."
 _DEFAULT_VERIFIER_URL = "https://autoria.app/verify"
 _FAILED_BRANCH_TEXT = "[Generation failed for this branch]"
 
@@ -100,11 +98,7 @@ def _default_wx_generate(
 
 
 def _resolve_verifier_url(explicit: str | None = None) -> str:
-    return (
-        explicit
-        or os.getenv("PASSPORT_VERIFIER_URL")
-        or _DEFAULT_VERIFIER_URL
-    )
+    return explicit or os.getenv("PASSPORT_VERIFIER_URL") or _DEFAULT_VERIFIER_URL
 
 
 async def orchestrate(

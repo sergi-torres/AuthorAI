@@ -47,9 +47,7 @@ def _stub_models(monkeypatch: pytest.MonkeyPatch):
     _install_fake_watsonx_module()
 
 
-def _wx_side_effect(
-    prompt: str, system_prompt: str | None, model_id: str, params: Any
-) -> str:
+def _wx_side_effect(prompt: str, system_prompt: str | None, model_id: str, params: Any) -> str:
     if system_prompt is None:
         return "VANILLA_TEXT"
     return "AUTORIA_TEXT"
