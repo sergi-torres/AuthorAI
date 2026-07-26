@@ -211,6 +211,46 @@ export interface PassportEnvelope {
   json_payload: PassportPayload;
 }
 
+// ---------------------------------------------------------------------------
+// Verify endpoint types (POST /api/passports/verify)
+// ---------------------------------------------------------------------------
+
+/**
+ * Union of all error codes returned by the verify endpoint.
+ * Mirrors VerifyError.code enum in api_contract.yaml.
+ */
+export type VerifyErrorCode =
+  | "invalid_token"
+  | "invalid_signature"
+  | "unknown_kid"
+  | "unsupported_algorithm"
+  | "schema_mismatch"
+  | "jwks_unavailable";
+
+/** Mirrors VerifyError in api_contract.yaml. */
+export interface VerifyError {
+  code: VerifyErrorCode;
+  /** Backend-provided human-readable message (may differ from UI copy). */
+  message: string;
+}
+
+/**
+ * Mirrors VerifyResponse in api_contract.yaml.
+ * Always HTTP 200; valid=false means a crypto/schema failure, not a server error.
+ */
+export interface VerifyResponse {
+  valid: boolean;
+  /** Decoded payload when valid; null when signature/schema check failed. */
+  payload: PassportPayload | null;
+  errors: VerifyError[];
+}
+
+/** Mirrors VerifyRequest in api_contract.yaml — body for POST /api/passports/verify. */
+export interface VerifyRequest {
+  /** Compact serialized JWS from passport.jws_token. */
+  jws_token: string;
+}
+
 /**
  * Mirrors GenerateResponse in api_contract.yaml — 200 from POST /api/generate.
  */
