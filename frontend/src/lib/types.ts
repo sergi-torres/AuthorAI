@@ -142,127 +142,81 @@ export interface GenerateRequest {
   prompt: string;
 }
 
-// ---------------------------------------------------------------------------
-// Authorship Passport types — mirrors PassportPayload and related schemas
-// in api_contract.yaml (PassportEnvelope, AuthorVoiceRef, GenerationMetadata,
-// RagSourceRef, ContributionBreakdown) plus the verify endpoint types.
-// ---------------------------------------------------------------------------
-
-/** Mirrors AuthorVoiceRef in api_contract.yaml. */
+/** Mirrors AuthorVoiceRef in api_contract.yaml — PassportPayload.author_voice. */
 export interface AuthorVoiceRef {
-  /** Author slug (e.g. "dickens") — matches authors.slug. */
   id: string;
-  /** SHA-256 hash of the StyleProfile used (format: sha256:<64 hex chars>). */
+  /** SHA-256 hash of the style profile used. Pattern: ^sha256:[a-f0-9]{64}$ */
   style_profile_hash: string;
-  /** StyleProfile schema version (e.g. "1.0"). */
   style_profile_version: string;
 }
 
-/** Mirrors GenerationMetadata in api_contract.yaml. */
+/** Mirrors GenerationMetadata in api_contract.yaml — PassportPayload.generation. */
 export interface GenerationMetadata {
-  /** e.g. "ibm/watsonx" */
   model_provider: string;
-  /** e.g. "meta-llama/llama-3-3-70b-instruct" */
   model_id: string;
-  /** SHA-256 of the user prompt — privacy-preserving, never raw text. */
+  /** SHA-256 of user prompt (privacy-preserving). Pattern: ^sha256:[a-f0-9]{64}$ */
   user_prompt_hash: string;
-  /** SHA-256 of the AutorIA output text — tamper-evidence. */
+  /** SHA-256 of AutorIA output text. Pattern: ^sha256:[a-f0-9]{64}$ */
   output_hash: string;
-  /** Token count of the generated output. */
   output_length_tokens: number;
 }
 
-/** Mirrors RagSourceRef in api_contract.yaml. */
+/** Mirrors RagSourceRef in api_contract.yaml — PassportPayload.rag_sources items. */
 export interface RagSourceRef {
-  /** Source document identifier / slug. */
   doc_id: string;
-  /** Ordinal chunk index within the document. */
   chunk_id: number;
-  /** SHA-256 of the retrieved chunk text. */
+  /** SHA-256 of the retrieved chunk. Pattern: ^sha256:[a-f0-9]{64}$ */
   snippet_hash: string;
 }
 
-/** Mirrors ContributionBreakdown in api_contract.yaml. */
+/** Mirrors ContributionBreakdown in api_contract.yaml — PassportPayload.contribution. */
 export interface ContributionBreakdown {
-  /** Percentage of human contribution (0–100). v1 always 0. */
   human_pct: number;
-  /** Percentage of AI contribution (0–100). v1 always 100. */
   ai_pct: number;
-  /** Optional free-text clarification. */
-  note?: string;
+  note: string;
 }
 
-/** Mirrors PassportPayload in api_contract.yaml — the decoded JWS body v1.0. */
+/**
+ * Mirrors PassportPayload v1.0 in api_contract.yaml — the unsigned body inside
+ * PassportEnvelope.json_payload. See docs/MVP.md §4.4.
+ */
 export interface PassportPayload {
+  /** Always "1.0" for this version of the schema. */
   schema_version: "1.0";
-  /** UUID v4 uniquely identifying this passport. */
+  /** UUID identifying this specific passport. */
   passport_id: string;
-  /** ISO-8601 UTC issuance timestamp. */
+  /** ISO 8601 date-time of generation. */
   generated_at: string;
+  /** Reference to the author voice used. */
   author_voice: AuthorVoiceRef;
+  /** Metadata about the generation run. */
   generation: GenerationMetadata;
-  /** Retrieved passages that conditioned the generation; may be empty. */
+  /** RAG chunks that influenced the output. */
   rag_sources: RagSourceRef[];
+  /** Human vs AI contribution breakdown. */
   contribution: ContributionBreakdown;
-  /** Style-fit integer 0–100 vs the target StyleProfile. */
+  /** Style fit vs target StyleProfile, integer 0–100. */
   fit_score: number;
-  /** URL of the /verify page. Optional per passport_schema.md §4.1. */
-  verifier_url?: string;
+  /** URL for verifying this passport. */
+  verifier_url: string;
 }
 
-/** Mirrors PassportEnvelope in api_contract.yaml — field inside GenerateResponse. */
+/**
+ * Mirrors PassportEnvelope in api_contract.yaml — the wrapper returned by
+ * POST /api/generate inside GenerateResponse.passport.
+ */
 export interface PassportEnvelope {
-  /** Compact JWS (ES256) — three base64url segments joined by dots. */
+  /** Compact JWS (ES256) over json_payload. */
   jws_token: string;
   json_payload: PassportPayload;
 }
 
-// ---------------------------------------------------------------------------
-// Verify endpoint types (POST /api/passports/verify)
-// ---------------------------------------------------------------------------
-
-/**
- * Union of all error codes returned by the verify endpoint.
- * Mirrors VerifyError.code enum in api_contract.yaml.
- */
-export type VerifyErrorCode =
-  | "invalid_token"
-  | "invalid_signature"
-  | "unknown_kid"
-  | "unsupported_algorithm"
-  | "schema_mismatch"
-  | "jwks_unavailable";
-
-/** Mirrors VerifyError in api_contract.yaml. */
-export interface VerifyError {
-  code: VerifyErrorCode;
-  /** Backend-provided human-readable message (may differ from UI copy). */
-  message: string;
-}
-
-/**
- * Mirrors VerifyResponse in api_contract.yaml.
- * Always HTTP 200; valid=false means a crypto/schema failure, not a server error.
- */
-export interface VerifyResponse {
-  valid: boolean;
-  /** Decoded payload when valid; null when signature/schema check failed. */
-  payload: PassportPayload | null;
-  errors: VerifyError[];
-}
-
-/** Mirrors VerifyRequest in api_contract.yaml — body for POST /api/passports/verify. */
-export interface VerifyRequest {
-  /** Compact serialized JWS from passport.jws_token. */
-  jws_token: string;
-}
-
 /**
  * Mirrors GenerateResponse in api_contract.yaml — 200 from POST /api/generate.
- * `passport` is now fully typed as PassportEnvelope (narrowed from `unknown` in #19).
  */
 export interface GenerateResponse {
   vanilla: GenerationOutput;
   autoria: GenerationOutput;
-  passport: PassportEnvelope;
+  /** Null when the backend hasn't implemented signing yet (see backend #26). */
+  passport: PassportEnvelope | null;
 }

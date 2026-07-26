@@ -46,6 +46,46 @@ class DocumentUploadAccepted(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Generation — mirrors GenerateRequest, GenerationOutput, GenerateResponse,
+# PassportEnvelope in docs/api_contract.yaml.
+# ---------------------------------------------------------------------------
+
+
+class GenerateRequest(BaseModel):
+    """Mirrors `GenerateRequest` — body for POST /api/generate."""
+
+    author_id: str = Field(description="Target author voice (slug)", examples=["dickens"])
+    prompt: str = Field(
+        min_length=1,
+        max_length=4000,
+        description="User creative prompt (English)",
+    )
+
+
+class GenerationOutput(BaseModel):
+    """Mirrors `GenerationOutput` — one branch (vanilla or autoria) of the response."""
+
+    text: str = Field(description="Generated literary text (English)")
+    fit_score: int = Field(ge=0, le=100, description="Style fit vs target StyleProfile (0-100)")
+    latency_ms: int = Field(ge=0, description="Wall-clock time for this generation branch")
+
+
+class PassportEnvelope(BaseModel):
+    """Mirrors `PassportEnvelope` — signed Authorship Passport for the AutorIA output."""
+
+    jws_token: str = Field(description="Compact JWS (ES256) over json_payload")
+    json_payload: dict[str, Any] = Field(description="Decoded passport payload v1.0")
+
+
+class GenerateResponse(BaseModel):
+    """Mirrors `GenerateResponse` — side-by-side generation result with passport."""
+
+    vanilla: GenerationOutput
+    autoria: GenerationOutput
+    passport: PassportEnvelope
+
+
+# ---------------------------------------------------------------------------
 # Passport / JWKS — mirrors VerifyRequest, VerifyError, VerifyResponse,
 # JwksDocument, JsonWebKey in docs/api_contract.yaml.
 # ---------------------------------------------------------------------------
