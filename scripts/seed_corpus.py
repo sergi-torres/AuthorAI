@@ -282,7 +282,12 @@ def validate_corpus(authors: list[str]) -> list[str]:
                 f"(< {MIN_TOKENS_PER_AUTHOR} minimum)"
             )
 
-        log.info("[%s] validated: %d cleaned tokens across %d file(s)", slug, total_tokens, len(manifest["files"]))
+        log.info(
+            "[%s] validated: %d cleaned tokens across %d file(s)",
+            slug,
+            total_tokens,
+            len(manifest["files"]),
+        )
 
     return warnings
 
@@ -621,7 +626,11 @@ def seed_style_profile(
     """
     from autoria_ai.extractor.style_profile import compute_style_profile, profile_hash
 
-    log.info("Stage 5/5 profiles [%s]: computing StyleProfile over %d document(s)...", author_slug, len(documents))
+    log.info(
+        "Stage 5/5 profiles [%s]: computing StyleProfile over %d document(s)...",
+        author_slug,
+        len(documents),
+    )
     profile = compute_style_profile(author_slug=author_slug, documents=documents, nlp=nlp)
     phash = profile_hash(profile)
 
@@ -634,7 +643,11 @@ def seed_style_profile(
             (author_uuid, profile["schema_version"], psycopg2.extras.Json(profile), phash),
         )
     conn.commit()
-    log.info("Stage 5/5 profiles [%s]: inserted style_profiles row (hash=%s)", author_slug, phash[:19] + "...")
+    log.info(
+        "Stage 5/5 profiles [%s]: inserted style_profiles row (hash=%s)",
+        author_slug,
+        phash[:19] + "...",
+    )
 
 
 def _load_spacy_model() -> Any:
@@ -868,15 +881,13 @@ def _document_exists_by_title(
 
 def _content_hash_column_exists(conn: psycopg2.extensions.connection) -> bool:
     with conn.cursor() as cur:
-        cur.execute(
-            """
+        cur.execute("""
             SELECT 1
               FROM information_schema.columns
              WHERE table_schema = 'public'
                AND table_name = 'documents'
                AND column_name = 'content_hash'
-            """
-        )
+            """)
         return cur.fetchone() is not None
 
 
@@ -1013,7 +1024,7 @@ def seed(
     with_profiles: bool = False,
     dry_run: bool = False,
 ) -> None:
-    """Full seed pipeline (Stages 1–3 always; 4/5 opt-in via flags)."""
+    """Full seed pipeline (Stages 1-3 always; 4/5 opt-in via flags)."""
     if dry_run:
         _run_dry(author_filter=author_filter)
         return

@@ -13,7 +13,10 @@ import pytest
 np = pytest.importorskip("numpy")
 spacy = pytest.importorskip("spacy")
 
-from autoria_ai.extractor.style_profile import compute_style_profile, profile_hash
+from autoria_ai.extractor.style_profile import (  # noqa: E402
+    compute_style_profile,
+    profile_hash,
+)
 
 try:
     _NLP = spacy.load("en_core_web_lg")

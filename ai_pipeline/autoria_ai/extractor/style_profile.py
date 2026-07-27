@@ -20,7 +20,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import tiktoken
 
@@ -30,9 +30,6 @@ from autoria_ai.extractor.lexical import compute_lexical
 from autoria_ai.extractor.stylistic import compute_stylistic
 from autoria_ai.extractor.syntactic import compute_syntactic
 from autoria_ai.extractor.vocabulary import compute_distinctive_vocab
-
-if TYPE_CHECKING:
-    import spacy.tokens  # type: ignore[import-untyped]
 
 # Soft cap so spaCy does not OOM on full Victorian novels in one Doc.
 # Features are still computed over many chunks via nlp.pipe; this only
@@ -59,11 +56,12 @@ def _weighted_mean(dicts: list[dict[str, Any]], weights: list[float]) -> dict[st
             nested: dict[str, float] = {}
             for nk in nested_keys:
                 nested[nk] = (
-                    sum(d[key].get(nk, 0.0) * w for d, w in zip(dicts, weights)) / total_w
+                    sum(d[key].get(nk, 0.0) * w for d, w in zip(dicts, weights, strict=True))
+                    / total_w
                 )
             out[key] = nested
         else:
-            out[key] = sum(float(d[key]) * w for d, w in zip(dicts, weights)) / total_w
+            out[key] = sum(float(d[key]) * w for d, w in zip(dicts, weights, strict=True)) / total_w
     return out
 
 
@@ -88,7 +86,7 @@ def _subsample(items: list[str], max_n: int) -> list[str]:
     if max_n <= 1:
         return items[:1]
     step = (len(items) - 1) / (max_n - 1)
-    return [items[int(round(i * step))] for i in range(max_n)]
+    return [items[round(i * step)] for i in range(max_n)]
 
 
 def compute_style_profile(
@@ -167,12 +165,8 @@ def compute_style_profile(
             "hapax_ratio": float(lexical.get("hapax_ratio", 0.0)),
         },
         "syntactic": {
-            "avg_sentence_length_tokens": float(
-                syntactic.get("avg_sentence_length_tokens", 0.0)
-            ),
-            "std_sentence_length_tokens": float(
-                syntactic.get("std_sentence_length_tokens", 0.0)
-            ),
+            "avg_sentence_length_tokens": float(syntactic.get("avg_sentence_length_tokens", 0.0)),
+            "std_sentence_length_tokens": float(syntactic.get("std_sentence_length_tokens", 0.0)),
             "subordination_ratio": float(syntactic.get("subordination_ratio", 0.0)),
             "passive_voice_ratio": float(syntactic.get("passive_voice_ratio", 0.0)),
             "noun_to_verb_ratio": float(syntactic.get("noun_to_verb_ratio", 0.0)),
@@ -187,7 +181,5 @@ def compute_style_profile(
 
 def profile_hash(profile: dict[str, Any]) -> str:
     """Canonical sha256 hash — must match passport/builder.py."""
-    canonical = json.dumps(
-        profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    )
+    canonical = json.dumps(profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()

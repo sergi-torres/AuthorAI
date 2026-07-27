@@ -85,20 +85,13 @@ def _build_style_profile(author_slug: str, documents: list[str], sb: Client) -> 
     try:
         others = sb.table("authors").select("id,slug").neq("slug", author_slug).execute()
         for row in others.data or []:
-            docs = (
-                sb.table("documents")
-                .select("raw_text")
-                .eq("author_id", row["id"])
-                .execute()
-            )
+            docs = sb.table("documents").select("raw_text").eq("author_id", row["id"]).execute()
             texts = [d["raw_text"] for d in (docs.data or []) if d.get("raw_text")]
             if texts:
                 # Cheap lemma proxy for comparison corpora (whitespace tokens).
                 comparison[row["slug"]] = " ".join(texts)[:800_000].lower()
     except Exception:
-        logger.exception(
-            "comparison corpora fetch failed; continuing with single-author TF-IDF"
-        )
+        logger.exception("comparison corpora fetch failed; continuing with single-author TF-IDF")
 
     nlp = spacy.load("en_core_web_lg")
     return compute_style_profile(
@@ -129,9 +122,7 @@ def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> 
 
         profile = _build_style_profile(author_slug, documents, sb)
 
-        canonical = json.dumps(
-            profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
+        canonical = json.dumps(profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         row_hash = "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
         sb.table("style_profiles").insert(
@@ -142,9 +133,7 @@ def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> 
                 "hash": row_hash,
             }
         ).execute()
-        logger.info(
-            "style_profiles row inserted for author %s (%s)", author_slug, author_uuid
-        )
+        logger.info("style_profiles row inserted for author %s (%s)", author_slug, author_uuid)
     except Exception:
         logger.exception("recompute failed for author %s (%s)", author_slug, author_uuid)
 
