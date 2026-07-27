@@ -2,10 +2,10 @@
 
 import { useCallback, useRef, useState } from "react";
 
+import { PassportCard } from "@/components/PassportCard";
 import { PromptComposer } from "@/components/PromptComposer";
 import { SideBySideOutput } from "@/components/SideBySideOutput";
 import type { GenerationState } from "@/components/AuthorColumn";
-import { Button } from "@/components/ui/button";
 import { generateText } from "@/lib/api";
 import { en } from "@/lib/i18n/en";
 import { downloadPassport } from "@/lib/passport";
@@ -133,24 +133,20 @@ export function GenerateStudio({
         )}
       </section>
 
-      {/* ── Generate Passport button — only after first successful generation ── */}
-      {bothSucceeded && (
-        <div className="flex flex-col items-start gap-2">
-          <Button
-            variant="outline"
-            disabled={passport === null}
-            onClick={handleGeneratePassport}
-            aria-label={en.studio.passportDownloadAriaLabel}
-          >
-            {en.studio.passportButton}
-          </Button>
-          {passport === null && (
-            <p className="text-xs text-muted-foreground">
-              {en.studio.passportUnavailable}
-            </p>
-          )}
-        </div>
-      )}
+      {/* ── Passport panel — only after first successful generation.
+             Keeps the Download action (unchanged behaviour) and adds the
+             on-screen collapsible JSON block (#94). Collapsed by default so
+             the long payload never pushes the studio out of the viewport. ── */}
+      {bothSucceeded &&
+        (passport !== null ? (
+          <PassportCard
+            status="ready"
+            passport={passport}
+            onDownload={handleGeneratePassport}
+          />
+        ) : (
+          <PassportCard status="unavailable" />
+        ))}
     </div>
   );
 }
