@@ -3,9 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Feather, TriangleAlert } from "lucide-react";
 
-import { getStyleProfile, NotFoundError } from "@/lib/api";
+import {
+  getStyleProfile,
+  isFixtureEligibleError,
+  NotFoundError,
+} from "@/lib/api";
 import { listAuthors } from "@/lib/api";
-import { FIXTURE_STYLE_PROFILES } from "@/lib/fixtures/style-profiles";
+import {
+  FIXTURE_STYLE_PROFILES,
+  fixtureProfileForError,
+} from "@/lib/fixtures/style-profiles";
 import { en } from "@/lib/i18n/en";
 import type { StyleProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -360,32 +367,34 @@ function ReadyLayout({
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches a StyleProfile with a demo-safe fixture fallback.
+ * Fetches a StyleProfile, substituting a fixture only where the decision allows.
  *
- * For a preloaded author that HAS a fixture (austen/dickens/poe), we fall back
- * on ANY failure — network, 5xx, OR a 404 from an unseeded DB — so the Style
- * DNA panel never renders empty during a demo (bug: the backend returns 404
- * until `scripts/seed_corpus.py` seeds Supabase; that seed script is missing).
+ * decision_log 2026-07-27 (option A) / design-system.md §9:276 + §8.6:
+ * a fixture stands in ONLY when the backend gave no answer — a transport
+ * failure or a 5xx. A real 404 means "no profile computed for this author";
+ * it re-throws so the panel shows the neutral EMPTY state, even for a seed
+ * author that has a fixture. On an unseeded DB the panel is therefore empty
+ * by design; seeding, not a fixture, is what fills it.
  *
- * For an author WITHOUT a fixture (e.g. one added live via upload), original
- * semantics are preserved: a 404 (NotFoundError) re-throws so the panel shows
- * the neutral empty state, and network/5xx re-throws to the error state.
+ * The eligibility check lives in `fixtureProfileForError` — never a bare catch.
+ *
+ * Exported only so the decision can be unit-tested directly (StyleDnaPanel.test.ts);
+ * it is not part of the component's public API — do not call it from other modules.
  */
-async function fetchProfileWithFallback(
+export async function fetchProfileWithFallback(
   authorId: string,
 ): Promise<StyleProfile> {
   try {
     return await getStyleProfile(authorId);
   } catch (err) {
-    const fixture = FIXTURE_STYLE_PROFILES[authorId];
+    const fixture = fixtureProfileForError(authorId, err);
     if (fixture) {
-      const reason = err instanceof NotFoundError ? "404" : "network/5xx";
       console.info(
-        `[StyleDnaPanel] StyleProfile unavailable (${reason}) — using fixture for "${authorId}" (demo-safe fallback)`,
+        `[StyleDnaPanel] StyleProfile unreachable (network/5xx) — using fixture for "${authorId}"`,
       );
       return fixture;
     }
-    // No fixture: 404 → empty state, network/5xx → error state (re-throw as-is).
+    // 404 → empty state; other 4xx / no fixture → error state (re-throw as-is).
     throw err;
   }
 }
@@ -409,15 +418,19 @@ async function buildScatterPoints(
     },
   ];
 
-  // Fetch the author list to get other authors
+  // Fetch the author list to get other authors. Same rule as above (option A):
+  // the fixture author list is only a stand-in when the API was unreachable
+  // (network/5xx). A definitive answer we could not use (4xx) leaves the
+  // scatter with the selected author alone rather than inventing companions.
   let authorSummaries: { id: string; name: string }[] = [];
   try {
     authorSummaries = await listAuthors();
-  } catch {
-    // If author list fails, use known fixture authors as fallback
-    authorSummaries = Object.keys(FIXTURE_STYLE_PROFILES)
-      .filter((id) => id !== selectedAuthorId)
-      .map((id) => ({ id, name: id }));
+  } catch (err) {
+    authorSummaries = isFixtureEligibleError(err)
+      ? Object.keys(FIXTURE_STYLE_PROFILES)
+          .filter((id) => id !== selectedAuthorId)
+          .map((id) => ({ id, name: id }))
+      : [];
   }
 
   const otherAuthors = authorSummaries.filter((a) => a.id !== selectedAuthorId);

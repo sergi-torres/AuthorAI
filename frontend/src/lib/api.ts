@@ -27,10 +27,80 @@ export class NotFoundError extends Error {
   }
 }
 
+/**
+ * Thrown when the request never reached the backend (fetch itself rejected:
+ * DNS failure, connection refused, TLS error, offline browser).
+ * The backend gave NO answer, so the client knows nothing about the resource.
+ */
+export class NetworkError extends Error {
+  readonly status = null;
+  constructor(label: string, cause: unknown) {
+    super(
+      `${label} failed to reach the API: ${
+        cause instanceof Error ? cause.message : String(cause)
+      }`,
+      { cause },
+    );
+    this.name = "NetworkError";
+  }
+}
+
+/**
+ * Thrown for HTTP 5xx — the backend was reached but failed to answer the
+ * question. Like NetworkError (and unlike a 404) this leaves the state of the
+ * resource unknown.
+ */
+export class ServerError extends Error {
+  readonly status: number;
+  constructor(label: string, status: number) {
+    super(`${label} failed with status ${status}`);
+    this.name = "ServerError";
+    this.status = status;
+  }
+}
+
+/**
+ * The single predicate behind the fixture-substitution policy
+ * (decision_log 2026-07-27 · option A · design-system.md §8.6 + §9:276).
+ *
+ * True ONLY for failures that leave the real answer unknown — a transport
+ * failure or a 5xx. Those are the only cases in which demo fixtures may stand
+ * in for a real StyleProfile.
+ *
+ * A 404 is a definitive answer ("this author has no computed profile") and is
+ * therefore NOT eligible: it must degrade to the neutral empty state. Any other
+ * 4xx is a client-side bug and is not eligible either.
+ */
+export function isFixtureEligibleError(err: unknown): boolean {
+  return err instanceof NetworkError || err instanceof ServerError;
+}
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+/**
+ * fetch() wrapper that turns a rejected fetch into a typed NetworkError so
+ * callers can tell "never reached the backend" from "the backend said no".
+ * AbortError is re-thrown untouched — generateText's timeout contract depends
+ * on its `name`.
+ */
+async function fetchOrThrow(
+  url: string,
+  init: RequestInit | undefined,
+  label: string,
+): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") throw err;
+    throw new NetworkError(label, err);
+  }
+}
 
 async function parseOrThrow<T>(res: Response, label: string): Promise<T> {
   if (!res.ok) {
+    if (res.status >= 500) {
+      throw new ServerError(label, res.status);
+    }
     throw new Error(`${label} failed with status ${res.status}`);
   }
   return res.json() as Promise<T>;
@@ -38,8 +108,13 @@ async function parseOrThrow<T>(res: Response, label: string): Promise<T> {
 
 /** GET /api/authors — preloaded authors plus any added via document upload. */
 export async function listAuthors(): Promise<AuthorSummary[]> {
-  const res = await fetch(`${API_BASE}/api/authors`, { cache: "no-store" });
-  return parseOrThrow<AuthorSummary[]>(res, "GET /api/authors");
+  const label = "GET /api/authors";
+  const res = await fetchOrThrow(
+    `${API_BASE}/api/authors`,
+    { cache: "no-store" },
+    label,
+  );
+  return parseOrThrow<AuthorSummary[]>(res, label);
 }
 
 /**
@@ -59,34 +134,35 @@ export async function uploadAuthorDocument(
   const form = new FormData();
   form.append("file", file);
   if (title) form.append("title", title);
-  const res = await fetch(
+  const label = "POST /api/authors/{id}/documents";
+  const res = await fetchOrThrow(
     `${API_BASE}/api/authors/${encodeURIComponent(authorId)}/documents`,
     { method: "POST", body: form },
+    label,
   );
-  return parseOrThrow<DocumentUploadAccepted>(
-    res,
-    "POST /api/authors/{id}/documents",
-  );
+  return parseOrThrow<DocumentUploadAccepted>(res, label);
 }
 
 /**
  * GET /api/authors/{author_id}/style-profile — Style DNA fingerprint v1.0.
  *
- * Throws NotFoundError for HTTP 404 (author unknown or profile not yet computed).
- * Throws a plain Error for any other non-ok status (5xx, network failure, etc.).
+ * Error taxonomy — callers MUST branch on it (see isFixtureEligibleError):
+ *   404          → NotFoundError  (definitive: no profile → neutral empty state)
+ *   5xx          → ServerError    (unknown: error state, fixture-eligible)
+ *   fetch throws → NetworkError   (unknown: error state, fixture-eligible)
+ *   other 4xx    → plain Error    (client bug: error state, NOT fixture-eligible)
  */
 export async function getStyleProfile(authorId: string): Promise<StyleProfile> {
-  const res = await fetch(
+  const label = `GET /api/authors/${authorId}/style-profile`;
+  const res = await fetchOrThrow(
     `${API_BASE}/api/authors/${encodeURIComponent(authorId)}/style-profile`,
     { cache: "no-store" },
+    label,
   );
   if (res.status === 404) {
-    throw new NotFoundError(`GET /api/authors/${authorId}/style-profile`);
+    throw new NotFoundError(label);
   }
-  return parseOrThrow<StyleProfile>(
-    res,
-    `GET /api/authors/${authorId}/style-profile`,
-  );
+  return parseOrThrow<StyleProfile>(res, label);
 }
 
 /** Derives a URL-safe author slug from a display name (client-side id proposal). */
@@ -119,13 +195,18 @@ export async function generateText(
 
   try {
     const body: GenerateRequest = { author_id: authorId, prompt };
-    const res = await fetch(`${API_BASE}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-    return parseOrThrow<GenerateResponse>(res, "POST /api/generate");
+    const label = "POST /api/generate";
+    const res = await fetchOrThrow(
+      `${API_BASE}/api/generate`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      },
+      label,
+    );
+    return parseOrThrow<GenerateResponse>(res, label);
   } finally {
     clearTimeout(timerId);
   }

@@ -5,7 +5,7 @@ import { StyleDnaPanel } from "@/components/StyleDnaPanel";
 import { GenerateStudio } from "@/components/GenerateStudio";
 import { getStyleProfile } from "@/lib/api";
 import { getAuthorCards } from "@/lib/authors";
-import { FIXTURE_STYLE_PROFILES } from "@/lib/fixtures/style-profiles";
+import { fixtureProfileForError } from "@/lib/fixtures/style-profiles";
 import { en } from "@/lib/i18n/en";
 import { selectDistinctiveTerms } from "@/lib/style-dna";
 
@@ -24,16 +24,25 @@ const PROFILE_FETCH_BUDGET_MS = 5_000;
  * Distinctive vocabulary for the AutorIA column (design-system §8.4).
  *
  * Loaded here, in the common parent, so `GenerateStudio` stays a pure client
- * component with no fetch of its own. Falls back to the seeded fixture for the
- * preloaded authors — the same demo-safe substitution `StyleDnaPanel` makes —
- * so the highlighted terms always match the vocab table shown above them.
- * Any failure without a fixture degrades to `[]` (no marks, no legend, no throw).
+ * component with no fetch of its own.
+ *
+ * Fixture substitution follows the same rule as `StyleDnaPanel`
+ * (decision_log 2026-07-27 · option A · design-system.md §8.6): the seeded
+ * fixture stands in ONLY when the backend was unreachable (network/5xx), never
+ * on a real 404. This matters more here than in the panel — these terms become
+ * `<mark>`s inside the generated text, presented as the author's signature
+ * vocabulary with no visible cue that they came from anywhere else.
+ *
+ * Every other outcome — a 404, another 4xx, an author with no fixture, or the
+ * budget expiring — degrades to `[]`: no marks, no legend, no throw.
  */
 async function loadDistinctiveTerms(authorId: string): Promise<string[]> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const profile = await Promise.race([
-      getStyleProfile(authorId).catch(() => FIXTURE_STYLE_PROFILES[authorId]),
+      getStyleProfile(authorId).catch((err: unknown) =>
+        fixtureProfileForError(authorId, err),
+      ),
       new Promise<undefined>((resolve) => {
         timer = setTimeout(() => resolve(undefined), PROFILE_FETCH_BUDGET_MS);
       }),
