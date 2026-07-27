@@ -11,6 +11,25 @@ name: CI
 #   `requirements-dev.txt` and `.pre-commit-config.yaml`. Bump all three in the
 #   same commit or local runs stop matching CI.
 #   Python is pinned to 3.11 everywhere (both packages declare requires-python >=3.11).
+#
+# Verifying the gate actually blocks (WO-03 / issue #84, acceptance criterion).
+#   This workflow only triggers `on: pull_request`, so it cannot be exercised
+#   without a real PR. Run this once, on the first PR that carries these jobs,
+#   to prove each test job fails the check rather than merely existing:
+#
+#     printf '\n\ndef test_ci_red_probe():\n    assert False\n' >> backend/tests/test_health.py
+#     git commit -am "test: temporary CI red probe (revert me)" && git push
+#     gh pr checks          # expect: test-backend -> fail, other three -> pass
+#     git revert HEAD --no-edit && git push
+#
+#     printf '\n\ndef test_ci_red_probe():\n    assert False\n' >> ai_pipeline/tests/test_passport.py
+#     git commit -am "test: temporary CI red probe, pipeline (revert me)" && git push
+#     gh pr checks          # expect: test-ai-pipeline -> fail
+#     git revert HEAD --no-edit && git push
+#
+#   Check in the same run's logs that the spaCy wheel step reports a cache hit
+#   on the second run and that ~/.cache/huggingface restores instead of
+#   re-downloading. If the HF cache does not engage, every run pulls ~420 MB.
 
 on:
   pull_request:
