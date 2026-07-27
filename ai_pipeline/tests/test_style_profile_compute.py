@@ -15,6 +15,7 @@ spacy = pytest.importorskip("spacy")
 
 from autoria_ai.extractor.style_profile import (  # noqa: E402
     compute_style_profile,
+    lemmatize_corpus,
     profile_hash,
 )
 
@@ -79,3 +80,33 @@ def test_profile_hash_stable(mock_embeddings) -> None:
 def test_compute_style_profile_rejects_empty() -> None:
     with pytest.raises(ValueError):
         compute_style_profile(author_slug="x", documents=[], nlp=_NLP)
+
+
+# --- Corpus sampling (issue #100 / WO-18) ---------------------------------
+#
+# docs/style_features.md 4.1: "each author's full corpus is one document".
+# The max_chars cap bounds peak memory, but it must not degenerate into a
+# prefix of the corpus -- that made distinctive_vocab the vocabulary of
+# whichever novel happened to be first in the manifest.
+
+_MARKERS = ("kitchen", "mountain", "elephant")
+
+
+def _marked_document(marker: str) -> str:
+    """~5k tokens of neutral prose whose only distinctive noun is *marker*."""
+    return (
+        f"The {marker} was quiet that morning and the pale light fell across "
+        f"the table where the {marker} rested beside the open window. "
+    ) * 200
+
+
+def test_lemmatize_corpus_samples_every_document() -> None:
+    """A capped lemma string must draw on more than one document per author."""
+    documents = [_marked_document(m) for m in _MARKERS]
+    # Cap far below the corpus size: enough for several chunks, nowhere near
+    # all of them. Prefix truncation would spend the whole budget on doc #1.
+    lemmas = lemmatize_corpus(documents=documents, nlp=_NLP, max_chars=12_000)
+
+    sampled = {marker for marker in _MARKERS if marker in lemmas.split()}
+    assert len(sampled) > 1, f"capped corpus sampled only {sampled or 'nothing'}"
+    assert sampled == set(_MARKERS), f"documents missing from the sample: {sampled}"

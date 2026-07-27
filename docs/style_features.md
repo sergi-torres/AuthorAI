@@ -309,6 +309,8 @@ first_person_ratio = (fp_count / len(doc)) * 1000  # per 1k tokens
 ```python
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+# Each value is the author's corpus already lemmatized and PROPN-filtered
+# (see Preprocessing below), sampled across every document of the corpus.
 corpora = {
     "austen": "<full austen corpus>",
     "dickens": "<full dickens corpus>",
@@ -329,7 +331,11 @@ tfidf_matrix = vectorizer.fit_transform(corpora.values())
 
 **Stored as**: a list of `{ "term": str, "score": float }` objects, sorted by score descending. Top 30 terms per author.
 
-**Preprocessing**: lemmatize before TF-IDF, exclude stopwords, exclude tokens shorter than 3 characters.
+**Preprocessing**: lemmatize before TF-IDF, exclude stopwords, exclude tokens shorter than 3 characters, and **exclude proper nouns** (spaCy `token.pos_ == "PROPN"`).
+
+**Why proper nouns are excluded** — decision 2026-07-28, see `docs/decision_log.md`. Character and place names *are* statistically distinctive: `pip`, `havisham`, `wemmick` are concentrated in Dickens and nowhere else, so TF-IDF ranks them first. But they describe the **plot** of one novel, not the author's style, and this feature exists to be read by a non-technical juror — the example above (`countenance`, `physiognomy`, `presently`) is the standard the section sets for itself. The filter is applied **inside the lemmatization pass** (`lemmatize_corpus` / `_lemmas_from_docs` in `ai_pipeline/autoria_ai/extractor/style_profile.py`), where spaCy's POS tag is already computed and the rule lives in one place. A stop-word blacklist applied after the TF-IDF is explicitly **not** how this is done: it would have to be maintained by hand for every new author.
+
+**How "full corpus" is realised** — `_MAX_LEMMA_CHARS` (800 000 lemma characters per author) bounds the seed's peak memory to roughly 1.7 GB. That budget is spent on chunks drawn from **across the whole corpus**, in a deterministic bisection order, so every document of every author is represented. It must never be spent as a *prefix*: doing so meant Dickens' `distinctive_vocab` was computed from the first 21% of his chunks — effectively *Great Expectations* alone — which is why the top terms were its cast list (issue #100).
 
 ---
 
