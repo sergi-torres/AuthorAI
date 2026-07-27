@@ -3,7 +3,7 @@
  * This is the single source of truth for radar axes, normalization domains,
  * and chart color assignment (design-system.md §2.4).
  */
-import type { StyleProfile } from "@/lib/types";
+import type { DistinctiveTerm, StyleProfile } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Radar axis definitions
@@ -88,6 +88,55 @@ export function normalizeAxis(value: number, domain: [number, number]): number {
   const [min, max] = domain;
   if (max === min) return 0;
   return Math.max(0, Math.min(1, (value - min) / (max - min)));
+}
+
+// ---------------------------------------------------------------------------
+// Distinctive vocabulary selection (design-system.md §8.4)
+// ---------------------------------------------------------------------------
+
+/**
+ * How many distinctive terms are handed to `DistinctiveVocabHighlight`.
+ *
+ * Matches the top-10 cut the Style DNA vocab table already uses, so the passage
+ * highlights and the table agree. It is also a legibility ceiling: highlighting
+ * everything would tint the whole paragraph and destroy the very contrast the
+ * `<mark>`s exist to create (§8.4 — the marks must read as *signature* words).
+ */
+export const DISTINCTIVE_HIGHLIGHT_LIMIT = 10;
+
+/**
+ * Picks the terms to highlight in the AutorIA column from a StyleProfile's
+ * `distinctive_vocab` (contract shape `{term, score}`).
+ *
+ * Ranks by TF-IDF score descending, drops blank terms, and de-duplicates
+ * case-insensitively (the highlight matcher is case-insensitive, so two casings
+ * of one word would build a redundant alternation branch). Ties keep the
+ * incoming order, which is already the API's ranking.
+ *
+ * Pure and total: an empty / missing vocab yields `[]`, which makes the column
+ * render plain text with no legend — degraded, never broken.
+ */
+export function selectDistinctiveTerms(
+  vocab: readonly DistinctiveTerm[] | undefined | null,
+  limit: number = DISTINCTIVE_HIGHLIGHT_LIMIT,
+): string[] {
+  if (!vocab || vocab.length === 0 || limit <= 0) return [];
+
+  const ranked = [...vocab]
+    .map((item) => ({ term: item.term.trim(), score: item.score }))
+    .filter((item) => item.term.length > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const seen = new Set<string>();
+  const terms: string[] = [];
+  for (const item of ranked) {
+    const key = item.term.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    terms.push(item.term);
+    if (terms.length === limit) break;
+  }
+  return terms;
 }
 
 // ---------------------------------------------------------------------------
