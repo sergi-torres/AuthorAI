@@ -14,10 +14,12 @@ Or as part of the full suite:
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import itertools
 import os
 import sys
+import types
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -407,3 +409,190 @@ class TestOptInStages:
             )
         mock_emb.assert_not_called()
         mock_prof.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Stage 5 — cross-author TF-IDF collection (docs/style_features.md 4.1)
+# ---------------------------------------------------------------------------
+
+
+class _FakeToken:
+    """Minimal stand-in for a spaCy Token (the attributes the extractors read)."""
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+        self.lower_ = text.lower()
+        self.lemma_ = text.lower()
+        self.is_alpha = text.isalpha()
+        self.is_punct = not text.isalpha()
+        self.pos_ = "NOUN" if text.isalpha() else "PUNCT"
+        self.dep_ = "nsubj"
+
+
+class _FakeDoc:
+    """Minimal stand-in for a spaCy Doc: one sentence, whitespace tokens."""
+
+    def __init__(self, text: str) -> None:
+        self._tokens = [_FakeToken(w) for w in text.split() if w]
+
+    def __iter__(self) -> Any:
+        return iter(self._tokens)
+
+    def __len__(self) -> int:
+        return len(self._tokens)
+
+    @property
+    def sents(self) -> list[list[_FakeToken]]:
+        return [self._tokens]
+
+
+class _FakeNLP:
+    """Stand-in for the loaded en_core_web_lg pipeline injected into stage 5."""
+
+    def pipe(self, texts: Any, batch_size: int = 64) -> Any:
+        for text in texts:
+            yield _FakeDoc(text)
+
+
+_FAKE_AUTHOR_TEXT: dict[str, str] = {
+    "austen": "propriety accomplishment civility " * 40,
+    "dickens": "countenance physiognomy presently " * 40,
+    "poe": "sepulchre tremulous unspeakable " * 40,
+}
+
+# ``autoria_ai.embedder`` loads a SentenceTransformer at *import* time, and
+# importing it is the only reason stage 5 would be slow / network-dependent
+# here.  The semantic centroid is irrelevant to the TF-IDF collection under
+# test, so the module is stubbed before style_profile imports it.
+_EMBEDDING_DIM = 768
+
+
+@contextlib.contextmanager
+def _observe_distinctive_vocab() -> Any:
+    """Run stage 5 for real, with the embedder stubbed and TF-IDF spied on."""
+    import numpy as np
+
+    stub = types.ModuleType("autoria_ai.embedder")
+    stub.EMBEDDING_DIM = _EMBEDDING_DIM  # type: ignore[attr-defined]
+    stub.embed_chunks = lambda texts: np.zeros((0, _EMBEDDING_DIM))  # type: ignore[attr-defined]
+
+    _PROFILE_MOD = "autoria_ai.extractor.style_profile"
+    real_embedder = sys.modules.get("autoria_ai.embedder")
+    profile_preloaded = _PROFILE_MOD in sys.modules
+    sys.modules["autoria_ai.embedder"] = stub
+    try:
+        with (
+            patch(
+                f"{_PROFILE_MOD}.embed_chunks",
+                side_effect=lambda texts: np.zeros((0, _EMBEDDING_DIM)),
+            ),
+            patch(f"{_PROFILE_MOD}.compute_distinctive_vocab", return_value=[]) as spy,
+        ):
+            yield spy
+    finally:
+        if real_embedder is not None:
+            sys.modules["autoria_ai.embedder"] = real_embedder
+        else:
+            sys.modules.pop("autoria_ai.embedder", None)
+        if not profile_preloaded:
+            # Drop the module that bound the stub so a later import of
+            # style_profile picks the real embedder back up.
+            sys.modules.pop(_PROFILE_MOD, None)
+
+
+class TestStage5ComparisonCorpora:
+    """Stage 5 must hand distinctive_vocab a three-author TF-IDF collection.
+
+    docs/style_features.md 4.1: "each author's full corpus is one 'document'
+    and the collection is all three authors combined".  With a single-document
+    collection the IDF term is constant and the ranking collapses to raw
+    frequency, which is the bug this covers.
+    """
+
+    def _fake_conn(self) -> MagicMock:
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (1,)
+        mock_cursor.fetchall.return_value = []
+        mock_cursor.__enter__ = lambda s: s
+        mock_cursor.__exit__ = MagicMock(return_value=False)
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        return mock_conn
+
+    def _fake_load_documents(self, slug: str) -> list[Any]:
+        return [
+            seed_corpus.SeededDocument(
+                author_slug=slug,
+                title=f"{slug}-work",
+                path=Path(f"{slug}.txt"),
+                cleaned_text=_FAKE_AUTHOR_TEXT[slug],
+                content_hash=_sha(_FAKE_AUTHOR_TEXT[slug]),
+                n_tokens=100,
+            )
+        ]
+
+    @staticmethod
+    def _assert_three_author_collection(mock_vocab: MagicMock) -> None:
+        assert mock_vocab.call_count == 3, "expected one TF-IDF call per seeded author"
+        for call in mock_vocab.call_args_list:
+            corpora = call.args[0]
+            author_id = call.args[1]
+            assert len(corpora) == 3, (
+                f"distinctive_vocab for {author_id} was computed over "
+                f"{len(corpora)} document(s): {sorted(corpora)}"
+            )
+            assert set(corpora) == {"austen", "dickens", "poe"}
+            assert author_id in corpora
+            # Every corpus must carry real lemma text, not an empty placeholder.
+            assert all(text.strip() for text in corpora.values())
+
+    def test_run_with_profiles_uses_all_three_corpora(self) -> None:
+        """The production path (main -> run) passes a 3-key collection."""
+        with (
+            patch("seed_corpus.get_connection", return_value=self._fake_conn()),
+            patch("seed_corpus._load_spacy_model", return_value=_FakeNLP()),
+            patch("seed_corpus.load_documents", side_effect=self._fake_load_documents),
+            patch("seed_corpus.seed_documents"),
+            patch("seed_corpus.seed_chunks", return_value=0),
+            _observe_distinctive_vocab() as mock_vocab,
+        ):
+            seed_corpus.run(
+                ["austen", "dickens", "poe"],
+                database_url="postgresql://fake",
+                with_profiles=True,
+            )
+        self._assert_three_author_collection(mock_vocab)
+
+    def test_run_single_author_still_compares_against_the_other_two(self) -> None:
+        """--author dickens must still build the full three-author collection."""
+        with (
+            patch("seed_corpus.get_connection", return_value=self._fake_conn()),
+            patch("seed_corpus._load_spacy_model", return_value=_FakeNLP()),
+            patch("seed_corpus.load_documents", side_effect=self._fake_load_documents),
+            patch("seed_corpus.seed_documents"),
+            patch("seed_corpus.seed_chunks", return_value=0),
+            _observe_distinctive_vocab() as mock_vocab,
+        ):
+            seed_corpus.run(
+                ["dickens"],
+                database_url="postgresql://fake",
+                with_profiles=True,
+            )
+        assert mock_vocab.call_count == 1
+        corpora, author_id = mock_vocab.call_args.args[0], mock_vocab.call_args.args[1]
+        assert author_id == "dickens"
+        assert set(corpora) == {"austen", "dickens", "poe"}
+
+    def test_run_profiles_helper_uses_all_three_corpora(self) -> None:
+        """The seed() back-compat path (_run_profiles) passes a 3-key collection."""
+        with (
+            patch("seed_corpus._get_connection", return_value=self._fake_conn()),
+            patch("seed_corpus._load_spacy_model", return_value=_FakeNLP()),
+            patch("seed_corpus.load_documents", side_effect=self._fake_load_documents),
+            _observe_distinctive_vocab() as mock_vocab,
+        ):
+            seed_corpus._run_profiles(
+                {"austen": "id-a", "dickens": "id-d", "poe": "id-p"},
+                "postgresql://fake",
+            )
+        self._assert_three_author_collection(mock_vocab)
