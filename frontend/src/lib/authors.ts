@@ -3,7 +3,16 @@ import { en } from "@/lib/i18n/en";
 import type { AuthorCardData } from "@/lib/types";
 
 /**
- * Seeded author data used until GET /api/authors is available.
+ * Seeded author identity used when GET /api/authors is unavailable.
+ *
+ * Names, slugs and bios are static editorial metadata, so serving them offline
+ * claims nothing that was not already true. `has_style_profile` is different:
+ * it asserts a StyleProfile has been *computed*, which this constant cannot
+ * know. It is therefore `false` here — the honesty rule of design-system.md
+ * §8.6 applies to any claim about measured state, not just to the numbers
+ * themselves. A card that under-promises degrades correctly; one that
+ * over-promises sends the user to a screen that cannot deliver.
+ *
  * Replace this constant with a lib/api.ts call; components receive AuthorCardData via props.
  */
 export const AUTHORS: AuthorCardData[] = [
@@ -11,7 +20,7 @@ export const AUTHORS: AuthorCardData[] = [
     id: "austen",
     name: "Jane Austen",
     slug: "austen",
-    has_style_profile: true,
+    has_style_profile: false,
     n_documents: 3,
     bio: "English novelist known for sharp social observation and irony, author of Pride and Prejudice and Sense and Sensibility.",
   },
@@ -19,7 +28,7 @@ export const AUTHORS: AuthorCardData[] = [
     id: "dickens",
     name: "Charles Dickens",
     slug: "dickens",
-    has_style_profile: true,
+    has_style_profile: false,
     n_documents: 3,
     bio: "Victorian novelist who chronicled London's poor with unforgettable characters, from Oliver Twist to Ebenezer Scrooge.",
   },
@@ -27,7 +36,7 @@ export const AUTHORS: AuthorCardData[] = [
     id: "poe",
     name: "Edgar Allan Poe",
     slug: "poe",
-    has_style_profile: true,
+    has_style_profile: false,
     n_documents: 15,
     bio: "American master of the macabre and detective fiction, pioneer of the short story form and author of The Raven.",
   },
