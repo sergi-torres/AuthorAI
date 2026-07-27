@@ -479,12 +479,12 @@ export default function VerifyPage() {
       {state.kind === "invalid" && (
         <div className="flex flex-col gap-4">
           {/* Destructive verdict banner — design-system §6 ShieldAlert = invalid */}
-          <div className="flex items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+          <div className="bg-destructive-tint flex items-center gap-3 rounded-xl border border-destructive/40 px-4 py-3">
             <ShieldAlert
-              className="size-5 shrink-0 text-destructive"
+              className="text-destructive-foreground size-5 shrink-0"
               aria-hidden="true"
             />
-            <p className="font-heading text-lg font-semibold text-destructive">
+            <p className="text-destructive-foreground font-heading text-lg font-semibold">
               {t.invalidTitle}
             </p>
           </div>
