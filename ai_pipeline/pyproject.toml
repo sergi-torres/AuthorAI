@@ -21,6 +21,7 @@ dependencies = [
     "sqlalchemy>=2.0",
     "asyncpg>=0.29",
     "pgvector>=0.3",
+    "psycopg2-binary>=2.9",
 ]
 
 [project.optional-dependencies]

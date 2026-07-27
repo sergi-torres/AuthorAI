@@ -1,0 +1,193 @@
+"""Assemble a StyleProfile v1.0 from an author's cleaned corpus texts.
+
+Public API
+----------
+compute_style_profile(author_slug, documents, nlp, ...) -> dict
+    Runs lexical / syntactic / stylistic extractors, distinctive vocab,
+    and semantic centroid.  ``embedding_umap_2d`` is a placeholder
+    (``{centroid:[0,0], spread:0}``) — real UMAP lives in
+    ``scripts/precompute_umap.py``.
+
+Pipeline (docs/style_features.md §8)
+------------------------------------
+cleaned documents → chunk (500 / 50) → spaCy ``nlp.pipe`` on chunks
+→ aggregate linguistic features → TF-IDF distinctive vocab →
+sentence-transformers centroid over chunks.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
+
+import tiktoken
+
+from autoria_ai.embedder import EMBEDDING_DIM, embed_chunks
+from autoria_ai.extractor.chunker import chunk_text
+from autoria_ai.extractor.lexical import compute_lexical
+from autoria_ai.extractor.stylistic import compute_stylistic
+from autoria_ai.extractor.syntactic import compute_syntactic
+from autoria_ai.extractor.vocabulary import compute_distinctive_vocab
+
+if TYPE_CHECKING:
+    import spacy.tokens  # type: ignore[import-untyped]
+
+# Soft cap so spaCy does not OOM on full Victorian novels in one Doc.
+# Features are still computed over many chunks via nlp.pipe; this only
+# limits how much raw text we keep when building the lemma string for TF-IDF.
+_MAX_LEMMA_CHARS: int = 800_000
+
+# Cap centroid embedding cost on huge corpora (evenly subsampled).
+_MAX_CENTROID_CHUNKS: int = 400
+
+_ENCODER = tiktoken.get_encoding("cl100k_base")
+
+
+def _weighted_mean(dicts: list[dict[str, Any]], weights: list[float]) -> dict[str, Any]:
+    """Average numeric leaves; recurse one level for nested dicts (distributions)."""
+    if not dicts:
+        return {}
+    total_w = sum(weights) or 1.0
+    keys = dicts[0].keys()
+    out: dict[str, Any] = {}
+    for key in keys:
+        sample = dicts[0][key]
+        if isinstance(sample, dict):
+            nested_keys = sample.keys()
+            nested: dict[str, float] = {}
+            for nk in nested_keys:
+                nested[nk] = (
+                    sum(d[key].get(nk, 0.0) * w for d, w in zip(dicts, weights)) / total_w
+                )
+            out[key] = nested
+        else:
+            out[key] = sum(float(d[key]) * w for d, w in zip(dicts, weights)) / total_w
+    return out
+
+
+def _lemmas_from_docs(docs: list[Any]) -> str:
+    """Space-joined lower lemmas (alpha only) for TF-IDF input."""
+    parts: list[str] = []
+    size = 0
+    for doc in docs:
+        for tok in doc:
+            if tok.is_alpha and len(tok.lemma_) >= 3:
+                piece = tok.lemma_.lower()
+                parts.append(piece)
+                size += len(piece) + 1
+                if size >= _MAX_LEMMA_CHARS:
+                    return " ".join(parts)
+    return " ".join(parts)
+
+
+def _subsample(items: list[str], max_n: int) -> list[str]:
+    if len(items) <= max_n:
+        return items
+    if max_n <= 1:
+        return items[:1]
+    step = (len(items) - 1) / (max_n - 1)
+    return [items[int(round(i * step))] for i in range(max_n)]
+
+
+def compute_style_profile(
+    *,
+    author_slug: str,
+    documents: list[str],
+    nlp: Any,
+    comparison_lemmas: dict[str, str] | None = None,
+    chunk_texts: list[str] | None = None,
+    computed_at: str | None = None,
+) -> dict[str, Any]:
+    """Build a StyleProfile v1.0 dict for *author_slug*.
+
+    Parameters
+    ----------
+    author_slug:
+        Stable API id (``austen`` / ``dickens`` / ``poe`` / …).
+    documents:
+        Cleaned document texts (already through ``clean_text`` when seeded).
+    nlp:
+        Loaded spaCy model (``en_core_web_lg``).  Caller owns lifecycle.
+    comparison_lemmas:
+        Optional ``{slug: lemmatized_corpus}`` for TF-IDF.  When omitted or
+        containing only this author, distinctive_vocab may be empty / weak.
+    chunk_texts:
+        Precomputed ~500-token chunks.  When ``None``, documents are chunked
+        with ``chunk_text`` (500 / 50).
+    computed_at:
+        ISO-8601 UTC timestamp; defaults to now.
+    """
+    if not documents:
+        raise ValueError("compute_style_profile requires at least one document")
+
+    full_text = "\n\n".join(documents)
+    chunks = chunk_texts if chunk_texts is not None else chunk_text(full_text)
+    if not chunks:
+        raise ValueError("corpus produced zero chunks")
+
+    docs = list(nlp.pipe(chunks, batch_size=64))
+    weights = [float(max(len(d), 1)) for d in docs]
+
+    lexical = _weighted_mean([compute_lexical(d) for d in docs], weights)
+    syntactic = _weighted_mean([compute_syntactic(d) for d in docs], weights)
+    stylistic = _weighted_mean([compute_stylistic(d) for d in docs], weights)
+
+    author_lemmas = _lemmas_from_docs(docs)
+    corpora = dict(comparison_lemmas or {})
+    corpora[author_slug] = author_lemmas
+    try:
+        distinctive = compute_distinctive_vocab(corpora, author_slug, top_n=30)
+    except Exception:
+        distinctive = []
+
+    centroid_chunks = _subsample(chunks, _MAX_CENTROID_CHUNKS)
+    embeddings = embed_chunks(centroid_chunks)
+    if embeddings.size == 0:
+        centroid = [0.0] * EMBEDDING_DIM
+    else:
+        centroid = embeddings.mean(axis=0).astype(float).tolist()
+
+    n_tokens = len(_ENCODER.encode(full_text))
+    n_sentences = sum(len(list(d.sents)) for d in docs)
+
+    return {
+        "schema_version": "1.0",
+        "author_id": author_slug,
+        "computed_at": computed_at or datetime.now(UTC).isoformat(),
+        "corpus_stats": {
+            "n_documents": len(documents),
+            "n_tokens": n_tokens,
+            "n_sentences": max(n_sentences, 1),
+        },
+        "lexical": {
+            "mattr_500": float(lexical.get("mattr_500", 0.0)),
+            "avg_word_length": float(lexical.get("avg_word_length", 0.0)),
+            "hapax_ratio": float(lexical.get("hapax_ratio", 0.0)),
+        },
+        "syntactic": {
+            "avg_sentence_length_tokens": float(
+                syntactic.get("avg_sentence_length_tokens", 0.0)
+            ),
+            "std_sentence_length_tokens": float(
+                syntactic.get("std_sentence_length_tokens", 0.0)
+            ),
+            "subordination_ratio": float(syntactic.get("subordination_ratio", 0.0)),
+            "passive_voice_ratio": float(syntactic.get("passive_voice_ratio", 0.0)),
+            "noun_to_verb_ratio": float(syntactic.get("noun_to_verb_ratio", 0.0)),
+        },
+        "stylistic": stylistic,
+        "distinctive_vocab": distinctive,
+        "semantic_centroid": centroid,
+        # Placeholder — scripts/precompute_umap.py owns real 2-D coords.
+        "embedding_umap_2d": {"centroid": [0.0, 0.0], "spread": 0.0},
+    }
+
+
+def profile_hash(profile: dict[str, Any]) -> str:
+    """Canonical sha256 hash — must match passport/builder.py."""
+    canonical = json.dumps(
+        profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
