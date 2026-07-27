@@ -9,6 +9,7 @@
  */
 
 import { useRef, useState } from "react";
+import { BadgeCheck, Clock, ShieldAlert } from "lucide-react";
 import { verifyPassport } from "@/lib/api";
 import type { VerifyResponse, PassportPayload, VerifyError } from "@/lib/types";
 import { en } from "@/lib/i18n/en";
@@ -450,14 +451,20 @@ export default function VerifyPage() {
 
       {state.kind === "valid" && (
         <div className="flex flex-col gap-4">
-          {/* Green verdict banner */}
-          <div className="rounded-xl border border-fit-high/40 bg-fit-high/10 px-4 py-3">
-            <p className="font-heading text-lg font-semibold text-fit-high">
-              {t.verifiedTitle}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t.verifiedSubtitle}
-            </p>
+          {/* Seal-green verdict banner — design-system §5 stamp motion, §7 VerifiedBanner */}
+          <div className="animate-stamp-in flex items-start gap-3 rounded-xl border border-success/40 bg-success-tint px-4 py-3">
+            <BadgeCheck
+              className="mt-1 size-5 shrink-0 text-success"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="font-heading text-lg font-semibold text-success">
+                {t.verifiedTitle}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t.verifiedSubtitle}
+              </p>
+            </div>
           </div>
 
           {/* Decoded payload */}
@@ -471,8 +478,12 @@ export default function VerifyPage() {
 
       {state.kind === "invalid" && (
         <div className="flex flex-col gap-4">
-          {/* Red verdict banner */}
-          <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+          {/* Destructive verdict banner — design-system §6 ShieldAlert = invalid */}
+          <div className="flex items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+            <ShieldAlert
+              className="size-5 shrink-0 text-destructive"
+              aria-hidden="true"
+            />
             <p className="font-heading text-lg font-semibold text-destructive">
               {t.invalidTitle}
             </p>
@@ -501,14 +512,20 @@ export default function VerifyPage() {
 
       {state.kind === "network_error" && (
         <div className="flex flex-col gap-4">
-          {/* Network error banner */}
-          <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-            <p className="font-heading text-lg font-semibold text-amber-600 dark:text-amber-400">
-              {t.networkErrorTitle}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t.networkErrorBody}
-            </p>
+          {/* Warning banner — design-system §2.2: --warning-foreground on --warning-tint */}
+          <div className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning-tint px-4 py-3">
+            <Clock
+              className="mt-1 size-5 shrink-0 text-warning-foreground"
+              aria-hidden="true"
+            />
+            <div>
+              <p className="font-heading text-lg font-semibold text-warning-foreground">
+                {t.networkErrorTitle}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t.networkErrorBody}
+              </p>
+            </div>
           </div>
           <div>
             <Button
