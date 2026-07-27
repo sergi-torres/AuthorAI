@@ -9,7 +9,7 @@
 # Usage: `make help` to list targets.
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-py install-front keys db-up db-down seed demo \
+.PHONY: help install install-py install-front keys db-up db-down seed seed-dry demo \
         dev back front lint format test clean
 
 # ---- Meta -------------------------------------------------------------------
@@ -59,8 +59,12 @@ db-down: ## Stop the local database
 	docker compose down
 
 seed: ## Seed the DB with the 3 preloaded authors (Austen, Dickens, Poe)
-	$(call need_file,scripts/seed_corpus.py,Sprint 1)
+	$(call need_file,scripts/seed_corpus.py,Sprint 2)
 	python scripts/seed_corpus.py
+
+seed-dry: ## Validate corpus files and print manifest without touching the DB
+	$(call need_file,scripts/seed_corpus.py,Sprint 2)
+	python scripts/seed_corpus.py --dry-run
 
 # ---- Run --------------------------------------------------------------------
 

@@ -17,11 +17,20 @@ import uuid
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _skip_embedding_backfill():
+    """Upload background task must not load sentence-transformers in unit tests."""
+    with patch("app.routes.authors._embed_document_chunks"):
+        yield
+
 
 # ---------------------------------------------------------------------------
 # Helpers

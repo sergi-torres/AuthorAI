@@ -6,11 +6,11 @@ Implements:
   POST /api/authors/{author_id}/documents                  — uploadAuthorDocument
   POST /api/authors/{author_id}/style-profile/recompute    — recomputeAuthorStyleProfile
 
-The GET handler returns the three preloaded authors as static mocks; once the
-DB seed is applied those mocks will be replaced by a live DB query.
+GET /authors reads ``public.authors`` and derives ``has_style_profile`` /
+``n_documents`` from ``style_profiles`` and ``documents``.
 
 The POST /documents handler persists to Supabase synchronously (documents row)
-and schedules async chunking (chunks rows) via a FastAPI BackgroundTask.
+and schedules async chunking (+ embedding backfill) via BackgroundTask.
 Contract: 202 {document_id, status:"processing"} — docs/api_contract.yaml
 §DocumentUploadAccepted and Decision Log 2026-07-13.
 
@@ -25,8 +25,9 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import UTC, datetime
-from typing import Annotated
+import sys
+from pathlib import Path
+from typing import Annotated, Any
 
 import tiktoken
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
@@ -50,137 +51,98 @@ _MAX_FILE_BYTES: int = 10 * 1024 * 1024
 _CHUNK_SIZE: int = 500
 _CHUNK_OVERLAP: int = 50
 
+
 # ---------------------------------------------------------------------------
-# Preloaded authors (static mock — replaced by DB query once seed runs)
+# ai_pipeline import helper (mirrors passport.py / generate.py)
 # ---------------------------------------------------------------------------
 
-_PRELOADED_AUTHORS: list[AuthorSummary] = [
-    AuthorSummary(
-        id="austen",
-        name="Jane Austen",
-        slug="austen",
-        has_style_profile=False,
-        n_documents=4,
-    ),
-    AuthorSummary(
-        id="dickens",
-        name="Charles Dickens",
-        slug="dickens",
-        has_style_profile=False,
-        n_documents=4,
-    ),
-    AuthorSummary(
-        id="poe",
-        name="Edgar Allan Poe",
-        slug="poe",
-        has_style_profile=False,
-        n_documents=2,
-    ),
-]
+
+def _ensure_ai_pipeline_on_path() -> None:
+    """Make monorepo ``ai_pipeline`` importable without an editable install."""
+    here = Path(__file__).resolve()
+    root = here.parents[3] / "ai_pipeline"
+    if root.is_dir() and str(root) not in sys.path:
+        sys.path.insert(0, str(root))
 
 
 # ---------------------------------------------------------------------------
-# Background task
+# Background tasks
 # ---------------------------------------------------------------------------
+
+
+def _build_style_profile(author_slug: str, documents: list[str], sb: Client) -> dict[str, Any]:
+    """Load spaCy + compute StyleProfile for *author_slug* from document texts.
+
+    Fetches other authors' texts for TF-IDF comparison when available.
+    Separated so tests can patch this without loading ML models.
+    """
+    _ensure_ai_pipeline_on_path()
+    import spacy  # type: ignore[import-untyped]
+
+    from autoria_ai.extractor.style_profile import compute_style_profile
+
+    comparison: dict[str, str] = {}
+    try:
+        others = sb.table("authors").select("id,slug").neq("slug", author_slug).execute()
+        for row in others.data or []:
+            docs = sb.table("documents").select("raw_text").eq("author_id", row["id"]).execute()
+            texts = [d["raw_text"] for d in (docs.data or []) if d.get("raw_text")]
+            if texts:
+                # Cheap lemma proxy for comparison corpora (whitespace tokens).
+                comparison[row["slug"]] = " ".join(texts)[:800_000].lower()
+    except Exception:
+        logger.exception("comparison corpora fetch failed; continuing with single-author TF-IDF")
+
+    nlp = spacy.load("en_core_web_lg")
+    return compute_style_profile(
+        author_slug=author_slug,
+        documents=documents,
+        nlp=nlp,
+        comparison_lemmas=comparison or None,
+    )
 
 
 def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> None:
-    """Build a stub StyleProfile and INSERT into style_profiles.
-
-    The values are schema-valid placeholders — all numeric features are 0.0,
-    semantic_centroid is 768 zeros, embedding_umap_2d is {centroid:[0,0],spread:0}.
-    A sha256 hash of the canonical JSON is stored alongside.
-
-    TODO(P2): replace the placeholder dict below with a call to
-        compute_style_profile(author_uuid, sb)
-    from ai_pipeline once the Sprint 2 extractor is wired in.
+    """Compute a real StyleProfile and INSERT into style_profiles.
 
     Errors are logged but not re-raised: the 202 has already been sent.
     """
     try:
-        computed_at = datetime.now(UTC).isoformat()
+        docs_result = (
+            sb.table("documents").select("raw_text").eq("author_id", author_uuid).execute()
+        )
+        documents = [row["raw_text"] for row in (docs_result.data or []) if row.get("raw_text")]
+        if not documents:
+            logger.warning(
+                "recompute skipped for %s (%s): no documents in corpus",
+                author_slug,
+                author_uuid,
+            )
+            return
 
-        # ------------------------------------------------------------------
-        # Stub StyleProfile — satisfies docs/api_contract.yaml §StyleProfile
-        # ------------------------------------------------------------------
-        profile: dict = {
-            "schema_version": "1.0",
-            "author_id": author_slug,
-            "computed_at": computed_at,
-            "corpus_stats": {
-                "n_documents": 0,
-                "n_tokens": 0,
-                "n_sentences": 0,
-            },
-            "lexical": {
-                "mattr_500": 0.0,
-                "avg_word_length": 0.0,
-                "hapax_ratio": 0.0,
-            },
-            "syntactic": {
-                "avg_sentence_length_tokens": 0.0,
-                "std_sentence_length_tokens": 0.0,
-                "subordination_ratio": 0.0,
-                "passive_voice_ratio": 0.0,
-                "noun_to_verb_ratio": 0.0,
-            },
-            "stylistic": {
-                "punct_distribution": {
-                    ",": 0.0,
-                    ".": 0.0,
-                    ";": 0.0,
-                    ":": 0.0,
-                    "—": 0.0,
-                    "?": 0.0,
-                    "!": 0.0,
-                    '"': 0.0,
-                },
-                "pos_distribution": {
-                    "NOUN": 0.0,
-                    "VERB": 0.0,
-                    "ADJ": 0.0,
-                    "ADV": 0.0,
-                    "DET": 0.0,
-                    "ADP": 0.0,
-                    "PRON": 0.0,
-                    "CONJ": 0.0,
-                    "SCONJ": 0.0,
-                    "OTHER": 0.0,
-                },
-                "dialogue_ratio": 0.0,
-                "first_person_ratio": 0.0,
-            },
-            "distinctive_vocab": [],
-            # 768 zeros — real centroid computed by P2 sentence-transformers
-            "semantic_centroid": [0.0] * 768,
-            # UMAP placeholder — real projection computed by P2 UMAP fit
-            "embedding_umap_2d": {"centroid": [0.0, 0.0], "spread": 0.0},
-        }
+        profile = _build_style_profile(author_slug, documents, sb)
 
-        canonical = json.dumps(profile, sort_keys=True, separators=(",", ":")).encode()
-        profile_hash = "sha256:" + hashlib.sha256(canonical).hexdigest()
+        canonical = json.dumps(profile, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        row_hash = "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
         sb.table("style_profiles").insert(
             {
                 "author_id": author_uuid,
                 "version": "1.0",
                 "json_data": profile,
-                "hash": profile_hash,
+                "hash": row_hash,
             }
         ).execute()
-        logger.info("style_profiles stub inserted for author %s (%s)", author_slug, author_uuid)
+        logger.info("style_profiles row inserted for author %s (%s)", author_slug, author_uuid)
     except Exception:
-        logger.exception("recompute stub failed for author %s (%s)", author_slug, author_uuid)
+        logger.exception("recompute failed for author %s (%s)", author_slug, author_uuid)
 
 
 def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
     """Chunk raw_text with tiktoken cl100k_base and insert into chunks table.
 
     Window: size=500 tokens, overlap=50 tokens.
-    chunk_index is 0-based sequential — satisfies UNIQUE(document_id, chunk_index).
-    embedding is left NULL (filled by a later async embedding job, out of scope).
-
-    Errors are logged but not re-raised: the 202 has already been sent.
+    embedding is left NULL here; ``_embed_document_chunks`` fills it afterwards.
     """
     enc = tiktoken.get_encoding("cl100k_base")
     tokens = enc.encode(raw_text)
@@ -200,7 +162,6 @@ def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
                 "text": enc.decode(chunk_tokens),
                 "token_start": pos,
                 "token_end": end,
-                # embedding intentionally omitted — column is nullable
             }
         )
         chunk_index += 1
@@ -217,6 +178,34 @@ def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
         logger.info("document %s: inserted %d chunks", document_id, len(rows))
     except Exception:
         logger.exception("chunk insert failed for document %s", document_id)
+        return
+
+    _embed_document_chunks(document_id, sb)
+
+
+def _embed_document_chunks(document_id: str, sb: Client) -> None:
+    """Embed NULL-embedding chunks for *document_id* via sentence-transformers."""
+    try:
+        result = (
+            sb.table("chunks")
+            .select("id, text")
+            .eq("document_id", document_id)
+            .is_("embedding", "null")
+            .execute()
+        )
+        rows = result.data or []
+        if not rows:
+            return
+
+        _ensure_ai_pipeline_on_path()
+        from autoria_ai.embedder import embed_chunks
+
+        embeddings = embed_chunks([r["text"] for r in rows])
+        for row, emb in zip(rows, embeddings, strict=False):
+            sb.table("chunks").update({"embedding": emb.tolist()}).eq("id", row["id"]).execute()
+        logger.info("document %s: embedded %d chunks", document_id, len(rows))
+    except Exception:
+        logger.exception("embedding backfill failed for document %s", document_id)
 
 
 # ---------------------------------------------------------------------------
@@ -230,8 +219,33 @@ def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
     summary="List authors",
 )
 async def list_authors() -> list[AuthorSummary]:
-    """Return all authors (3 preloaded + any added via document upload)."""
-    return _PRELOADED_AUTHORS
+    """Return authors from ``public.authors`` with live profile/doc counts."""
+    sb = get_client()
+
+    authors_result = sb.table("authors").select("id, name, slug").order("slug").execute()
+    authors = authors_result.data or []
+    if not authors:
+        return []
+
+    docs_result = sb.table("documents").select("author_id").execute()
+    doc_counts: dict[str, int] = {}
+    for row in docs_result.data or []:
+        aid = row["author_id"]
+        doc_counts[aid] = doc_counts.get(aid, 0) + 1
+
+    profiles_result = sb.table("style_profiles").select("author_id").execute()
+    with_profile = {row["author_id"] for row in (profiles_result.data or [])}
+
+    return [
+        AuthorSummary(
+            id=row["slug"],
+            name=row["name"],
+            slug=row["slug"],
+            has_style_profile=row["id"] in with_profile,
+            n_documents=doc_counts.get(row["id"], 0),
+        )
+        for row in authors
+    ]
 
 
 @router.get(
@@ -244,21 +258,9 @@ async def list_authors() -> list[AuthorSummary]:
     },
 )
 async def get_author_style_profile(author_id: str) -> JSONResponse:
-    """Return the latest StyleProfile v1.0 JSON for *author_id* (slug).
-
-    Resolves the slug to an authors.id UUID, then fetches the single
-    style_profiles row with the greatest computed_at.  The stored json_data
-    is returned verbatim — no re-serialisation through a Pydantic model.
-
-    404 is raised for both an unknown author slug and an author that exists
-    but has no computed profile yet (error: "not_found" in both cases,
-    per docs/api_contract.yaml §getAuthorStyleProfile).
-    """
+    """Return the latest StyleProfile v1.0 JSON for *author_id* (slug)."""
     sb = get_client()
 
-    # ------------------------------------------------------------------
-    # 1. Resolve slug → UUID  (same pattern as upload_author_document)
-    # ------------------------------------------------------------------
     author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
     if author_result.data is None:
         raise HTTPException(
@@ -268,9 +270,6 @@ async def get_author_style_profile(author_id: str) -> JSONResponse:
 
     author_uuid: str = author_result.data["id"]
 
-    # ------------------------------------------------------------------
-    # 2. Fetch latest style_profiles row  (max computed_at via ORDER+LIMIT)
-    # ------------------------------------------------------------------
     profile_result = (
         sb.table("style_profiles")
         .select("json_data")
@@ -308,16 +307,9 @@ async def upload_author_document(
     file: Annotated[UploadFile, File(description="Plain-text or Markdown file (.txt, .md)")],
     title: Annotated[str | None, Form(max_length=500)] = None,
 ) -> JSONResponse:
-    """Accept a .txt or .md file, persist a documents row, and enqueue chunking.
-
-    Returns 202 {document_id, status:"processing"} immediately.
-    Chunking runs asynchronously in a BackgroundTask.
-    """
+    """Accept a .txt or .md file, persist a documents row, and enqueue chunking."""
     sb = get_client()
 
-    # ------------------------------------------------------------------
-    # 1. Validate author exists in DB (404 guard + resolve UUID for FK)
-    # ------------------------------------------------------------------
     author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
     if author_result.data is None:
         raise HTTPException(
@@ -327,9 +319,6 @@ async def upload_author_document(
 
     author_uuid: str = author_result.data["id"]
 
-    # ------------------------------------------------------------------
-    # 2. Validate file extension
-    # ------------------------------------------------------------------
     filename: str = file.filename or ""
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     if ext not in _ALLOWED_EXTENSIONS:
@@ -341,9 +330,6 @@ async def upload_author_document(
             },
         )
 
-    # ------------------------------------------------------------------
-    # 3. Read and validate content
-    # ------------------------------------------------------------------
     raw_bytes = await file.read(_MAX_FILE_BYTES + 1)
 
     if len(raw_bytes) > _MAX_FILE_BYTES:
@@ -363,20 +349,11 @@ async def upload_author_document(
 
     raw_text = raw_bytes.decode("utf-8", errors="replace")
 
-    # ------------------------------------------------------------------
-    # 4. Resolve title (default = filename without extension)
-    # ------------------------------------------------------------------
     doc_title = title or (filename.rsplit(".", 1)[0] if "." in filename else filename) or filename
 
-    # ------------------------------------------------------------------
-    # 5. Count tokens (synchronous — cheap enough to block on)
-    # ------------------------------------------------------------------
     enc = tiktoken.get_encoding("cl100k_base")
     n_tokens = len(enc.encode(raw_text))
 
-    # ------------------------------------------------------------------
-    # 6. Insert documents row and read back generated UUID
-    # ------------------------------------------------------------------
     insert_result = (
         sb.table("documents")
         .insert(
@@ -391,9 +368,6 @@ async def upload_author_document(
     )
     document_id: str = insert_result.data[0]["id"]
 
-    # ------------------------------------------------------------------
-    # 7. Schedule async chunking (202 already committed after return)
-    # ------------------------------------------------------------------
     background_tasks.add_task(_chunk_and_insert, document_id, raw_text, sb)
 
     return JSONResponse(
@@ -419,19 +393,11 @@ async def recompute_author_style_profile(
     """Enqueue an async StyleProfile recompute for *author_id* (slug).
 
     Returns 202 {status:"computing", estimated_seconds:N} immediately.
-    The background task inserts a stub-valid StyleProfile row; it will be
-    replaced by the real P2 compute_style_profile entrypoint in Sprint 2.
-
-    estimated_seconds heuristic: sum author's documents.n_tokens, then
-    max(30, n_tokens // 2000).  Fetching n_tokens is one cheap SELECT with
-    client-side aggregation — no SQL aggregate needed.  Falls back to 30 if
-    the documents table is empty or the query fails.
+    The background task loads the author's documents and calls
+    ``compute_style_profile`` before inserting a new ``style_profiles`` row.
     """
     sb = get_client()
 
-    # ------------------------------------------------------------------
-    # 1. Resolve slug → UUID  (404 guard — same pattern as upload)
-    # ------------------------------------------------------------------
     author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
     if author_result.data is None:
         raise HTTPException(
@@ -441,9 +407,6 @@ async def recompute_author_style_profile(
 
     author_uuid: str = author_result.data["id"]
 
-    # ------------------------------------------------------------------
-    # 2. Estimate wall-clock seconds from corpus token count
-    # ------------------------------------------------------------------
     try:
         docs_result = (
             sb.table("documents").select("n_tokens").eq("author_id", author_uuid).execute()
@@ -455,9 +418,6 @@ async def recompute_author_style_profile(
 
     estimated_seconds: int = max(30, total_tokens // 2000)
 
-    # ------------------------------------------------------------------
-    # 3. Schedule async recompute and return 202
-    # ------------------------------------------------------------------
     background_tasks.add_task(_recompute_style_profile, author_uuid, author_id, sb)
 
     return JSONResponse(

@@ -2,13 +2,7 @@
 (recomputeAuthorStyleProfile).
 
 All Supabase I/O is mocked via unittest.mock.patch so no real DB is needed.
-The mock is patched at `app.routes.authors.get_client` — the name as imported
-by the route module, not the definition site (standard Python mock hygiene).
-
-Contract being tested: docs/api_contract.yaml §recomputeAuthorStyleProfile
-  202  happy path  → {status: "computing", estimated_seconds: <int >= 0>}
-  404  unknown author
-  background task  → style_profiles.insert was called with a schema-valid row
+ML is patched via ``_build_style_profile`` so spaCy is never loaded in CI.
 """
 
 from __future__ import annotations
@@ -16,25 +10,71 @@ from __future__ import annotations
 import uuid
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 client = TestClient(app)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
 _FAKE_AUTHOR_UUID = str(uuid.uuid4())
 
-# Simulate two documents with known token counts so estimated_seconds is
-# deterministic: 4000 + 2000 = 6000 tokens → max(30, 6000 // 2000) = max(30, 3) = 30
-_FAKE_DOCS = [{"n_tokens": 4000}, {"n_tokens": 2000}]
+_FAKE_DOCS = [
+    {"n_tokens": 4000, "raw_text": "It was the best of times. " * 50},
+    {"n_tokens": 2000, "raw_text": "It was the worst of times. " * 30},
+]
 
-# A larger corpus that pushes estimated_seconds above the floor:
-# 120_000 tokens → max(30, 120_000 // 2000) = max(30, 60) = 60
-_LARGE_DOCS = [{"n_tokens": 120_000}]
+_LARGE_DOCS = [{"n_tokens": 120_000, "raw_text": "Fog everywhere. " * 100}]
+
+_FAKE_PROFILE = {
+    "schema_version": "1.0",
+    "author_id": "dickens",
+    "computed_at": "2026-07-27T00:00:00+00:00",
+    "corpus_stats": {"n_documents": 1, "n_tokens": 1000, "n_sentences": 10},
+    "lexical": {"mattr_500": 0.5, "avg_word_length": 4.0, "hapax_ratio": 0.3},
+    "syntactic": {
+        "avg_sentence_length_tokens": 12.0,
+        "std_sentence_length_tokens": 3.0,
+        "subordination_ratio": 0.2,
+        "passive_voice_ratio": 0.1,
+        "noun_to_verb_ratio": 1.5,
+    },
+    "stylistic": {
+        "punct_distribution": {
+            ",": 0.2,
+            ".": 0.2,
+            ";": 0.1,
+            ":": 0.1,
+            "—": 0.1,
+            "?": 0.1,
+            "!": 0.1,
+            '"': 0.1,
+        },
+        "pos_distribution": {
+            "NOUN": 0.2,
+            "VERB": 0.2,
+            "ADJ": 0.1,
+            "ADV": 0.1,
+            "DET": 0.1,
+            "ADP": 0.1,
+            "PRON": 0.05,
+            "CONJ": 0.05,
+            "SCONJ": 0.05,
+            "OTHER": 0.05,
+        },
+        "dialogue_ratio": 0.1,
+        "first_person_ratio": 5.0,
+    },
+    "distinctive_vocab": [],
+    "semantic_centroid": [0.0] * 768,
+    "embedding_umap_2d": {"centroid": [0.0, 0.0], "spread": 0.0},
+}
+
+
+@pytest.fixture(autouse=True)
+def _patch_build_style_profile():
+    with patch("app.routes.authors._build_style_profile", return_value=_FAKE_PROFILE):
+        yield
 
 
 def _make_sb_mock(
@@ -42,24 +82,11 @@ def _make_sb_mock(
     author_found: bool = True,
     doc_rows: list[dict] | None = None,
 ) -> MagicMock:
-    """Build a Supabase client mock for the recompute route.
-
-    The route calls:
-      sb.table("authors").select("id").eq("slug", ...).maybe_single().execute()
-      sb.table("documents").select("n_tokens").eq("author_id", ...).execute()
-    and in the background task:
-      sb.table("style_profiles").insert({...}).execute()
-
-    We model each table("x") call returning a dedicated chained mock so that
-    table("authors"), table("documents"), and table("style_profiles") can each
-    return different data.
-    """
     if doc_rows is None:
         doc_rows = _FAKE_DOCS
 
     sb = MagicMock()
 
-    # ---- authors table ----
     authors_chain = MagicMock()
     author_execute = MagicMock()
     author_execute.data = {"id": _FAKE_AUTHOR_UUID} if author_found else None
@@ -67,13 +94,11 @@ def _make_sb_mock(
         author_execute
     )
 
-    # ---- documents table ----
     docs_chain = MagicMock()
     docs_execute = MagicMock()
     docs_execute.data = doc_rows
     docs_chain.select.return_value.eq.return_value.execute.return_value = docs_execute
 
-    # ---- style_profiles table ----
     profiles_chain = MagicMock()
     profiles_chain.insert.return_value.execute.return_value = MagicMock()
 
@@ -90,14 +115,8 @@ def _make_sb_mock(
     return sb
 
 
-# ---------------------------------------------------------------------------
-# Tests
-# ---------------------------------------------------------------------------
-
-
 @patch("app.routes.authors.get_client")
 def test_recompute_202_happy_path(mock_get_client: MagicMock) -> None:
-    """Known author returns 202 with status='computing' and estimated_seconds >= 0."""
     mock_get_client.return_value = _make_sb_mock(author_found=True)
 
     resp = client.post("/api/authors/dickens/style-profile/recompute")
@@ -112,8 +131,6 @@ def test_recompute_202_happy_path(mock_get_client: MagicMock) -> None:
 
 @patch("app.routes.authors.get_client")
 def test_recompute_estimated_seconds_floor(mock_get_client: MagicMock) -> None:
-    """estimated_seconds is at least 30 even for a small corpus (floor heuristic)."""
-    # 6 000 tokens → 6000 // 2000 = 3; max(30, 3) = 30
     mock_get_client.return_value = _make_sb_mock(author_found=True, doc_rows=_FAKE_DOCS)
 
     resp = client.post("/api/authors/austen/style-profile/recompute")
@@ -124,8 +141,6 @@ def test_recompute_estimated_seconds_floor(mock_get_client: MagicMock) -> None:
 
 @patch("app.routes.authors.get_client")
 def test_recompute_estimated_seconds_above_floor(mock_get_client: MagicMock) -> None:
-    """estimated_seconds exceeds 30 when the corpus is large enough."""
-    # 120 000 tokens → 120 000 // 2000 = 60; max(30, 60) = 60
     mock_get_client.return_value = _make_sb_mock(author_found=True, doc_rows=_LARGE_DOCS)
 
     resp = client.post("/api/authors/dickens/style-profile/recompute")
@@ -136,7 +151,6 @@ def test_recompute_estimated_seconds_above_floor(mock_get_client: MagicMock) -> 
 
 @patch("app.routes.authors.get_client")
 def test_recompute_404_unknown_author(mock_get_client: MagicMock) -> None:
-    """An author_id not present in the DB returns 404 with error: not_found."""
     mock_get_client.return_value = _make_sb_mock(author_found=False)
 
     resp = client.post("/api/authors/ghost_writer/style-profile/recompute")
@@ -148,24 +162,24 @@ def test_recompute_404_unknown_author(mock_get_client: MagicMock) -> None:
 
 
 @patch("app.routes.authors.get_client")
-def test_recompute_background_task_insert_called(mock_get_client: MagicMock) -> None:
-    """The background task runs and calls style_profiles.insert exactly once.
+@patch("app.routes.authors._build_style_profile")
+def test_recompute_background_task_insert_called(
+    mock_build: MagicMock,
+    mock_get_client: MagicMock,
+) -> None:
+    mock_build.return_value = {**_FAKE_PROFILE, "author_id": "poe"}
 
-    FastAPI's TestClient executes BackgroundTasks synchronously before
-    returning, so we can assert on the mock immediately after the response.
-    """
     sb = _make_sb_mock(author_found=True)
     mock_get_client.return_value = sb
 
     resp = client.post("/api/authors/poe/style-profile/recompute")
 
     assert resp.status_code == 202
+    mock_build.assert_called_once()
 
-    # style_profiles table was accessed
     profiles_chain = sb.table("style_profiles")
     profiles_chain.insert.assert_called_once()
 
-    # The inserted payload must contain the required keys
     inserted_payload: dict = profiles_chain.insert.call_args[0][0]
     assert inserted_payload["author_id"] == _FAKE_AUTHOR_UUID
     assert inserted_payload["version"] == "1.0"
@@ -173,7 +187,6 @@ def test_recompute_background_task_insert_called(mock_get_client: MagicMock) -> 
     assert "hash" in inserted_payload
     assert inserted_payload["hash"].startswith("sha256:")
 
-    # Stub stylistic distributions must include all schema-required keys
     stylistic = inserted_payload["json_data"]["stylistic"]
     assert set(stylistic["punct_distribution"]) == {",", ".", ";", ":", "—", "?", "!", '"'}
     assert set(stylistic["pos_distribution"]) == {
