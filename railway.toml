@@ -7,10 +7,16 @@
 #
 # Secrets (WATSONX_API_KEY, SUPABASE_URL, SUPABASE_KEY, DATABASE_URL,
 # AUTORIA_CORS_ORIGINS, PASSPORT_*) are set under Service → Variables.
+#
+# buildCommand installs `requirements-deploy.txt`, NOT `backend/requirements.txt`:
+# one process imports both `backend/app` and `ai_pipeline/autoria_ai`, so the
+# image needs the union of both pyprojects. See that file's header (WO-02 / #83).
+# The builder's own install phase already runs `pip install -r requirements.txt`
+# (the root shim); buildCommand runs after it and layers the pipeline deps on top.
 
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install -r backend/requirements.txt"
+buildCommand = "pip install -r requirements-deploy.txt"
 
 [deploy]
 startCommand = "cd backend && PYTHONPATH=../ai_pipeline uvicorn app.main:app --host 0.0.0.0 --port $PORT"

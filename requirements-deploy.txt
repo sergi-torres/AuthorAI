@@ -1,0 +1,83 @@
+# Deploy-image manifest — THE file `railway.toml` installs (see its header).
+#
+# WHY THIS FILE EXISTS (WO-02 / issue #83)
+# ----------------------------------------
+# The Railway image runs ONE process that imports TWO packages: `backend/app`
+# (FastAPI) and `ai_pipeline/autoria_ai`. Per docs/architecture.md §2 the AI
+# pipeline is "a library imported by the backend, not a separate service", so
+# the image's dependency set is the UNION of backend/pyproject.toml and
+# ai_pipeline/pyproject.toml — not either one alone.
+#
+# The union cannot live in `backend/requirements.txt`: that file's own header
+# declares it a mirror of `backend/pyproject.toml` ("Source of truth is
+# pyproject.toml — keep in sync"). Putting ai_pipeline's deps there would make
+# it mirror two pyprojects and silently break that invariant.
+#
+# Build-phase note: Nixpacks/Railpack auto-detect the root `requirements.txt`
+# (which is only `-r backend/requirements.txt`) and install it during the
+# INSTALL phase. `buildCommand` runs afterwards, in the BUILD phase, and layers
+# this file on top — so the `-r` below is a cheap no-op on Railway and makes the
+# file self-contained for local/CI reproduction of the deploy image.
+
+# ---------------------------------------------------------------------------
+# Backend — mirror of backend/pyproject.toml (owned by backend/requirements.txt)
+# ---------------------------------------------------------------------------
+-r backend/requirements.txt
+
+# ---------------------------------------------------------------------------
+# AI pipeline — ai_pipeline/pyproject.toml [project].dependencies
+#
+# Imported at request time by POST /api/generate:
+#   autoria_ai.generator.orchestrate
+#     -> autoria_ai.db        (numpy, pgvector.sqlalchemy, sqlalchemy[asyncpg])
+#     -> autoria_ai.embedder  (sentence_transformers, numpy)
+#     -> autoria_ai.fit_scorer(numpy, scipy)
+#     -> autoria_ai.extractor.vocabulary (sklearn)
+#     -> spacy                (generator._ensure_models)
+# Entries already pinned by backend/requirements.txt above and therefore NOT
+# repeated here: tiktoken, pydantic, python-jose[cryptography],
+# jsonschema[format], ibm-watsonx-ai.
+# ---------------------------------------------------------------------------
+spacy>=3.7
+sentence-transformers>=2.7
+scikit-learn>=1.4
+numpy>=1.26
+# scipy is a *direct* import in ai_pipeline/autoria_ai/fit_scorer.py:22 but is
+# missing from ai_pipeline/pyproject.toml (it only arrives transitively via
+# scikit-learn). Pinned explicitly here so the deploy image does not depend on
+# a transitive edge. Declaring it upstream is out of scope for WO-02.
+scipy>=1.11
+
+# DB / vector store — SQLAlchemy 2.0 async + pgvector (asyncpg is the driver
+# named in the DATABASE_URL DSN, imported by SQLAlchemy, not by our code).
+sqlalchemy>=2.0
+asyncpg>=0.29
+pgvector>=0.3
+
+# ---------------------------------------------------------------------------
+# Deliberately NOT installed, although present in ai_pipeline/pyproject.toml:
+#
+#   umap-learn      only import: scripts/precompute_umap.py (offline job).
+#   psycopg2-binary only imports: scripts/precompute_umap.py, scripts/
+#                   seed_corpus.py (offline sync-driver jobs).
+#
+# Neither is reachable from `backend/app` or from any autoria_ai module the web
+# process imports. umap-learn alone drags in numba + llvmlite (~200 MB) and
+# constrains the numpy range. Given WO-02's stated regression risk (image size
+# on the hobby plan), offline-only tooling stays out of the runtime image. Run
+# those scripts from a dev machine with `pip install -e "ai_pipeline[dev]"`.
+#
+# COLD-START NOTE — `autoria_ai/embedder.py:23` builds SentenceTransformer(
+# "all-mpnet-base-v2") at MODULE level, so importing autoria_ai.db downloads
+# ~418 MB from HuggingFace at RUNTIME (first boot), not at build time. That runs
+# inside the FastAPI lifespan, before the first /health is served — see the
+# `healthcheckTimeout` note reported on issue #83.
+#
+# NOT A PIP DEPENDENCY — the spaCy model `en_core_web_lg` (~560 MB) is NOT
+# installed by this file. `autoria_ai.generator._ensure_models()` calls
+# `spacy.load("en_core_web_lg")`; without the model, warmup logs the failure and
+# startup continues (backend/app/main.py catches it, /health stays 200), but
+# POST /api/generate raises OSError. Installing it (`python -m spacy download
+# en_core_web_lg`) is a deploy-size decision left to the maintainer — see the
+# report on issue #83.
+# ---------------------------------------------------------------------------
