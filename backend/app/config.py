@@ -31,6 +31,12 @@ REQUIRED_ENV_VARS: tuple[str, ...] = ("WATSONX_API_KEY", "SUPABASE_URL", "SUPABA
 
 # Passport key env var names — exposed only as presence booleans in env_report().
 PASSPORT_ENV_VARS: tuple[str, ...] = (
+    # Deploys inject PEM *content* (dashboards hold values, not files) and
+    # `keys/**` is gitignored, so the image has no key file to point at.
+    # Local development keeps using the *_PATH form. Either pair works; the
+    # PEM one wins when both are set (autoria_ai.passport.keys.resolve_pem).
+    "PASSPORT_PRIVATE_KEY_PEM",
+    "PASSPORT_PUBLIC_KEY_PEM",
     "PASSPORT_PRIVATE_KEY_PATH",
     "PASSPORT_PUBLIC_KEY_PATH",
     "PASSPORT_KID",

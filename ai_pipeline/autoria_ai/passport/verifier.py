@@ -19,6 +19,8 @@ from jose import JWTError
 from jose import jws as jose_jws
 from jose.exceptions import JOSEError
 
+from autoria_ai.passport.keys import resolve_pem
+
 _ALLOWED_ALGS = frozenset({"ES256"})
 _SUPPORTED_SCHEMA_VERSIONS = frozenset({"1.0"})
 # Hard cap against oversized-token DoS (compact JWS string length).
@@ -58,12 +60,15 @@ def _load_public_key(
 ) -> EllipticCurvePublicKey:
     if public_key is not None:
         return public_key
-    path = public_key_path or os.getenv("PASSPORT_PUBLIC_KEY_PATH")
-    if not path:
-        raise RuntimeError("PASSPORT_PUBLIC_KEY_PATH is not configured")
-    if not Path(path).is_file():
-        raise RuntimeError("Public key file not found")
-    key = load_pem_public_key(Path(path).read_bytes())
+    # PASSPORT_PUBLIC_KEY_PEM (content) takes precedence over
+    # PASSPORT_PUBLIC_KEY_PATH (file): `keys/**` is gitignored, so a deployed
+    # image has no key file. See autoria_ai.passport.keys.
+    pem = resolve_pem(
+        pem_env="PASSPORT_PUBLIC_KEY_PEM",
+        path_env="PASSPORT_PUBLIC_KEY_PATH",
+        explicit_path=public_key_path,
+    )
+    key = load_pem_public_key(pem)
     if not isinstance(key, EllipticCurvePublicKey):
         raise RuntimeError("Configured public key is not an EC key")
     return key

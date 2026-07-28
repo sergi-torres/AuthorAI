@@ -10,21 +10,27 @@ from typing import Any
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from jose import jws as jose_jws
 
+from autoria_ai.passport.keys import resolve_pem
+
 _TYP = "passport+jws"
 _ALG = "ES256"
 
 
 def _load_private_key(path: str | Path | None = None):
-    key_path = path or os.getenv("PASSPORT_PRIVATE_KEY_PATH")
-    if not key_path:
-        raise RuntimeError("PASSPORT_PRIVATE_KEY_PATH is not configured")
-    pem = Path(key_path).read_bytes()
+    # PASSPORT_PRIVATE_KEY_PEM (content) takes precedence over
+    # PASSPORT_PRIVATE_KEY_PATH (file) — `keys/**` is gitignored, so on Railway
+    # there is no file to point at. See autoria_ai.passport.keys.
+    pem = resolve_pem(
+        pem_env="PASSPORT_PRIVATE_KEY_PEM",
+        path_env="PASSPORT_PRIVATE_KEY_PATH",
+        explicit_path=path,
+    )
     # Fix #3: wrap cryptography errors with `from None` so the raw PEM bytes
     # never appear in __cause__/__context__ or in log traces.
     try:
         return load_pem_private_key(pem, password=None)
     except Exception:
-        raise RuntimeError("Failed to load private key (check key file format)") from None
+        raise RuntimeError("Failed to load private key (check key format)") from None
 
 
 def sign_passport(

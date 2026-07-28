@@ -3,8 +3,8 @@
     {
       "kty": "EC",
       "crv": "P-256",
-      "x": "mdwVHOhqza-78IPdo18B0cc6MmUBhXb2KW0rYv5pxas",
-      "y": "BFQ4yg8ITmDvartx-EBRsEvHyFFqnj7NvsBvitaDjPY",
+      "x": "Xu201CTeVLiSiSN5eOeV2kVMCXJYcH9GE2sujOnsj9I",
+      "y": "ad8_7Cczipi70UJcruLbcf9OkwApCRXfZHAY2n0MjH0",
       "use": "sig",
       "alg": "ES256",
       "kid": "autoria-2026-07"

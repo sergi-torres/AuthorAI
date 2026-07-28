@@ -5,10 +5,11 @@ verifier can check Authorship Passport signatures **offline**, without calling
 back to our servers.
 
 Security invariants enforced here:
-- Only the public key is ever read (PASSPORT_PUBLIC_KEY_PATH).
+- Only the public key is ever read (PASSPORT_PUBLIC_KEY_PEM, else
+  PASSPORT_PUBLIC_KEY_PATH).
 - The private key is never touched by this module.
-- If the key file is absent or PASSPORT_PUBLIC_KEY_PATH is unset → 500; we
-  never silently serve an empty key set (that would make all signatures
+- If neither variable is configured, or the file is absent → 500; we never
+  silently serve an empty key set (that would make all signatures
   unverifiable without error).
 - The `d` (private scalar) field is never present in the response; ensured by
   using `cryptography`'s `public_key().public_bytes()` path rather than
@@ -19,8 +20,6 @@ from __future__ import annotations
 
 import base64
 import logging
-import os
-from pathlib import Path
 
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
@@ -29,6 +28,7 @@ from fastapi.responses import JSONResponse
 
 import app.config as _cfg
 from app.schemas import JsonWebKey, JwksDocument
+from autoria_ai.passport.keys import resolve_pem
 
 logger = logging.getLogger(__name__)
 
@@ -49,22 +49,26 @@ def _load_public_jwk() -> JsonWebKey:
     Raises RuntimeError (→ 500) if the env var is unset or the file is missing.
     Never logs key material.
     """
-    path = _cfg.settings.passport_public_key_path
     kid = _cfg.settings.passport_kid or "autoria"
 
-    if not path:
-        raise RuntimeError("PASSPORT_PUBLIC_KEY_PATH is not configured")
-
-    if not os.path.isfile(path):
-        # Log the path (not the content) to assist ops debugging.
-        logger.error("Public key file not found: %s", path)
-        raise RuntimeError("Public key file not found")
+    # PASSPORT_PUBLIC_KEY_PEM (content) wins over PASSPORT_PUBLIC_KEY_PATH
+    # (file). `keys/**` is gitignored, so a Railway image ships no key file and
+    # a path-only lookup made this endpoint answer 500 in every deploy.
+    try:
+        pem = resolve_pem(
+            pem_env="PASSPORT_PUBLIC_KEY_PEM",
+            path_env="PASSPORT_PUBLIC_KEY_PATH",
+        )
+    except RuntimeError as exc:
+        # Message names the missing variable, never key material.
+        logger.error("Public key unavailable: %s", exc)
+        raise
 
     try:
-        key = load_pem_public_key(Path(path).read_bytes())
+        key = load_pem_public_key(pem)
     except Exception as exc:
-        # exc message may include path details but never key material.
-        logger.error("Failed to load public key from %s: %s", path, type(exc).__name__)
+        # Log the error *type* only — the message could echo PEM bytes.
+        logger.error("Failed to parse the configured public key: %s", type(exc).__name__)
         raise RuntimeError("Failed to parse public key") from exc
 
     if not isinstance(key, EllipticCurvePublicKey):
