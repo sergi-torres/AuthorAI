@@ -4,7 +4,7 @@
 > **Schema version this document describes**: `StyleProfile v1.0`
 > **Stack**: spaCy `en_core_web_lg` · sentence-transformers `all-mpnet-base-v2`
 
-This document is the authoritative reference for every metric stored in a `StyleProfile`. For each feature it defines: what it measures, how it is computed, why it was chosen, and the expected range per preloaded author (Austen / Dickens / Poe). These ranges serve as sanity-check thresholds during extraction and as reference values in the demo.
+This document is the authoritative reference for every metric stored in a `StyleProfile`. For each feature it defines: what it measures, how it is computed, why it was chosen, and the measured range per preloaded author (Austen / Dickens / Poe). These ranges serve as sanity-check thresholds during extraction and as reference values in the demo; since 2026-07-29 they are read from the computed profiles rather than estimated.
 
 Features not listed here are **out of scope for v1.0** and must go through a Decision Log entry before being added.
 
@@ -18,7 +18,7 @@ Features not listed here are **out of scope for v1.0** and must go through a Dec
 4. [Distinctive vocabulary](#4-distinctive-vocabulary)
 5. [Semantic features](#5-semantic-features)
 6. [fit\_score — composite metric](#6-fit_score--composite-metric)
-7. [Expected ranges per author](#7-expected-ranges-per-author)
+7. [Measured ranges per author](#7-measured-ranges-per-author)
 8. [Computation pipeline](#8-computation-pipeline)
 9. [Known limitations](#9-known-limitations)
 
@@ -44,12 +44,12 @@ where TTR(window_i) = unique_tokens(window_i) / 500
 
 **Interpretation**: higher = richer vocabulary per 500-token block.
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 0.62 – 0.68 |
-| Dickens | 0.58 – 0.64 |
-| Poe | 0.66 – 0.73 |
+| Austen | 0.49 – 0.57 |
+| Dickens | 0.49 – 0.57 |
+| Poe | 0.52 – 0.60 |
 
 ---
 
@@ -65,12 +65,12 @@ words = [t.text for t in doc if t.is_alpha]
 avg_word_length = sum(len(w) for w in words) / len(words)
 ```
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 4.0 – 4.5 |
-| Dickens | 4.6 – 5.1 |
-| Poe | 5.0 – 5.6 |
+| Austen | 3.99 – 4.69 |
+| Dickens | 3.86 – 4.53 |
+| Poe | 4.12 – 4.84 |
 
 ---
 
@@ -89,12 +89,12 @@ hapax_ratio = sum(1 for v in freq.values() if v == 1) / len(freq)
 
 Note: computed over **lemmas**, not raw forms, to avoid counting inflections as separate types.
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 0.38 – 0.44 |
-| Dickens | 0.40 – 0.46 |
-| Poe | 0.48 – 0.56 |
+| Austen | 0.65 – 0.73 |
+| Dickens | 0.65 – 0.73 |
+| Poe | 0.71 – 0.79 |
 
 ---
 
@@ -116,12 +116,12 @@ avg = statistics.mean(lengths)
 std = statistics.stdev(lengths)
 ```
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | avg | std |
 |---|---|---|
-| Austen | 22 – 28 | 10 – 14 |
-| Dickens | 25 – 32 | 13 – 17 |
-| Poe | 24 – 34 | 14 – 20 |
+| Austen | 27.6 – 32.4 | 20.5 – 24.1 |
+| Dickens | 24.8 – 29.2 | 17.9 – 21.0 |
+| Poe | 28.4 – 33.4 | 19.2 – 22.6 |
 
 ---
 
@@ -140,12 +140,12 @@ subordination_ratio = subordinate / len(list(doc.sents))
 
 Normalized per sentence (not per token) so it is not confounded by sentence length.
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 0.28 – 0.36 |
-| Dickens | 0.34 – 0.44 |
-| Poe | 0.22 – 0.32 |
+| Austen | 1.67 – 1.96 |
+| Dickens | 1.42 – 1.67 |
+| Poe | 1.27 – 1.49 |
 
 ---
 
@@ -162,12 +162,12 @@ verbs = sum(1 for t in doc if t.pos_ == "VERB")
 noun_to_verb_ratio = nouns / verbs
 ```
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 1.6 – 2.0 |
-| Dickens | 1.7 – 2.1 |
-| Poe | 1.2 – 1.6 |
+| Austen | 1.06 – 1.24 |
+| Dickens | 1.09 – 1.28 |
+| Poe | 1.71 – 2.01 |
 
 ---
 
@@ -186,12 +186,12 @@ passive_sentences = sum(
 passive_voice_ratio = passive_sentences / len(list(doc.sents))
 ```
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 0.06 – 0.12 |
-| Dickens | 0.08 – 0.14 |
-| Poe | 0.18 – 0.28 |
+| Austen | 0.13 – 0.21 |
+| Dickens | 0.07 – 0.15 |
+| Poe | 0.15 – 0.23 |
 
 ---
 
@@ -265,12 +265,12 @@ for token in doc:
 dialogue_ratio = dialogue_tokens / total_tokens
 ```
 
-**Expected ranges**:
+**Measured ranges** (seeded corpus, 2026-07-29):
 | Author | Range |
 |---|---|
-| Austen | 0.28 – 0.38 |
-| Dickens | 0.20 – 0.28 |
-| Poe | 0.05 – 0.14 |
+| Austen | 0.27 – 0.35 |
+| Dickens | 0.31 – 0.39 |
+| Poe | 0.20 – 0.28 |
 
 ---
 
@@ -287,12 +287,15 @@ fp_count = sum(1 for t in doc if t.lower_ in FIRST_PERSON)
 first_person_ratio = (fp_count / len(doc)) * 1000  # per 1k tokens
 ```
 
-**Expected ranges**:
-| Author | Range (per 1k tokens) |
+
+> **Measurement contradicts this rationale.** On the seeded corpora the order is Dickens 29.9 > Poe 24.8 > Austen 20.9 per 1k tokens — Poe is *not* the highest, and Austen, who "never uses 'I' in narration", still scores 20.9. The metric counts pronouns everywhere, including inside dialogue, and these are dialogue-heavy novels; it therefore measures how much the characters say "I", not how first-person the narration is. Read it as a stylistic signal, not as a narration-perspective detector. The same caution applies to `noun_to_verb_ratio` (§2.3 expects Poe lowest; measured, Poe is highest at 1.86) and to `dialogue_ratio` (§3.3 expects Poe lowest at 0.05–0.14; measured 0.245).
+
+**Measured ranges** (seeded corpus, 2026-07-29) (per 1k tokens):
+| Author | Range |
 |---|---|
-| Austen | 0.5 – 3.0 |
-| Dickens | 4.0 – 9.0 |
-| Poe | 18.0 – 30.0 |
+| Austen | 19.3 – 22.6 |
+| Dickens | 27.5 – 32.3 |
+| Poe | 22.8 – 26.7 |
 
 ---
 
@@ -429,24 +432,26 @@ Output is clipped to [0, 1] and multiplied by 100. Displayed as e.g. **"87% Dick
 
 ---
 
-## 7. Expected ranges per author
+## 7. Measured ranges per author
 
 Reference table for sanity checks during extraction. Flag any value outside these ranges for manual review.
 
 | Feature | Austen | Dickens | Poe |
 |---|---|---|---|
-| `mattr_500` | 0.62–0.68 | 0.58–0.64 | 0.66–0.73 |
-| `avg_word_length` | 4.0–4.5 | 4.6–5.1 | 5.0–5.6 |
-| `hapax_ratio` | 0.38–0.44 | 0.40–0.46 | 0.48–0.56 |
-| `avg_sentence_length_tokens` | 22–28 | 25–32 | 24–34 |
-| `std_sentence_length_tokens` | 10–14 | 13–17 | 14–20 |
-| `subordination_ratio` | 0.28–0.36 | 0.34–0.44 | 0.22–0.32 |
-| `noun_to_verb_ratio` | 1.6–2.0 | 1.7–2.1 | 1.2–1.6 |
-| `passive_voice_ratio` | 0.06–0.12 | 0.08–0.14 | 0.18–0.28 |
-| `dialogue_ratio` | 0.28–0.38 | 0.20–0.28 | 0.05–0.14 |
-| `first_person_ratio` (per 1k) | 0.5–3.0 | 4.0–9.0 | 18.0–30.0 |
+| `mattr_500` | 0.49 – 0.57 | 0.49 – 0.57 | 0.52 – 0.60 |
+| `avg_word_length` | 3.99 – 4.69 | 3.86 – 4.53 | 4.12 – 4.84 |
+| `hapax_ratio` | 0.65 – 0.73 | 0.65 – 0.73 | 0.71 – 0.79 |
+| `avg_sentence_length_tokens` | 27.6 – 32.4 | 24.8 – 29.2 | 28.4 – 33.4 |
+| `std_sentence_length_tokens` | 20.5 – 24.1 | 17.9 – 21.0 | 19.2 – 22.6 |
+| `subordination_ratio` | 1.67 – 1.96 | 1.42 – 1.67 | 1.27 – 1.49 |
+| `noun_to_verb_ratio` | 1.06 – 1.24 | 1.09 – 1.28 | 1.71 – 2.01 |
+| `passive_voice_ratio` | 0.13 – 0.21 | 0.07 – 0.15 | 0.15 – 0.23 |
+| `dialogue_ratio` | 0.27 – 0.35 | 0.31 – 0.39 | 0.20 – 0.28 |
+| `first_person_ratio` (per 1k) | 19.3 – 22.6 | 27.5 – 32.3 | 22.8 – 26.7 |
 
-> **Note**: these ranges are informed estimates based on stylometric literature and manual corpus inspection. They will be updated after Sprint 1 extraction runs on the actual Gutenberg corpora.
+> **These are measurements, not estimates.** They were read from the `style_profiles` rows computed on 2026-07-29 over the full seeded Gutenberg corpora, which is the update this section always said was pending. Bands are the measured value ±8% (±0.04 for sub-unit ratios): wide enough to survive a recompute, tight enough to catch a regression.
+>
+> The estimates they replace were wrong on almost every metric — `hapax_ratio` was given as 0.38–0.44 for Austen where the pipeline measures 0.695, `subordination_ratio` as 0.28–0.36 where it measures 1.814 (it counts subordinate clauses *per sentence*, so it is routinely > 1), and `first_person_ratio` as 0.5–3.0 where it measures 20.9. Nothing had ever been checked against the extractors, and the frontend's radar domains were derived from these numbers — which is why two of the six axes clamped to their maximum for all three authors and every author drew the same shape.
 
 ---
 

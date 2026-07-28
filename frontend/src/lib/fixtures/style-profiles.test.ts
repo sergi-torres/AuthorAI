@@ -82,18 +82,19 @@ describe("fixtureProfileForError — option A substitution rule", () => {
 type Range = readonly [number, number];
 
 /**
- * Measured from the seeded corpus on 2026-07-29 (the profiles then in the
- * database), NOT the estimates in docs/style_features.md §7.
+ * Measured from the seeded corpus on 2026-07-29 — the same numbers now in
+ * docs/style_features.md §7, which was rewritten from estimates to
+ * measurements in the same change (decision_log 2026-07-29).
  *
- * Those estimates were never checked against the extractors and are wrong on
- * almost every metric — §7 predicts hapax_ratio 0.38-0.44 for Austen where the
- * pipeline measures 0.695, and first_person_ratio 0.5-3.0 where it measures
- * 20.9. Fixtures built to match the estimates therefore rendered a radar no
- * real author could produce. Correcting §7 itself needs a decision_log entry
- * (it is a governing document) and is tracked separately.
+ * The estimates §7 used to carry were never checked against the extractors and
+ * were wrong on almost every metric: it predicted hapax_ratio 0.38-0.44 for
+ * Austen where the pipeline measures 0.695, and first_person_ratio 0.5-3.0
+ * where it measures 20.9. Fixtures built to match them rendered a radar no
+ * real author could produce.
  *
  * Bands are the measured value +/-8% (or +/-0.04 for sub-unit ratios): wide
- * enough to survive a recompute, tight enough to catch a regression.
+ * enough to survive a recompute, tight enough to catch a regression. Refresh
+ * both this table and §7 from the database after a recompute.
  */
 const EXPECTED_RANGES: Record<string, Record<string, Range>> = {
   austen: {
