@@ -179,8 +179,14 @@ export function slugifyAuthorName(name: string): string {
 /**
  * POST /api/generate — run vanilla + AutorIA generation in parallel on the backend.
  *
- * Uses AbortController with a 10 s timeout so a hanging Watsonx call resolves
+ * Uses AbortController with a 20 s timeout so a hanging Watsonx call resolves
  * to a timeout state rather than an infinite spinner (design-system §1 / §7.4).
+ *
+ * 20 s, not the 10 s this used to be, so the client outlives the server: the
+ * backend allows a single Watsonx attempt 15 s (HARD_TIMEOUT_SECONDS) and the
+ * worst conditioned generation measured at max_tokens=512 took 8.4 s. A 10 s
+ * abort here would cancel requests the backend was about to answer, and the
+ * user would see a timeout for a generation that actually succeeded.
  *
  * Return contract:
  *   200       → resolves with GenerateResponse
@@ -192,7 +198,7 @@ export async function generateText(
   prompt: string,
 ): Promise<GenerateResponse> {
   const controller = new AbortController();
-  const timerId = setTimeout(() => controller.abort(), 10_000);
+  const timerId = setTimeout(() => controller.abort(), 20_000);
 
   try {
     const body: GenerateRequest = { author_id: authorId, prompt };

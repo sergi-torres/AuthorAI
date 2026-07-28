@@ -20,7 +20,16 @@ from app.config import load_settings
 
 logger = logging.getLogger(__name__)
 
-HARD_TIMEOUT_SECONDS = 8.0
+# 15s, not the 8s this used to be. The old value was the MVP's *SLA* number
+# ("side-by-side <8s P95", docs/MVP.md) used as a *kill* threshold, which left
+# no band in which a generation is late but still working: a conditioned call
+# measured at 8.4s worst case was retried and ultimately failed rather than
+# returned, surfacing as an intermittent 503 (#106).
+#
+# 15s is ~1.8x the worst conditioned generation observed at max_tokens=512
+# (8.4s, eu-de, llama-3-3-70b). The SLA is unchanged and still tracked; it is
+# now measured on results instead of enforced by killing them.
+HARD_TIMEOUT_SECONDS = 15.0
 # Three retries after the first failure → four attempts total.
 _RETRY_DELAYS_SECONDS: tuple[float, ...] = (1.0, 2.0, 4.0)
 _DEFAULT_URL = "https://us-south.ml.cloud.ibm.com"
