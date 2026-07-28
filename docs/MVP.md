@@ -51,7 +51,7 @@ These three decisions shape everything else. They are locked; changing one is a 
 
 - **LLM: IBM Watsonx, end-to-end.**
   - Primary (creative writing): `meta-llama/llama-3-3-70b-instruct`
-  - Auxiliary (structured/classification tasks): `ibm/granite-3-8b-instruct`
+  - Auxiliary: **none**. `ibm/granite-3-8b-instruct` was originally locked here for structured/classification tasks, but it was never wired into any code path and it is **not available to this project**: it is absent from the `eu-de` catalogue and, where it is still listed (`us-south`), its lifecycle is `withdrawn` since 2026-03-31. Revised 2026-07-28 — see `docs/decision_log.md`. Every call the product makes goes to the primary model.
   - Baseline ("vanilla"): the **same** `llama-3-3-70b` but **without** style conditioning.
   - *Why same model on both sides:* it's an honest comparison. The only variable is our style conditioning — judges notice and respect that.
 
@@ -324,8 +324,8 @@ Each is justified so we don't reopen the discussion mid-sprint.
 
 ### LLM
 - `ibm-watsonx-ai` SDK
-- Creative: `meta-llama/llama-3-3-70b-instruct`
-- Auxiliary: `ibm/granite-3-8b-instruct`
+- Creative: `meta-llama/llama-3-3-70b-instruct` — the only model the product calls
+- Auxiliary: none (the originally locked `ibm/granite-3-8b-instruct` is unavailable; see §2)
 - **SPRINT 1 TASK:** validate voice-matching quality with 5 real prompts (does the conditioned output read like the target author?); if Llama < 6/10 human eval, escalate (see R1).
 
 ### Database
@@ -509,9 +509,9 @@ The project is "done" when **all** of these are true:
 
 | # | Risk | Mitigation |
 |---|---|---|
-| **R1** | Llama-3.3-70b doesn't convincingly match a target voice | Validate Sprint 1 day 2. If <6/10, plan B: stronger conditioning / more RAG passages, `llama-3-1-405b`, or `granite-3-8b`; last resort Mistral Large via Watsonx. |
+| **R1** | Llama-3.3-70b doesn't convincingly match a target voice | Validate Sprint 1 day 2. If <6/10, plan B: stronger conditioning / more RAG passages. **The model-swap escalation no longer exists**: none of `llama-3-1-405b`, `granite-3-8b` or Mistral Large is in the `eu-de` catalogue (measured 2026-07-28, see §2). Any swap means changing region first, which is not a same-day mitigation. |
 | **R2** | Stylistic metrics don't distinguish authors | Validate Sprint 1 with a blind A/B. If Austen ≈ Dickens (both 19thc British), add bigram/trigram distinctive features. (Poe is the easy separation.) |
-| **R3** | Generation >15s, demo doesn't flow | P3 measures latency Sprint 2 day 1. If >10s: switch parallel→sequential with optimistic loading, and/or use `granite-8b` for the baseline (faster). |
+| **R3** | Generation >15s, demo doesn't flow | P3 measures latency Sprint 2 day 1. If >10s: switch parallel→sequential with optimistic loading, shorten `max_tokens`, or fall back to the pre-recorded generations of R5. **The "use a faster `granite-8b` for the baseline" plan B is void** — that model is not available to this project (see §2) — and the baseline must stay the same model as the conditioned branch anyway, or the A/B stops being honest. |
 | **R4** | Live demo fails during recording | Sprint 3: record each step separately as an editable fallback. Final video may mix live + pre-recorded. |
 | **R5** | Watsonx rate-limit / load spike | Exponential backoff (Sprint 2). For the demo, pre-record two famous generations as a local cache fallback. |
 | **R6** | A teammate is sick for a week | Each role has a designated backup; pair on critical pieces; the async daily keeps the backup current. |

@@ -139,7 +139,7 @@ Our team's operational playbook for using Bob — prompt patterns, export workfl
 | **Frontend**    | Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui + Recharts                                 | Modern React, fast static + SSR, great DX for visualizations                    |
 | **Backend**     | FastAPI + Python 3.11 + Pydantic v2 + SQLAlchemy 2 + asyncpg                                           | Async by default, type-safe, fits a Python AI pipeline natively                 |
 | **AI Pipeline** | spaCy 3.7 (`en_core_web_lg`) + sentence-transformers (`all-mpnet-base-v2`) + scikit-learn + umap-learn | Industry-standard English NLP; strong 768-dim semantic embeddings; reproducible |
-| **LLM**         | IBM Watsonx (Llama 3.3 70B + Granite 3 8B)                                                             | End-to-end IBM stack; full-IBM points; strong creative English generation       |
+| **LLM**         | IBM Watsonx (`meta-llama/llama-3-3-70b-instruct`)                                                      | Every generation runs on IBM Watsonx; strong creative English generation        |
 | **Database**    | PostgreSQL 16 + pgvector (Supabase)                                                                    | Single DB for relational + vector; HNSW index for fast RAG                      |
 | **Crypto**      | python-jose, ES256 (ECDSA P-256)                                                                       | Standard JWS; small signatures; native browser verification                     |
 | **Hosting**     | Vercel (frontend) + Railway (backend) + Supabase (DB)                                                  | Zero-ops, free or near-free tiers, push-to-deploy                               |

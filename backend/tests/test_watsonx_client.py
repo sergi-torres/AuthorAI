@@ -96,7 +96,7 @@ def test_generate_retries_with_backoff_then_succeeds(monkeypatch):
         patch("app.services.watsonx_client.Credentials"),
         patch("app.services.watsonx_client.time.sleep", side_effect=sleeps.append),
     ):
-        text = generate("prompt", None, "ibm/granite-3-8b-instruct")
+        text = generate("prompt", None, "meta-llama/llama-3-3-70b-instruct")
 
     assert text == "ok"
     assert sleeps == [1.0]
@@ -118,7 +118,7 @@ def test_generate_exhausts_retries(monkeypatch):
         patch("app.services.watsonx_client.time.sleep", side_effect=sleeps.append),
         pytest.raises(WatsonxError, match="failed after"),
     ):
-        generate("prompt", None, "ibm/granite-3-8b-instruct")
+        generate("prompt", None, "meta-llama/llama-3-3-70b-instruct")
 
     assert sleeps == list(_RETRY_DELAYS_SECONDS)
     assert mock_model.chat.call_count == 1 + len(_RETRY_DELAYS_SECONDS)
@@ -142,7 +142,7 @@ def test_generate_hard_timeout(monkeypatch):
         future = MagicMock()
         future.result.side_effect = FuturesTimeoutError()
         executor.submit.return_value = future
-        generate("prompt", None, "ibm/granite-3-8b-instruct")
+        generate("prompt", None, "meta-llama/llama-3-3-70b-instruct")
 
     assert sleeps == list(_RETRY_DELAYS_SECONDS)
     assert future.result.call_count == 1 + len(_RETRY_DELAYS_SECONDS)
@@ -161,7 +161,7 @@ def test_generate_live_watsonx():
     text = generate(
         prompt="Reply with exactly one word: pong",
         system_prompt="You are a terse assistant. Answer with a single word only.",
-        model_id="ibm/granite-3-8b-instruct",
+        model_id="meta-llama/llama-3-3-70b-instruct",
         params={"max_tokens": 16, "temperature": 0},
     )
     assert isinstance(text, str)

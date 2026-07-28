@@ -36,7 +36,7 @@ graph TB
         sys[["AutorIA<br/>Style DNA · Conditioned Generation ·<br/>Authorship Passport"]]
     end
 
-    watsonx[("IBM Watsonx<br/>Llama 3.3 70B + Granite 3 8B<br/>[external LLM]")]
+    watsonx[("IBM Watsonx<br/>Llama 3.3 70B<br/>[external LLM]")]
     gutenberg[("Project Gutenberg<br/>public-domain corpus<br/>[external source]")]
 
     creator -->|"selects author, prompts,<br/>views side-by-side, downloads Passport"| sys
