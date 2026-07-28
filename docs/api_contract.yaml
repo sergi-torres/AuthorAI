@@ -616,10 +616,16 @@ components:
           description: Relative frequency per POS tag (spaCy labels)
         dialogue_ratio:
           type: number
-          description: Fraction of sentences that are dialogue (heuristic)
+          description: >-
+            Fraction of non-punctuation TOKENS inside straight ASCII double
+            quotes, in [0, 1]. Not a fraction of sentences.
+            See docs/style_features.md §3.3.
         first_person_ratio:
           type: number
-          description: Fraction of sentences with first-person pronouns (heuristic)
+          description: >-
+            First-person singular pronouns per 1,000 TOKENS, >= 0 and NOT
+            bounded by 1 (Poe's expected range is 18-30). Not a fraction of
+            sentences. See docs/style_features.md §3.4.
     DistinctiveTerm:
       type: object
       required: [term, score]

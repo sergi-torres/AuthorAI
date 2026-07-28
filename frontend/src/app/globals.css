@@ -29,6 +29,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-tint: var(--destructive-tint);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -106,6 +108,8 @@
   --warning: oklch(0.62 0.12 75);
   --warning-foreground: oklch(0.35 0.06 70);
   --warning-tint: oklch(0.965 0.035 90);
+  --destructive-foreground: oklch(0.4 0.15 27);
+  --destructive-tint: oklch(0.955 0.03 27);
 
   /* Author signature palette (solid must pass AA as text on --background) */
   --author-austen: oklch(0.52 0.13 10);
@@ -181,6 +185,8 @@
   --warning: oklch(0.75 0.12 80);
   --warning-foreground: oklch(0.92 0.06 85);
   --warning-tint: oklch(0.3 0.05 85);
+  --destructive-foreground: oklch(0.92 0.06 25);
+  --destructive-tint: oklch(0.3 0.05 25);
 
   --author-austen: oklch(0.72 0.11 10);
   --author-austen-tint: oklch(0.3 0.045 10);
