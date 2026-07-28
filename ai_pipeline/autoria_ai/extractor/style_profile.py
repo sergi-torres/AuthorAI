@@ -7,6 +7,9 @@ compute_style_profile(author_slug, documents, nlp, ...) -> dict
     and semantic centroid.  ``embedding_umap_2d`` is a placeholder
     (``{centroid:[0,0], spread:0}``) — real UMAP lives in
     ``scripts/precompute_umap.py``.
+lemmatize_corpus(documents, nlp, ...) -> str
+    One author's corpus as a single lemmatized string, ready to be used as
+    another author's ``comparison_lemmas`` entry (docs/style_features.md §4.1).
 
 Pipeline (docs/style_features.md §8)
 ------------------------------------
@@ -19,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -65,8 +69,13 @@ def _weighted_mean(dicts: list[dict[str, Any]], weights: list[float]) -> dict[st
     return out
 
 
-def _lemmas_from_docs(docs: list[Any]) -> str:
-    """Space-joined lower lemmas (alpha only) for TF-IDF input."""
+def _lemmas_from_docs(docs: Iterable[Any], max_chars: int = _MAX_LEMMA_CHARS) -> str:
+    """Space-joined lower lemmas (alpha only) for TF-IDF input.
+
+    *docs* may be a lazy iterable (e.g. the generator returned by
+    ``nlp.pipe``): the function stops consuming it as soon as *max_chars*
+    is reached, so the cost is bounded by the cap, not by corpus size.
+    """
     parts: list[str] = []
     size = 0
     for doc in docs:
@@ -75,9 +84,38 @@ def _lemmas_from_docs(docs: list[Any]) -> str:
                 piece = tok.lemma_.lower()
                 parts.append(piece)
                 size += len(piece) + 1
-                if size >= _MAX_LEMMA_CHARS:
+                if size >= max_chars:
                     return " ".join(parts)
     return " ".join(parts)
+
+
+def lemmatize_corpus(
+    *,
+    documents: list[str],
+    nlp: Any,
+    chunk_texts: list[str] | None = None,
+    max_chars: int = _MAX_LEMMA_CHARS,
+) -> str:
+    """Lemmatize *documents* into the single TF-IDF "document" of §4.1.
+
+    docs/style_features.md §4.1 defines ``distinctive_vocab`` as TF-IDF where
+    each author's full corpus is one document and the collection is all three
+    authors combined.  Callers that own more than one author's corpus (the
+    seeding script) use this to build the ``comparison_lemmas`` mapping that
+    :func:`compute_style_profile` expects, without having to reimplement the
+    lemma rules — alpha-only, lowercase, ``len >= 3`` — or the
+    ``_MAX_LEMMA_CHARS`` cap that bounds peak memory per author.
+
+    The spaCy pass streams and stops at *max_chars*, so lemmatizing a
+    comparison corpus costs a fraction of a full feature pass over it.
+
+    Returns an empty string when *documents* produce no chunks.
+    """
+    full_text = "\n\n".join(documents)
+    chunks = chunk_texts if chunk_texts is not None else chunk_text(full_text)
+    if not chunks:
+        return ""
+    return _lemmas_from_docs(nlp.pipe(chunks, batch_size=64), max_chars=max_chars)
 
 
 def _subsample(items: list[str], max_n: int) -> list[str]:
