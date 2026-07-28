@@ -1,8 +1,42 @@
 name: CI
 
+# Gates every PR into `main`. Four jobs, all required to stay green:
+#   lint-python      — Ruff + Black
+#   lint-frontend    — ESLint + tsc + Vitest
+#   test-backend     — pytest backend/tests
+#   test-ai-pipeline — pytest ai_pipeline/tests
+#
+# Tool-version policy (WO-03 / issue #84):
+#   Ruff and Black are pinned to the SAME versions in three places — this file,
+#   `requirements-dev.txt` and `.pre-commit-config.yaml`. Bump all three in the
+#   same commit or local runs stop matching CI.
+#   Python is pinned to 3.11 everywhere (both packages declare requires-python >=3.11).
+#
+# Verifying the gate actually blocks (WO-03 / issue #84, acceptance criterion).
+#   This workflow only triggers `on: pull_request`, so it cannot be exercised
+#   without a real PR. Run this once, on the first PR that carries these jobs,
+#   to prove each test job fails the check rather than merely existing:
+#
+#     printf '\n\ndef test_ci_red_probe():\n    assert False\n' >> backend/tests/test_health.py
+#     git commit -am "test: temporary CI red probe (revert me)" && git push
+#     gh pr checks          # expect: test-backend -> fail, other three -> pass
+#     git revert HEAD --no-edit && git push
+#
+#     printf '\n\ndef test_ci_red_probe():\n    assert False\n' >> ai_pipeline/tests/test_passport.py
+#     git commit -am "test: temporary CI red probe, pipeline (revert me)" && git push
+#     gh pr checks          # expect: test-ai-pipeline -> fail
+#     git revert HEAD --no-edit && git push
+#
+#   Check in the same run's logs that the spaCy wheel step reports a cache hit
+#   on the second run and that ~/.cache/huggingface restores instead of
+#   re-downloading. If the HF cache does not engage, every run pulls ~420 MB.
+
 on:
   pull_request:
     branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
 
 jobs:
   lint-python:
@@ -23,6 +57,79 @@ jobs:
 
       - name: Black check
         run: black --check .
+
+  test-python:
+    name: Python tests (ai_pipeline, live pgvector)
+    runs-on: ubuntu-latest
+
+    # Ephemeral pgvector matching the Supabase target (PG16 + pgvector).
+    # Issue #107: the embedder's write path is a pgvector/asyncpg type-binding
+    # problem that only a real vector column can catch end to end, so the
+    # live-DB tests in ai_pipeline/tests/test_embedder.py need a DATABASE_URL.
+    # Without this service they self-skip and the suite stays green while the
+    # ingest path is broken — which is exactly how #107 survived four weeks.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: autoria_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Consumed by test_embedder.py's _skip_no_db gate (asyncpg DSN).
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/autoria_test
+      # psql needs the plain libpq form of the same DSN.
+      PGURL: postgresql://postgres:postgres@localhost:5432/autoria_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # sentence-transformers (~420 MB) and spaCy's en_core_web_lg (~560 MB)
+      # dominate the job's runtime; cache them across runs.
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-all-mpnet-base-v2
+
+      - name: Install ai_pipeline + dev deps
+        run: pip install -e "ai_pipeline[dev]"
+
+      - name: Install spaCy model
+        run: python -m spacy download en_core_web_lg
+
+      - name: Apply migrations
+        run: |
+          for f in infra/supabase/migrations/*.sql; do
+            echo "Applying $f"
+            psql "$PGURL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: Pytest (ai_pipeline)
+        run: pytest ai_pipeline/tests -q
+
+      # The live-DB tests are the whole point of the service container above.
+      # If DATABASE_URL ever stops reaching them they would silently revert to
+      # SKIPPED, so fail the job instead of letting that pass unnoticed.
+      - name: Assert live-DB tests actually ran
+        run: |
+          pytest ai_pipeline/tests/test_embedder.py -q -rs 2>&1 | tee out.txt
+          if grep -q "skipping live-DB tests" out.txt; then
+            echo "::error::live-DB tests were SKIPPED — DATABASE_URL did not reach pytest"
+            exit 1
+          fi
 
   lint-frontend:
     name: Frontend lint + typecheck (ESLint + tsc)
@@ -51,3 +158,126 @@ jobs:
       - name: Unit tests
         run: npm run test
         working-directory: frontend
+
+      # `npx prettier --check .` (second half of the AC in #4) is deliberately
+      # NOT run here yet. Two blockers, both outside the scope of WO-03 (#84):
+      #   1. Prettier is not a dependency of `frontend/package.json` and does not
+      #      appear in `frontend/package-lock.json`, so `npx prettier` would
+      #      resolve an unpinned version from the network on every run — the
+      #      opposite of a reproducible gate. It has to be added as an exact
+      #      devDependency first (CONTRIBUTING.md §8.2 already prescribes
+      #      `npm install --save-dev --save-exact prettier`).
+      #   2. The tree does not currently satisfy it: `prettier@3.4.2 --check .`
+      #      reports style issues in 36 files (2026-07-27). Making it pass means
+      #      reformatting frontend sources, which is a separate change — WO-03
+      #      may not touch application code.
+      # Until then Prettier is enforced locally by the pre-commit hook
+      # (.pre-commit-config.yaml pins mirrors-prettier). Tracked as a follow-up.
+
+  test-backend:
+    name: Backend tests (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend (+ dev extras)
+        run: pip install -e "./backend[dev]"
+
+      # Run from `backend/` so pytest picks up backend/pyproject.toml as its
+      # config file — that is where `testpaths = ["tests"]` and the
+      # `integration` marker are declared. Running `pytest backend/tests` from
+      # the repo root would use the root pyproject.toml (no
+      # [tool.pytest.ini_options]) and the marker would be unknown.
+      #
+      # `-m "not integration"` excludes tests that hit real external services;
+      # CI has no Watsonx credentials, so they must never gate a PR.
+      - name: pytest backend/tests
+        run: pytest tests -q -m "not integration"
+        working-directory: backend
+
+  test-ai-pipeline:
+    name: AI pipeline tests (pytest)
+    runs-on: ubuntu-latest
+    # Heavier than the backend job: installs torch (sentence-transformers) and
+    # downloads two models. Both are cached below; a cold run is the slow case.
+    timeout-minutes: 40
+    env:
+      # Model files pulled at import time by the suite:
+      #   ai_pipeline/tests/test_smoke.py:19          -> spacy.load("en_core_web_lg")   (~560 MB)
+      #   autoria_ai/embedder.py:23 (SentenceTransformer) -> all-mpnet-base-v2 (~420 MB)
+      # Pinned + cached instead of dropping the suite from CI, per the WO-03 card.
+      SPACY_MODEL: en_core_web_lg
+      # Keep in the same minor line as the spaCy resolved from ai_pipeline's
+      # `spacy>=3.7` constraint; the guard step below fails loudly if it drifts.
+      SPACY_MODEL_VERSION: "3.8.0"
+      SPACY_MODEL_COMPAT_PREFIX: "3.8."
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: ai_pipeline/pyproject.toml
+
+      - name: Install ai_pipeline (+ dev extras)
+        run: pip install -e "./ai_pipeline[dev]"
+
+      - name: Guard — spaCy version matches the pinned model
+        run: |
+          python - <<'PY'
+          import os, sys, spacy
+          want = os.environ["SPACY_MODEL_COMPAT_PREFIX"]
+          if not spacy.__version__.startswith(want):
+              sys.exit(
+                  f"spaCy {spacy.__version__} no longer matches the pinned "
+                  f"{os.environ['SPACY_MODEL']}-{os.environ['SPACY_MODEL_VERSION']} model "
+                  f"(expected {want}x). Bump SPACY_MODEL_VERSION / "
+                  f"SPACY_MODEL_COMPAT_PREFIX in this workflow."
+              )
+          print(f"spaCy {spacy.__version__} OK for model {os.environ['SPACY_MODEL_VERSION']}")
+          PY
+
+      - name: Cache spaCy model wheel
+        id: cache-spacy-model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/autoria-spacy-models
+          key: spacy-model-${{ env.SPACY_MODEL }}-${{ env.SPACY_MODEL_VERSION }}
+
+      - name: Download spaCy model wheel
+        if: steps.cache-spacy-model.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.cache/autoria-spacy-models
+          curl -sSfL \
+            -o ~/.cache/autoria-spacy-models/${SPACY_MODEL}-${SPACY_MODEL_VERSION}-py3-none-any.whl \
+            "https://github.com/explosion/spacy-models/releases/download/${SPACY_MODEL}-${SPACY_MODEL_VERSION}/${SPACY_MODEL}-${SPACY_MODEL_VERSION}-py3-none-any.whl"
+
+      - name: Install spaCy model
+        run: pip install ~/.cache/autoria-spacy-models/${SPACY_MODEL}-${SPACY_MODEL_VERSION}-py3-none-any.whl
+
+      # all-mpnet-base-v2 is fetched from the HuggingFace hub the first time
+      # autoria_ai.embedder is imported. Static key: the model name never
+      # changes, so the cache is written once and hit on every later run.
+      - name: Cache sentence-transformers model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-hub-all-mpnet-base-v2-${{ runner.os }}
+
+      # Run from `ai_pipeline/` so pytest reads ai_pipeline/pyproject.toml —
+      # it declares `asyncio_mode = "auto"`, without which the async tests
+      # error out. Same `-m "not integration"` policy as the backend job (no
+      # integration-marked test lives here today; the flag keeps both jobs
+      # consistent and safe if one is added).
+      - name: pytest ai_pipeline/tests
+        run: pytest tests -q -m "not integration"
+        working-directory: ai_pipeline

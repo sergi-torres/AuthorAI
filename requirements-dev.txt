@@ -2,6 +2,9 @@
 # Install into the activated venv with:  pip install -r requirements-dev.txt
 # (Project/runtime deps live in ai_pipeline/ and backend/ pyproject.toml, created in Sprint 0.)
 
-ruff==0.6.9
-black==24.8.0
+# Ruff/Black must match .github/workflows/ci.yml (job `lint-python`) and
+# .pre-commit-config.yaml. If they drift, `black --check .` passes locally and
+# fails in CI (formatting rules change between majors). Bump all three together.
+ruff==0.15.20
+black==26.5.1
 pre-commit==3.8.0

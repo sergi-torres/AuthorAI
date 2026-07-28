@@ -65,6 +65,7 @@ come from the `@theme inline` mapping (`bg-voice-tint`, `text-fit-high`, `shadow
 | `--success-tint` | `oklch(0.955 0.03 155)` | `oklch(0.30 0.05 155)` | Verified banner background |
 | `--warning` | `oklch(0.62 0.12 75)` | `oklch(0.75 0.12 80)` | Timeouts, degraded service (icon/border only) |
 | `--warning-tint` + `--warning-foreground` | wash + dark amber text | | Warning surfaces |
+| `--destructive-tint` + `--destructive-foreground` | `oklch(0.955 0.03 27)` + `oklch(0.40 0.15 27)` | `oklch(0.30 0.05 25)` + `oklch(0.92 0.06 25)` | Destructive surfaces (invalid-passport banner). Same shape as `--warning-*`: `--destructive` stays for border and solid fills, never for text on the tint |
 
 ### 2.3 Fit-score scale (used by `FitScoreBar`)
 
@@ -115,9 +116,13 @@ these.
 - `muted-foreground` on `background`: ≥ 6:1 — safe for captions.
 - Author solids as text on parchment: ≥ 4.6:1 — safe (that's why L ≤ 0.52).
 - `text-voice` on `bg-voice-tint`: ≥ 4.5:1 for all three authors — safe for chips/marks.
+- `destructive-foreground` on `destructive-tint`: 8.5:1 light / 10.5:1 dark — safe.
 - **Borderline / forbidden:** `--warning` and `--fit-mid`/`--fit-good`/`--fit-weak` as
   text on parchment (≈ 2–3:1) — fills, borders, icons only. White text on `--warning` —
   never; use `--warning-foreground` on `--warning-tint`.
+- **`--destructive` as text on a destructive wash — never.** Measured 3.81:1 in dark mode
+  over `bg-destructive/10`, below AA for the 18px semibold banner title. Use
+  `--destructive-foreground` on `--destructive-tint` (the `--warning-*` pattern).
 
 ---
 
