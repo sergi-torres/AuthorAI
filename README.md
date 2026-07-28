@@ -156,8 +156,10 @@ Prerequisites: **Python 3.11**, **Node 20+**, **Docker Desktop**.
 git clone https://github.com/sergi-torres/AuthorAI.git
 cd autorIA
 
-# 2. Copy env template and fill in real values (Watsonx API key, etc.)
+# 2. Copy env templates and fill in real values (Watsonx API key, etc.)
 cp .env.example .env
+# Next.js reads env from frontend/, not the repo root — it needs its own copy:
+cp frontend/.env.local.example frontend/.env.local
 
 # 3. Install all dependencies
 make install
