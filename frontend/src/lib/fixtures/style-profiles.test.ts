@@ -81,43 +81,57 @@ describe("fixtureProfileForError — option A substitution rule", () => {
 
 type Range = readonly [number, number];
 
-/** Verbatim from docs/style_features.md §7 "Expected ranges per author". */
+/**
+ * Measured from the seeded corpus on 2026-07-29 — the same numbers now in
+ * docs/style_features.md §7, which was rewritten from estimates to
+ * measurements in the same change (decision_log 2026-07-29).
+ *
+ * The estimates §7 used to carry were never checked against the extractors and
+ * were wrong on almost every metric: it predicted hapax_ratio 0.38-0.44 for
+ * Austen where the pipeline measures 0.695, and first_person_ratio 0.5-3.0
+ * where it measures 20.9. Fixtures built to match them rendered a radar no
+ * real author could produce.
+ *
+ * Bands are the measured value +/-8% (or +/-0.04 for sub-unit ratios): wide
+ * enough to survive a recompute, tight enough to catch a regression. Refresh
+ * both this table and §7 from the database after a recompute.
+ */
 const EXPECTED_RANGES: Record<string, Record<string, Range>> = {
   austen: {
-    mattr_500: [0.62, 0.68],
-    avg_word_length: [4.0, 4.5],
-    hapax_ratio: [0.38, 0.44],
-    avg_sentence_length_tokens: [22, 28],
-    std_sentence_length_tokens: [10, 14],
-    subordination_ratio: [0.28, 0.36],
-    noun_to_verb_ratio: [1.6, 2.0],
-    passive_voice_ratio: [0.06, 0.12],
-    dialogue_ratio: [0.28, 0.38],
-    first_person_ratio: [0.5, 3.0],
+    mattr_500: [0.494, 0.574],
+    avg_word_length: [3.995, 4.689],
+    hapax_ratio: [0.655, 0.735],
+    avg_sentence_length_tokens: [27.587, 32.385],
+    std_sentence_length_tokens: [20.529, 24.099],
+    subordination_ratio: [1.669, 1.959],
+    noun_to_verb_ratio: [1.059, 1.243],
+    passive_voice_ratio: [0.126, 0.206],
+    dialogue_ratio: [0.269, 0.349],
+    first_person_ratio: [19.257, 22.605],
   },
   dickens: {
-    mattr_500: [0.58, 0.64],
-    avg_word_length: [4.6, 5.1],
-    hapax_ratio: [0.4, 0.46],
-    avg_sentence_length_tokens: [25, 32],
-    std_sentence_length_tokens: [13, 17],
-    subordination_ratio: [0.34, 0.44],
-    noun_to_verb_ratio: [1.7, 2.1],
-    passive_voice_ratio: [0.08, 0.14],
-    dialogue_ratio: [0.2, 0.28],
-    first_person_ratio: [4.0, 9.0],
+    mattr_500: [0.489, 0.569],
+    avg_word_length: [3.856, 4.526],
+    hapax_ratio: [0.654, 0.734],
+    avg_sentence_length_tokens: [24.839, 29.159],
+    std_sentence_length_tokens: [17.855, 20.961],
+    subordination_ratio: [1.424, 1.672],
+    noun_to_verb_ratio: [1.092, 1.282],
+    passive_voice_ratio: [0.075, 0.155],
+    dialogue_ratio: [0.31, 0.39],
+    first_person_ratio: [27.482, 32.262],
   },
   poe: {
-    mattr_500: [0.66, 0.73],
-    avg_word_length: [5.0, 5.6],
-    hapax_ratio: [0.48, 0.56],
-    avg_sentence_length_tokens: [24, 34],
-    std_sentence_length_tokens: [14, 20],
-    subordination_ratio: [0.22, 0.32],
-    noun_to_verb_ratio: [1.2, 1.6],
-    passive_voice_ratio: [0.18, 0.28],
-    dialogue_ratio: [0.05, 0.14],
-    first_person_ratio: [18.0, 30.0],
+    mattr_500: [0.52, 0.6],
+    avg_word_length: [4.122, 4.838],
+    hapax_ratio: [0.708, 0.788],
+    avg_sentence_length_tokens: [28.41, 33.35],
+    std_sentence_length_tokens: [19.24, 22.586],
+    subordination_ratio: [1.273, 1.495],
+    noun_to_verb_ratio: [1.713, 2.011],
+    passive_voice_ratio: [0.148, 0.228],
+    dialogue_ratio: [0.205, 0.285],
+    first_person_ratio: [22.779, 26.741],
   },
 };
 

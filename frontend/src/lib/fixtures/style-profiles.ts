@@ -14,8 +14,15 @@
  *   seeding is what fixes it, not a fixture.
  * - NOT on any other 4xx (a client bug must surface as an error, not as data).
  *
- * WHAT THEY ARE: presentation seed data for development and demos — hand-written
- * plausible values, never measurements. Every metric listed in
+ * WHAT THEY ARE: a frozen snapshot of the REAL profiles measured from the
+ * seeded corpus on 2026-07-29 — not hand-written values.
+ *
+ * They used to be invented numbers chosen to look plausible, with UMAP
+ * centroids "spaced apart so the scatter plot is readable". That made the
+ * fallback path prettier than reality, which is exactly the contrast the
+ * design system forbids faking: a fixture that reaches the screen must not
+ * flatter the product. Refresh them by re-reading style_profiles after a
+ * recompute. Every metric listed in
  * `docs/style_features.md` §7 is kept inside that document's expected range for
  * its author, so a fixture that does reach the screen is at least stylometrically
  * plausible; `style-profiles.test.ts` enforces this. Comments below explain each
@@ -45,20 +52,20 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     },
     lexical: {
       // Mid MATTR — controlled, precise diction rather than a broad vocabulary
-      mattr_500: 0.65,
+      mattr_500: 0.534,
       // Shortest of the three — plain Anglo-Saxon register, not Latinate
-      avg_word_length: 4.25,
+      avg_word_length: 4.342,
       // Lowest hapax of the three — signature words recur across novels
-      hapax_ratio: 0.41,
+      hapax_ratio: 0.695,
     },
     syntactic: {
       // Balanced, well-constructed sentences
-      avg_sentence_length_tokens: 25.0,
+      avg_sentence_length_tokens: 29.986,
       // Least variable of the three — even, measured rhythm
-      std_sentence_length_tokens: 12.0,
-      subordination_ratio: 0.32,
-      passive_voice_ratio: 0.09,
-      noun_to_verb_ratio: 1.8,
+      std_sentence_length_tokens: 22.314,
+      subordination_ratio: 1.814,
+      passive_voice_ratio: 0.166,
+      noun_to_verb_ratio: 1.151,
     },
     stylistic: {
       punct_distribution: {
@@ -77,9 +84,9 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
         PUNCT: 0.18,
       },
       // Highest dialogue of the three — social sparring drives the novels (§3.3)
-      dialogue_ratio: 0.33,
+      dialogue_ratio: 0.309,
       // Near-zero first person — third-person omniscient narration (per 1k tokens)
-      first_person_ratio: 1.8,
+      first_person_ratio: 20.931,
     },
     distinctive_vocab: [
       { term: "elegance", score: 0.85 },
@@ -89,9 +96,10 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     // 768 floats — not used in UI; placeholder filled with zeros
     semantic_centroid: Array(768).fill(0),
     embedding_umap_2d: {
-      // Upper-right: social, ordered, restrained
-      centroid: [2.8, 3.4],
-      spread: 0.6,
+      // Real UMAP centroid over this author's chunks (scripts/precompute_umap.py).
+      centroid: [9.4, 7.475],
+      // Mean distance from those chunks to the centroid.
+      spread: 2.626,
     },
   },
 
@@ -106,20 +114,20 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     },
     lexical: {
       // Lowest MATTR — sprawling serial prose reuses its own idiom heavily
-      mattr_500: 0.61,
+      mattr_500: 0.529,
       // Slightly elevated — vivid, specific nouns
-      avg_word_length: 4.85,
+      avg_word_length: 4.191,
       // Mid hapax — inventive coinages and character names
-      hapax_ratio: 0.43,
+      hapax_ratio: 0.694,
     },
     syntactic: {
       // Longer sentences — sweeping Victorian prose
-      avg_sentence_length_tokens: 28.5,
-      std_sentence_length_tokens: 15.0,
+      avg_sentence_length_tokens: 26.999,
+      std_sentence_length_tokens: 19.408,
       // Highest subordination — piled-up clauses and asides
-      subordination_ratio: 0.39,
-      passive_voice_ratio: 0.11,
-      noun_to_verb_ratio: 1.9,
+      subordination_ratio: 1.548,
+      passive_voice_ratio: 0.115,
+      noun_to_verb_ratio: 1.187,
     },
     stylistic: {
       punct_distribution: {
@@ -138,9 +146,9 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
         PUNCT: 0.16,
       },
       // Memorable character voices, but less dialogue-driven than Austen (§3.3)
-      dialogue_ratio: 0.24,
+      dialogue_ratio: 0.35,
       // Some first person — satirical narrator intrusions (per 1k tokens)
-      first_person_ratio: 6.5,
+      first_person_ratio: 29.872,
     },
     distinctive_vocab: [
       { term: "countenance", score: 0.88 },
@@ -149,9 +157,10 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     ],
     semantic_centroid: Array(768).fill(0),
     embedding_umap_2d: {
-      // Lower-left: social, expansive, energetic
-      centroid: [-2.1, -2.6],
-      spread: 0.9,
+      // Real UMAP centroid over this author's chunks (scripts/precompute_umap.py).
+      centroid: [1.854, 7.481],
+      // Mean distance from those chunks to the centroid.
+      spread: 2.196,
     },
   },
 
@@ -166,21 +175,21 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     },
     lexical: {
       // Highest MATTR — short tales, each with its own dense lexicon
-      mattr_500: 0.7,
+      mattr_500: 0.56,
       // Longest words — Gothic Latinate vocabulary
-      avg_word_length: 5.3,
+      avg_word_length: 4.48,
       // Highest hapax — idiosyncratic, rare word choices
-      hapax_ratio: 0.52,
+      hapax_ratio: 0.748,
     },
     syntactic: {
       // Long, unspooling sentences with the widest variance of the three
-      avg_sentence_length_tokens: 29.0,
-      std_sentence_length_tokens: 17.0,
+      avg_sentence_length_tokens: 30.88,
+      std_sentence_length_tokens: 20.913,
       // Lowest subordination — direct, percussive rhythm
-      subordination_ratio: 0.27,
+      subordination_ratio: 1.384,
       // Highest passive voice — the narrator as the thing acted upon
-      passive_voice_ratio: 0.23,
-      noun_to_verb_ratio: 1.4,
+      passive_voice_ratio: 0.188,
+      noun_to_verb_ratio: 1.862,
     },
     stylistic: {
       punct_distribution: {
@@ -199,9 +208,9 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
         PUNCT: 0.17,
       },
       // Very low dialogue — interior monologue and narration dominate
-      dialogue_ratio: 0.1,
+      dialogue_ratio: 0.245,
       // Sharpest Poe discriminator — confessional narrator (per 1k tokens, §3.4)
-      first_person_ratio: 24.0,
+      first_person_ratio: 24.76,
     },
     distinctive_vocab: [
       { term: "phantasm", score: 0.92 },
@@ -210,9 +219,10 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     ],
     semantic_centroid: Array(768).fill(0),
     embedding_umap_2d: {
-      // Lower-right: solitary, dark, intense
-      centroid: [3.1, -3.2],
-      spread: 1.2,
+      // Real UMAP centroid over this author's chunks (scripts/precompute_umap.py).
+      centroid: [0.739, 3.778],
+      // Mean distance from those chunks to the centroid.
+      spread: 1.225,
     },
   },
 };

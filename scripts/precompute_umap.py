@@ -12,6 +12,9 @@ Pipeline
 3. Reduce the N x 768 embedding matrix to N x 2 with UMAP
    (n_neighbors=15, min_dist=0.1, metric='cosine', n_components=2).
 4. Truncate and repopulate ``public.umap_coords``.
+5. Aggregate those coordinates per author and write the centroid + spread
+   into ``style_profiles.json_data.embedding_umap_2d`` — the field the Style
+   DNA scatter actually reads (#88).
 
 Usage
 -----
@@ -43,6 +46,7 @@ Notes
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -120,6 +124,19 @@ def get_connection(database_url: str | None = None) -> psycopg2.extensions.conne
     return psycopg2.connect(url)
 
 
+def _as_vector(value: Any) -> list[float]:
+    """Return a pgvector column value as a list of floats.
+
+    psycopg2 hands back ``"[0.013,-0.011,…]"`` (a string) for a ``vector``
+    column unless the pgvector adapter is registered on the connection; other
+    drivers return a real sequence. Both are accepted so this does not depend
+    on how the caller built the connection.
+    """
+    if isinstance(value, str):
+        return [float(x) for x in value.strip().lstrip("[").rstrip("]").split(",") if x]
+    return list(value)
+
+
 def fetch_embeddings(
     conn: psycopg2.extensions.connection,
     chunk_table: str = DEFAULT_CHUNK_TABLE,
@@ -177,8 +194,13 @@ def fetch_embeddings(
         )
 
     author_ids: list[str] = [row[0] for row in rows]
-    # pgvector returns embeddings as Python lists of floats.
-    embeddings = np.array([row[1] for row in rows], dtype=np.float32)
+    # pgvector values arrive as the *string* "[0.013,-0.011,…]" unless the
+    # pgvector type is registered on the connection, which plain psycopg2 does
+    # not do. Feeding those strings to np.array raises
+    # "could not convert string to float", which is why this script had never
+    # completed a real run (#16 shipped as implemented-but-disconnected; same
+    # class of defect as #107 on the write side). Accept both shapes.
+    embeddings = np.array([_as_vector(row[1]) for row in rows], dtype=np.float32)
 
     log.info("Fetched %d embedded chunks across %d authors.", len(rows), len(set(author_ids)))
     return author_ids, embeddings
@@ -274,6 +296,76 @@ def save_coords(
     log.info("Done — %d umap_coords rows committed.", len(rows))
 
 
+def update_style_profiles(
+    conn: psycopg2.extensions.connection,
+    author_ids: list[str],
+    coords: np.ndarray,
+) -> int:
+    """Write each author's 2-D centroid and spread into their StyleProfile.
+
+    ``umap_coords`` holds one row per *chunk*, but the Style DNA scatter reads
+    ``style_profiles.json_data.embedding_umap_2d`` — a per-*author* centroid and
+    spread. Nothing connected the two, so that field kept the placeholder the
+    extractor writes (``{"centroid": [0.0, 0.0], "spread": 0.0}``) and all three
+    authors were drawn on top of each other at the origin (#88).
+
+    ``spread`` is the mean Euclidean distance from an author's chunks to their
+    own centroid — a readable radius for the ring the scatter draws, and the
+    reason the projection has to be global: fitting UMAP on three centroids
+    alone would be meaningless (it needs n_neighbors+1 points), and any
+    per-author fit would place each author in its own unrelated coordinate
+    system.
+
+    Only the most recent profile row per author is updated; older rows are
+    history and stay as they were.
+
+    Returns the number of profile rows updated.
+    """
+    by_author: dict[str, list[tuple[float, float]]] = {}
+    for i, aid in enumerate(author_ids):
+        by_author.setdefault(aid, []).append((float(coords[i, 0]), float(coords[i, 1])))
+
+    updated = 0
+    with conn.cursor() as cur:
+        for author_id, points in by_author.items():
+            arr = np.asarray(points, dtype=np.float64)
+            centroid = arr.mean(axis=0)
+            spread = float(np.linalg.norm(arr - centroid, axis=1).mean())
+            payload = json.dumps(
+                {"centroid": [float(centroid[0]), float(centroid[1])], "spread": spread}
+            )
+
+            # jsonb_set on the latest row only: style_profiles is append-only
+            # (a recompute inserts, never updates), so the current profile is
+            # the one with the newest computed_at.
+            cur.execute(
+                """
+                UPDATE public.style_profiles AS sp
+                   SET json_data = jsonb_set(
+                           sp.json_data, '{embedding_umap_2d}', %s::jsonb, true)
+                 WHERE sp.id = (
+                       SELECT id FROM public.style_profiles
+                        WHERE author_id = %s
+                        ORDER BY computed_at DESC
+                        LIMIT 1)
+                """,
+                (payload, author_id),
+            )
+            updated += cur.rowcount
+            log.info(
+                "author %s: centroid=(%.3f, %.3f) spread=%.3f over %d chunks",
+                author_id,
+                centroid[0],
+                centroid[1],
+                spread,
+                len(points),
+            )
+
+    conn.commit()
+    log.info("Updated embedding_umap_2d on %d style_profiles row(s).", updated)
+    return updated
+
+
 # ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
@@ -312,6 +404,7 @@ def run(
         coords = reduce_to_2d(embeddings)
         ensure_umap_coords_table(conn)
         save_coords(conn, author_ids, coords)
+        update_style_profiles(conn, author_ids, coords)
     finally:
         conn.close()
 
