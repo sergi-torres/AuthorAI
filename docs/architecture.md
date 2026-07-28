@@ -36,7 +36,7 @@ graph TB
         sys[["AutorIA<br/>Style DNA · Conditioned Generation ·<br/>Authorship Passport"]]
     end
 
-    watsonx[("IBM Watsonx<br/>Llama 3.3 70B + Granite 3 8B<br/>[external LLM]")]
+    watsonx[("IBM Watsonx<br/>Llama 3.3 70B<br/>[external LLM]")]
     gutenberg[("Project Gutenberg<br/>public-domain corpus<br/>[external source]")]
 
     creator -->|"selects author, prompts,<br/>views side-by-side, downloads Passport"| sys
@@ -55,8 +55,11 @@ graph TB
   audience). Only needs the token + public JWKS.
 
 **External dependencies**
-- **IBM Watsonx** — the LLM provider (creative + auxiliary models). The only
-  hard runtime external dependency for generation.
+- **IBM Watsonx** — the LLM provider. A single model, `meta-llama/llama-3-3-70b-instruct`,
+  serves both branches of the side-by-side (conditioned and vanilla); there is no
+  auxiliary model. `ibm/granite-4-h-small` is the declared R1 escalation backup and is
+  never called on the active path (MVP §2 / §11). The only hard runtime external
+  dependency for generation.
 - **Project Gutenberg** — source of the three preloaded corpora; used **offline**
   during seeding, not at request time.
 

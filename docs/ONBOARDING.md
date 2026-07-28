@@ -229,7 +229,7 @@ Lives at **`docs/decision_log.md`**. 4-column table:
 Read them in `docs/decision_log.md`. The key ones to keep in your head:
 
 - Idea = **AutorIA** (auditable authorship layer)
-- LLM = **IBM Watsonx end-to-end** (Llama 3.3 70B + Granite 3 8B auxiliary)
+- LLM = **IBM Watsonx end-to-end** (`meta-llama/llama-3-3-70b-instruct` is the only model we call; the Granite 3 8B auxiliary was dropped 2026-07-28 — withdrawn upstream, absent from `eu-de`. `ibm/granite-4-h-small` is the *declared, unused* R1 escalation backup, not part of the active path)
 - **English everywhere** — app UI, repo, README, video, commits, and the generated text. Only the **internal team chat** stays Spanish.
 - Multi-author with **3 preloaded**: Jane Austen, Charles Dickens, Edgar Allan Poe
 - Stack: Next.js + FastAPI + Postgres+pgvector (Supabase) + JWS ES256
@@ -326,7 +326,7 @@ Full document at **`docs/MVP.md`**. Executive summary:
 
 | Decision | Value | Why |
 |---|---|---|
-| LLM | **IBM Watsonx end-to-end**. Primary: `meta-llama/llama-3-3-70b-instruct`. Auxiliary: `ibm/granite-3-8b-instruct` | IBM challenge = points for full-IBM stack |
+| LLM | **IBM Watsonx end-to-end**. Primary and only model in use: `meta-llama/llama-3-3-70b-instruct`. No auxiliary model (`ibm/granite-3-8b-instruct` was revised out on 2026-07-28 — unavailable in `eu-de`, withdrawn upstream). `ibm/granite-4-h-small` is the ratified R1 escalation backup — declared, never called | IBM challenge = points for running the whole product on Watsonx |
 | Comparison baseline | **Same model WITHOUT style conditioning** | Honest comparison = judges notice |
 | App UI + video + generated text | **English** | International IBM jury; judges can read the voice match directly |
 | Authors | **Austen, Dickens, Poe** (English, public domain) | Iconic, maximally distinct voices; instantly recognizable |
@@ -370,7 +370,8 @@ tiktoken (approx chunking)
 ```
 ibm-watsonx-ai SDK
 Creative model: meta-llama/llama-3-3-70b-instruct
-Auxiliary model: ibm/granite-3-8b-instruct
+Auxiliary model: none (Granite 3 8B revised out 2026-07-28 — unavailable in eu-de)
+R1 escalation backup (declared, not called): ibm/granite-4-h-small
 Sprint 1 task: validate voice-matching quality with 5 prompts (gate)
 ```
 
@@ -961,7 +962,7 @@ On Sunday, unfinished issues either move to "Sprint N+1" or back to "Backlog" if
 Your role has a backup designated (P1→P3, P2→P3, P3→P2). The daily async ensures your backup knows the state. Pair sessions ensure >1 person has touched critical pieces. Not ideal but the project doesn't collapse.
 
 ### "What if Watsonx doesn't match the author's voice well?"
-Plan B in MVP: stronger conditioning / more RAG passages, then `llama-3-1-405b-instruct` or `granite-3-8b-instruct` via Watsonx. If all fail, fallback to Mistral Large via Watsonx. **But**: we validate this Sprint 1 day 2, not Sprint 4.
+Plan B in MVP: stronger conditioning / more RAG passages first, then swap the model to **`ibm/granite-4-h-small`** (ratified 2026-07-28, confirmed available in `eu-de`). The escalation chain this FAQ used to name — `llama-3-1-405b-instruct`, `granite-3-8b-instruct`, Mistral Large — was fiction: none of the three is in the `eu-de` catalogue we run against, and Granite 3 8B is withdrawn upstream everywhere. Granite 4 H Small is a *declared* backup: we do not call it today, and it never replaces the vanilla baseline (that would break the A/B). **But**: we validate this Sprint 1 day 2, not Sprint 4.
 
 ### "What if a seemingly essential feature emerges that's not in the MVP?"
 5-min call with all 3, 2/3 vote. If it passes → Decision Log entry + add. If not → `docs/roadmap.md` for "post-July".
