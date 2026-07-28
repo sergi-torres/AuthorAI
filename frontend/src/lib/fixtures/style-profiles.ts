@@ -1,21 +1,36 @@
 /**
  * Typed StyleProfile fixtures for the three seed authors.
- * Used as a demo-safe fallback when the backend style-profile endpoint is
- * unavailable (network error / not yet implemented). This mirrors the
- * API-with-seed-fallback pattern in lib/authors.ts.
  *
- * IMPORTANT: These are presentation seed data for development and demos only.
- * - They are NOT used when the live API returns a real 404 (not-computed state).
- * - They are ONLY substituted on network failure (fetch throws / non-404 HTTP error).
- * - Values are plausible but representative of each author's style — they are
- *   intentionally distinct so the radar chart reads clearly.
- * - The §8.6 honesty rule does not apply here (this is not a fit score).
+ * WHEN THEY ARE USED (decision_log 2026-07-27 · option A — this header describes
+ * the behaviour the code actually implements; do not edit one without the other):
+ * - ONLY when the backend never gave an answer: a transport failure
+ *   (`NetworkError`) or an HTTP 5xx (`ServerError`). See `isFixtureEligibleError`
+ *   in `lib/api.ts`, which is the single gate — every caller goes through
+ *   `fixtureProfileForError` below.
+ * - NOT on a real 404. A 404 means "this author has no computed StyleProfile",
+ *   which is a definitive answer and must degrade to the neutral empty state
+ *   (design-system.md §9:276 and the §8.6 honesty rule). If the DB is unseeded
+ *   the Style DNA panel renders EMPTY — that is the intended, accepted outcome;
+ *   seeding is what fixes it, not a fixture.
+ * - NOT on any other 4xx (a client bug must surface as an error, not as data).
+ *
+ * WHAT THEY ARE: presentation seed data for development and demos — hand-written
+ * plausible values, never measurements. Every metric listed in
+ * `docs/style_features.md` §7 is kept inside that document's expected range for
+ * its author, so a fixture that does reach the screen is at least stylometrically
+ * plausible; `style-profiles.test.ts` enforces this. Comments below explain each
+ * value in the terms of that document, which is the governing source — where the
+ * literary intuition and the table disagreed, the table won.
+ *
+ * Units follow the contract and `docs/style_features.md`:
+ * `first_person_ratio` is per 1,000 tokens (§3.4), not a [0,1] fraction.
  *
  * Centroids are spaced apart in UMAP space so the scatter plot is readable:
  *   Austen → upper-right quadrant
  *   Dickens → lower-left quadrant
  *   Poe → lower-right quadrant (more solitary, high spread)
  */
+import { isFixtureEligibleError } from "@/lib/api";
 import type { StyleProfile } from "@/lib/types";
 
 export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
@@ -29,21 +44,21 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
       n_sentences: 21_800,
     },
     lexical: {
-      // High vocabulary richness — Austen's controlled irony uses varied word choice
-      mattr_500: 0.72,
-      // Moderate word length — elegant but not Latinate
-      avg_word_length: 4.6,
-      // Low hapax ratio — she repeats signature words across novels
-      hapax_ratio: 0.18,
+      // Mid MATTR — controlled, precise diction rather than a broad vocabulary
+      mattr_500: 0.65,
+      // Shortest of the three — plain Anglo-Saxon register, not Latinate
+      avg_word_length: 4.25,
+      // Lowest hapax of the three — signature words recur across novels
+      hapax_ratio: 0.41,
     },
     syntactic: {
-      // Moderate sentence length — balanced, well-constructed sentences
-      avg_sentence_length_tokens: 22.0,
-      std_sentence_length_tokens: 9.5,
-      // High subordination — complex nested clauses
-      subordination_ratio: 0.41,
-      passive_voice_ratio: 0.08,
-      noun_to_verb_ratio: 1.6,
+      // Balanced, well-constructed sentences
+      avg_sentence_length_tokens: 25.0,
+      // Least variable of the three — even, measured rhythm
+      std_sentence_length_tokens: 12.0,
+      subordination_ratio: 0.32,
+      passive_voice_ratio: 0.09,
+      noun_to_verb_ratio: 1.8,
     },
     stylistic: {
       punct_distribution: {
@@ -61,10 +76,10 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
         ADV: 0.08,
         PUNCT: 0.18,
       },
-      // Low dialogue ratio — social drama told through narration
-      dialogue_ratio: 0.22,
-      // Low first-person ratio — third-person narration
-      first_person_ratio: 0.04,
+      // Highest dialogue of the three — social sparring drives the novels (§3.3)
+      dialogue_ratio: 0.33,
+      // Near-zero first person — third-person omniscient narration (per 1k tokens)
+      first_person_ratio: 1.8,
     },
     distinctive_vocab: [
       { term: "elegance", score: 0.85 },
@@ -90,21 +105,21 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
       n_sentences: 28_500,
     },
     lexical: {
-      // Moderate-high vocabulary richness — broad range of registers
-      mattr_500: 0.68,
+      // Lowest MATTR — sprawling serial prose reuses its own idiom heavily
+      mattr_500: 0.61,
       // Slightly elevated — vivid, specific nouns
-      avg_word_length: 4.9,
-      // Higher hapax ratio — inventive coinages and character names
-      hapax_ratio: 0.31,
+      avg_word_length: 4.85,
+      // Mid hapax — inventive coinages and character names
+      hapax_ratio: 0.43,
     },
     syntactic: {
       // Longer sentences — sweeping Victorian prose
-      avg_sentence_length_tokens: 31.0,
-      std_sentence_length_tokens: 14.2,
-      // Moderate subordination
-      subordination_ratio: 0.35,
-      passive_voice_ratio: 0.12,
-      noun_to_verb_ratio: 1.8,
+      avg_sentence_length_tokens: 28.5,
+      std_sentence_length_tokens: 15.0,
+      // Highest subordination — piled-up clauses and asides
+      subordination_ratio: 0.39,
+      passive_voice_ratio: 0.11,
+      noun_to_verb_ratio: 1.9,
     },
     stylistic: {
       punct_distribution: {
@@ -122,10 +137,10 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
         ADV: 0.1,
         PUNCT: 0.16,
       },
-      // Higher dialogue ratio — memorable character voices
-      dialogue_ratio: 0.38,
-      // Low — third-person omniscient with satirical intrusions
-      first_person_ratio: 0.06,
+      // Memorable character voices, but less dialogue-driven than Austen (§3.3)
+      dialogue_ratio: 0.24,
+      // Some first person — satirical narrator intrusions (per 1k tokens)
+      first_person_ratio: 6.5,
     },
     distinctive_vocab: [
       { term: "countenance", score: 0.88 },
@@ -150,20 +165,21 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
       n_sentences: 7_200,
     },
     lexical: {
-      // Lower richness per window — intense, obsessive repetition
-      mattr_500: 0.58,
-      // Longer words — Gothic Latinate vocabulary
+      // Highest MATTR — short tales, each with its own dense lexicon
+      mattr_500: 0.7,
+      // Longest words — Gothic Latinate vocabulary
       avg_word_length: 5.3,
-      // High hapax ratio — idiosyncratic, rare word choices
-      hapax_ratio: 0.44,
+      // Highest hapax — idiosyncratic, rare word choices
+      hapax_ratio: 0.52,
     },
     syntactic: {
-      // Shorter, punchy sentences — dread through brevity
-      avg_sentence_length_tokens: 17.0,
-      std_sentence_length_tokens: 10.8,
-      // Lower subordination — direct, percussive rhythm
-      subordination_ratio: 0.24,
-      passive_voice_ratio: 0.15,
+      // Long, unspooling sentences with the widest variance of the three
+      avg_sentence_length_tokens: 29.0,
+      std_sentence_length_tokens: 17.0,
+      // Lowest subordination — direct, percussive rhythm
+      subordination_ratio: 0.27,
+      // Highest passive voice — the narrator as the thing acted upon
+      passive_voice_ratio: 0.23,
       noun_to_verb_ratio: 1.4,
     },
     stylistic: {
@@ -183,9 +199,9 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
         PUNCT: 0.17,
       },
       // Very low dialogue — interior monologue and narration dominate
-      dialogue_ratio: 0.09,
-      // High first-person — unreliable narrator confessional style
-      first_person_ratio: 0.52,
+      dialogue_ratio: 0.1,
+      // Sharpest Poe discriminator — confessional narrator (per 1k tokens, §3.4)
+      first_person_ratio: 24.0,
     },
     distinctive_vocab: [
       { term: "phantasm", score: 0.92 },
@@ -200,3 +216,23 @@ export const FIXTURE_STYLE_PROFILES: Readonly<Record<string, StyleProfile>> = {
     },
   },
 };
+
+/**
+ * The one place where a fixture may be substituted for a real StyleProfile.
+ *
+ * Returns the fixture for `authorId` ONLY when `err` is fixture-eligible —
+ * a NetworkError or a 5xx ServerError (`lib/api.ts::isFixtureEligibleError`).
+ * Returns `undefined` for a NotFoundError (real 404), for any other 4xx, and
+ * for authors with no fixture; callers turn that `undefined` into their own
+ * neutral empty state (an EmptyState in the panel, `[]` for the highlights).
+ *
+ * Pure and total — no throwing, no I/O — so the decision itself is unit-tested
+ * without mounting a component (see `style-profiles.test.ts`).
+ */
+export function fixtureProfileForError(
+  authorId: string,
+  err: unknown,
+): StyleProfile | undefined {
+  if (!isFixtureEligibleError(err)) return undefined;
+  return FIXTURE_STYLE_PROFILES[authorId];
+}
