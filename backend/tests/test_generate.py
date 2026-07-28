@@ -3,9 +3,11 @@
 All external I/O is mocked — no live Watsonx, no live DB, no spaCy/ST load:
   * ``app.routes.generate.get_client``  — Supabase calls
   * ``app.routes.generate._ORCHESTRATE_FN`` — the ai_pipeline orchestrator
-  * ``app.services.watsonx_client`` module  — injected into sys.modules so the
-    route's internal ``from app.services.watsonx_client import WatsonxError``
-    resolves without ibm_watsonx_ai being installed in this venv
+  * ``app.services.watsonx_client`` module  — the real module when it imports,
+    otherwise a fake installed by a module-scoped fixture (never at collection
+    time), so the route's internal
+    ``from app.services.watsonx_client import WatsonxError`` resolves even
+    without ibm_watsonx_ai installed in this venv
 
 Contract: docs/api_contract.yaml §generateText
   200  happy path → {vanilla:{text,fit_score,latency_ms},
@@ -57,36 +59,59 @@ def monkeypatch_module():
 # WatsonxError stub
 #
 # ``app.services.watsonx_client`` imports ``ibm_watsonx_ai`` at module level,
-# which is not installed in the backend-only dev venv.  We install a minimal
-# fake into sys.modules at collection time (so the route's internal
-# ``from app.services.watsonx_client import WatsonxError`` resolves), then
-# remove it after all tests in this module finish so it cannot bleed into
-# other test files collected in the same pytest session.
+# which may be absent from a backend-only dev venv.  Nothing in the app import
+# chain pulls that module in eagerly — ``app/routes/generate.py`` imports it
+# lazily *inside* the request handler — so a stand-in is only needed while this
+# module's own tests execute, never at collection time.
+#
+# Installing a fake into sys.modules at import time (i.e. during collection) is
+# precisely what used to break the whole backend suite: pytest imports every
+# test module before running any test, so the fake was still in place when
+# tests/test_watsonx_client.py was imported, and its
+# ``from app.services.watsonx_client import _RETRY_DELAYS_SECONDS`` failed with
+# "(unknown location)" — the signature of a synthetic ModuleType.
+#
+# So: prefer the real module (which also gives the route the real WatsonxError
+# class to catch), and fall back to a fake confined to a module-scoped fixture.
 # ---------------------------------------------------------------------------
 
 _WX_KEY = "app.services.watsonx_client"
-_WX_PRIOR = sys.modules.get(_WX_KEY)
 
+try:  # real module — available whenever ibm_watsonx_ai is installed
+    from app.services.watsonx_client import WatsonxError as _WatsonxError
 
-class _WatsonxError(RuntimeError):
-    """Stand-in for app.services.watsonx_client.WatsonxError."""
+    _WX_REAL_AVAILABLE = True
+except ImportError:  # backend-only venv without ibm_watsonx_ai
+    _WX_REAL_AVAILABLE = False
 
-
-if _WX_PRIOR is None:
-    _wx_fake = types.ModuleType(_WX_KEY)
-    _wx_fake.WatsonxError = _WatsonxError  # type: ignore[attr-defined]
-    _wx_fake.generate = MagicMock()  # type: ignore[attr-defined]
-    sys.modules[_WX_KEY] = _wx_fake
+    class _WatsonxError(RuntimeError):  # type: ignore[no-redef]
+        """Stand-in for app.services.watsonx_client.WatsonxError."""
 
 
 @pytest.fixture(autouse=True, scope="module")
-def _teardown_fake_watsonx_module():
-    """Remove the fake watsonx_client from sys.modules after this module runs."""
-    yield
-    if _WX_PRIOR is None:
-        sys.modules.pop(_WX_KEY, None)
-    else:
-        sys.modules[_WX_KEY] = _WX_PRIOR
+def _fake_watsonx_module():
+    """Expose ``app.services.watsonx_client`` for the duration of this module.
+
+    No-op when the real module imported cleanly.  Otherwise a minimal fake is
+    installed for this module's tests only and removed on teardown, so it is
+    never visible while pytest collects (imports) any other test module.
+    """
+    if _WX_REAL_AVAILABLE:
+        yield
+        return
+
+    fake = types.ModuleType(_WX_KEY)
+    fake.WatsonxError = _WatsonxError  # type: ignore[attr-defined]
+    fake.generate = MagicMock()  # type: ignore[attr-defined]
+    prior = sys.modules.get(_WX_KEY)
+    sys.modules[_WX_KEY] = fake
+    try:
+        yield
+    finally:
+        if prior is None:
+            sys.modules.pop(_WX_KEY, None)
+        else:
+            sys.modules[_WX_KEY] = prior
 
 
 import app.routes.generate as _gen_route  # noqa: E402

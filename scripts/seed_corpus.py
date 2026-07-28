@@ -32,6 +32,12 @@ Pipeline (5 stages, run in order)
                 over each seeded author's cleaned documents and inserts a
                 real (non-stub) row into ``style_profiles``. Requires the
                 ``en_core_web_lg`` spaCy model (``make install-py``).
+                Before the first profile, every author's corpus is
+                lemmatized once (``build_comparison_lemmas``) so
+                ``distinctive_vocab`` is a real three-document TF-IDF —
+                docs/style_features.md 4.1. This holds even with
+                ``--author``: the other two authors are still lemmatized,
+                because they are the comparison documents.
 
 Embeddings and profiles are opt-in (not run by default) because both are
 slow (model downloads + CPU-bound inference) and are not required just to
@@ -601,12 +607,56 @@ def run_embedding_backfill(database_url: str) -> int:
 # ---------------------------------------------------------------------------
 
 
+def build_comparison_lemmas(nlp: Any, authors: list[str] | None = None) -> dict[str, str]:
+    """Lemmatize every author's corpus once, for the cross-author TF-IDF.
+
+    ``docs/style_features.md`` §4.1 defines ``distinctive_vocab`` as TF-IDF
+    where *each author's full corpus is one "document" and the collection is
+    all three authors combined*. A single-document collection makes the IDF
+    term constant, which collapses the ranking to raw frequency — that is why
+    this mapping has to be built before any profile is computed.
+
+    *authors* defaults to **every** slug in AUTHOR_MANIFEST, deliberately
+    ignoring ``--author``: seeding one author still needs the other two as
+    comparison documents, otherwise the TF-IDF degenerates again.
+
+    Cost: one extra spaCy pass per author, each capped at
+    ``style_profile._MAX_LEMMA_CHARS`` (800k chars). The pass streams
+    ``nlp.pipe`` and stops at the cap, so it is a fraction of a full feature
+    pass; peak extra memory is 3 x 800 KB of lemma text.
+
+    The cap is spent on chunks sampled across the *whole* corpus, and PROPN
+    tokens are excluded -- see docs/style_features.md 4.1 "Preprocessing" and
+    issue #100. Both rules live in ``_lemmas_from_docs``, so this function
+    inherits them.
+    """
+    from autoria_ai.extractor.style_profile import lemmatize_corpus
+
+    slugs = list(AUTHOR_MANIFEST) if authors is None else authors
+    lemmas: dict[str, str] = {}
+    for slug in slugs:
+        docs = load_documents(slug)
+        texts = [d.cleaned_text for d in docs if d.cleaned_text.strip()]
+        if not texts:
+            log.warning("Stage 5/5 profiles: no corpus text for %s -- excluded from TF-IDF", slug)
+            continue
+        log.info("Stage 5/5 profiles: lemmatizing %s corpus for cross-author TF-IDF...", slug)
+        lemmas[slug] = lemmatize_corpus(documents=texts, nlp=nlp)
+    log.info(
+        "Stage 5/5 profiles: comparison corpora ready for %d author(s): %s",
+        len(lemmas),
+        ", ".join(lemmas),
+    )
+    return lemmas
+
+
 def seed_style_profile(
     conn: psycopg2.extensions.connection,
     author_slug: str,
     author_uuid: str,
     documents: list[str],
     nlp: Any,
+    comparison_lemmas: dict[str, str] | None = None,
 ) -> None:
     """Compute a real StyleProfile v1.0 for *author_slug* and insert it.
 
@@ -617,12 +667,12 @@ def seed_style_profile(
     ``en_core_web_lg`` pipeline, shared across all authors in this run so
     the (slow) model load happens exactly once.
 
-    ``comparison_lemmas`` is intentionally omitted: computing it well
-    requires lemmatizing every other author's corpus first, which this
-    script does not currently do. distinctive_vocab may therefore be
-    weaker than a full cross-author TF-IDF run — acceptable for the
-    seeded baseline; a follow-up recompute with all authors' lemmas can
-    strengthen it later without any schema change.
+    ``comparison_lemmas`` is the ``{slug: lemmatized_corpus}`` mapping from
+    ``build_comparison_lemmas`` — every author's corpus, so TF-IDF sees the
+    three-document collection that docs/style_features.md §4.1 specifies.
+    ``compute_style_profile`` overwrites this author's own entry with the
+    lemmas from its own pass (same rules, same ``_MAX_LEMMA_CHARS`` cap), so
+    passing the whole mapping — self included — is intentional and harmless.
     """
     from autoria_ai.extractor.style_profile import compute_style_profile, profile_hash
 
@@ -631,7 +681,18 @@ def seed_style_profile(
         author_slug,
         len(documents),
     )
-    profile = compute_style_profile(author_slug=author_slug, documents=documents, nlp=nlp)
+    if not comparison_lemmas:
+        log.warning(
+            "Stage 5/5 profiles [%s]: no comparison corpora -- distinctive_vocab "
+            "will collapse to raw frequency (see docs/style_features.md 4.1)",
+            author_slug,
+        )
+    profile = compute_style_profile(
+        author_slug=author_slug,
+        documents=documents,
+        nlp=nlp,
+        comparison_lemmas=comparison_lemmas or None,
+    )
     phash = profile_hash(profile)
 
     with conn.cursor() as cur:
@@ -699,6 +760,12 @@ def run(
         author_ids = seed_authors(conn, authors)
         report.authors_upserted = len(author_ids)
 
+        # Built once for the whole run, after the first DB write has proven the
+        # connection: every author's lemmas are needed as comparison documents
+        # for every other author's TF-IDF (see build_comparison_lemmas /
+        # docs/style_features.md 4.1).
+        comparison_lemmas = build_comparison_lemmas(nlp) if with_profiles else None
+
         for slug in authors:
             docs = load_documents(slug)
             seed_documents(conn, author_ids[slug], docs)
@@ -717,6 +784,7 @@ def run(
                     author_ids[slug],
                     [d.cleaned_text for d in docs],
                     nlp,
+                    comparison_lemmas=comparison_lemmas,
                 )
                 report.profiles_inserted += 1
 
@@ -998,6 +1066,7 @@ def _run_embeddings(database_url: str | None) -> None:
 def _run_profiles(slug_to_uuid: dict[str, str], database_url: str | None) -> None:
     """Stage 5 — compute StyleProfile for each seeded author and INSERT."""
     nlp = _load_spacy_model()
+    comparison_lemmas = build_comparison_lemmas(nlp)
     conn = _get_connection(database_url)
     try:
         for slug, author_uuid in slug_to_uuid.items():
@@ -1011,6 +1080,7 @@ def _run_profiles(slug_to_uuid: dict[str, str], database_url: str | None) -> Non
                 author_uuid,
                 [d.cleaned_text for d in docs],
                 nlp,
+                comparison_lemmas=comparison_lemmas,
             )
     finally:
         conn.close()

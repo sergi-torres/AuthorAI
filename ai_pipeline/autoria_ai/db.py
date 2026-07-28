@@ -33,7 +33,7 @@ from uuid import UUID
 
 import numpy as np
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Integer, Text, select, text
+from sqlalchemy import Integer, Text, select, text, update
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -121,6 +121,21 @@ async def _session(
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _as_uuid(value: UUID | str) -> UUID:
+    """Coerce *value* to ``uuid.UUID`` for a native-uuid bind.
+
+    ``Chunk.id`` maps to SQLAlchemy's ``Uuid`` type, which passes the value
+    straight through to asyncpg; asyncpg's uuid codec wants a real ``UUID``
+    object, not its string form.
+    """
+    return value if isinstance(value, UUID) else UUID(str(value))
+
+
+# ---------------------------------------------------------------------------
 # Public API — ingest path
 # ---------------------------------------------------------------------------
 
@@ -158,10 +173,14 @@ async def embed_and_persist_chunks(
 
     async with _session(database_url, session) as sess, sess.begin():
         for row, emb in zip(rows, embeddings, strict=False):
-            chunk_id = row["id"]
+            # Build the UPDATE from the ORM model rather than a raw text()
+            # construct.  A text() bind carries NullType, so SQLAlchemy hands
+            # asyncpg a bare Python list for a vector(768) column and asyncpg
+            # rejects it ("expected str, got list").  Going through
+            # Chunk.embedding applies pgvector's Vector bind processor, which
+            # serialises the vector to its wire format.  See _as_uuid().
             await sess.execute(
-                text("UPDATE public.chunks SET embedding = :emb WHERE id = :id"),
-                {"emb": emb.tolist(), "id": str(chunk_id)},
+                update(Chunk).where(Chunk.id == _as_uuid(row["id"])).values(embedding=emb.tolist())
             )
 
 

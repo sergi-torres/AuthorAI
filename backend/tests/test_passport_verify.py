@@ -102,6 +102,54 @@ def _sign(payload: dict, priv_key, kid: str) -> str:
     )
 
 
+def _b64url_decode(segment: str) -> bytes:
+    """Decode a padding-stripped base64url JWS segment."""
+    return base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
+
+
+def _b64url_encode(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def _tamper_signature(token: str) -> str:
+    """Return *token* carrying a genuinely different ES256 signature.
+
+    Substituting the **last** base64url character of the signature is not a
+    real tampering: an ES256 signature is 64 bytes = 512 bits, which base64url
+    encodes in 86 characters carrying 516 bits, so the final character's low 4
+    bits are unused padding. A well-formed encoder always emits zeros there, so
+    the last character is one of ``A``/``Q``/``g``/``w``; swapping ``A`` for
+    ``B`` (or any character sharing the top 2 bits) decodes to *the same* 64
+    bytes and the signature stays valid — the flaky failure of issue #99.
+
+    Flip a bit in a **decoded** byte instead, which is always observable.
+    """
+    header_b64, payload_b64, sig_b64 = token.split(".")
+    raw = bytearray(_b64url_decode(sig_b64))
+    raw[0] ^= 0x01
+    tampered_b64 = _b64url_encode(bytes(raw))
+    assert _b64url_decode(tampered_b64) != _b64url_decode(
+        sig_b64
+    ), "signature tampering decoded to the same bytes — the token is not tampered"
+    return f"{header_b64}.{payload_b64}.{tampered_b64}"
+
+
+def _tamper_payload(token: str) -> str:
+    """Return *token* with one **decoded** payload byte flipped.
+
+    Same reasoning as :func:`_tamper_signature`: mutate decoded bytes rather
+    than a base64url character that may land on unused padding bits.
+    """
+    header_b64, payload_b64, sig_b64 = token.split(".")
+    raw = bytearray(_b64url_decode(payload_b64))
+    raw[-1] ^= 0x01
+    tampered_b64 = _b64url_encode(bytes(raw))
+    assert _b64url_decode(tampered_b64) != _b64url_decode(
+        payload_b64
+    ), "payload tampering decoded to the same bytes — the token is not tampered"
+    return f"{header_b64}.{tampered_b64}.{sig_b64}"
+
+
 @pytest.fixture()
 def client_with_keys(ec_keypair, monkeypatch):
     """TestClient patched to use the ephemeral keypair."""
@@ -158,11 +206,8 @@ def test_verify_valid_token_payload_contains_schema_version(ec_keypair, client_w
 def test_verify_tampered_payload_returns_valid_false(ec_keypair, client_with_keys):
     _priv, _pub, kid, priv_key = ec_keypair
     token = _sign(_valid_payload(kid), priv_key, kid)
-    # Flip one byte in the payload segment (middle segment).
-    parts = token.split(".")
-    # Append an extra character to corrupt the payload base64url.
-    parts[1] = parts[1][:-1] + ("A" if parts[1][-1] != "A" else "B")
-    tampered = ".".join(parts)
+    # Flip one decoded byte of the payload segment (middle segment).
+    tampered = _tamper_payload(token)
     body = client_with_keys.post("/api/passports/verify", json={"jws_token": tampered}).json()
     assert body["valid"] is False
 
@@ -170,13 +215,7 @@ def test_verify_tampered_payload_returns_valid_false(ec_keypair, client_with_key
 def test_verify_tampered_payload_error_code_is_invalid_signature(ec_keypair, client_with_keys):
     _priv, _pub, kid, priv_key = ec_keypair
     token = _sign(_valid_payload(kid), priv_key, kid)
-    parts = token.split(".")
-    # Replace the entire signature segment with a different-length dummy to
-    # guarantee the ECDSA bytes are invalid (last-char flip can be a no-op for
-    # some base64url encodings with trailing padding equivalence).
-    sig = parts[2]
-    parts[2] = ("B" if sig[0] != "B" else "C") + sig[1:]
-    tampered = ".".join(parts)
+    tampered = _tamper_signature(token)
     body = client_with_keys.post("/api/passports/verify", json={"jws_token": tampered}).json()
     codes = [e["code"] for e in body["errors"]]
     assert "invalid_signature" in codes
@@ -299,8 +338,6 @@ def test_verify_response_always_has_required_keys(ec_keypair, client_with_keys):
 def test_verify_invalid_response_payload_is_null(ec_keypair, client_with_keys):
     _priv, _pub, kid, priv_key = ec_keypair
     token = _sign(_valid_payload(kid), priv_key, kid)
-    parts = token.split(".")
-    parts[2] = parts[2][:-1] + ("A" if parts[2][-1] != "A" else "B")
-    tampered = ".".join(parts)
+    tampered = _tamper_signature(token)
     body = client_with_keys.post("/api/passports/verify", json={"jws_token": tampered}).json()
     assert body["payload"] is None

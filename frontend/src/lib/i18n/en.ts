@@ -100,6 +100,14 @@ export const en = {
     passportUnavailable:
       "A signed Authorship Passport will appear here once generation returns one.",
     passportDownloadAriaLabel: "Download Authorship Passport as JSON",
+
+    // PassportCard — on-screen decoded passport (#94)
+    passportCardTitle: "Authorship Passport",
+    passportCardCaption:
+      "Decoded passport payload. The downloaded file also carries the JWS signature, so it can be checked offline on the Verify screen.",
+    passportJsonToggleShow: "Show passport JSON",
+    passportJsonToggleHide: "Hide passport JSON",
+    passportJsonAriaLabel: "Decoded Authorship Passport JSON",
   },
 
   generate: {

@@ -5,6 +5,12 @@ Structure
 Part A — Pure unit tests (no DB).
     Always run; verify embed_chunks() shape, dtype, and cosine behaviour.
 
+Part A2 — Driver-binding regression tests (no DB).
+    Always run; issue #107. Compile the statements db.py actually emits and
+    assert the embedding reaches asyncpg as pgvector wire text, never as a
+    bare Python list. These need no Postgres, so they guard the ingest path
+    in every environment — including one where the live tests below skip.
+
 Part B — Live-DB tests (skipped when DATABASE_URL is unset).
     test_insert_embed_retrieve_roundtrip  — happy-path: insert, embed, retrieve.
     test_backfill_embeddings              — NULL→embedded backfill path.
@@ -12,6 +18,14 @@ Part B — Live-DB tests (skipped when DATABASE_URL is unset).
 Part C — Latency benchmark (skipped when DATABASE_URL is unset).
     test_rag_latency_p95_under_200ms      — seeds ~1000 synthetic rows, runs
     50 retrieve_top_k() calls, asserts p95 < 200 ms, prints ef_search and p95.
+
+Event-loop scoping
+------------------
+db_fixture is module-scoped and shares one asyncpg connection across the live
+tests, so the fixture and those tests must run on the same event loop. Under
+pytest-asyncio >= 1.0 that requires an explicit loop_scope="module" on both
+(the old ``event_loop`` fixture override no longer exists). Without it asyncpg
+raises "got Future attached to a different loop" before any assertion runs.
 
 Fix notes (applied here from the start):
 * Fix 1: db_session fixture yields (session, document_id) so the roundtrip
@@ -34,17 +48,18 @@ Lint fix notes (ruff):
 
 from __future__ import annotations
 
-import asyncio
 import os
 import statistics
 import time
 import uuid
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
 import numpy as np
 import pytest
 import pytest_asyncio  # type: ignore[import-untyped]
-from sqlalchemy import text
+from sqlalchemy import Select, text
+from sqlalchemy.dialects.postgresql.asyncpg import PGDialect_asyncpg
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from autoria_ai.db import (
@@ -129,6 +144,177 @@ def test_embed_chunks_batch_matches_individual() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Part A2 — driver-binding regression tests (no DB, always run)
+#
+# Issue #107: embed_and_persist_chunks() built its UPDATE from a raw text()
+# construct.  A text() bind carries NullType, so SQLAlchemy applied no bind
+# processor and handed asyncpg a bare Python list for a vector(768) column:
+#
+#   asyncpg.exceptions.DataError: invalid input for query argument $1:
+#     [0.0130062792450...] (expected str, got list)
+#
+# The defect lives entirely at the parameter-binding layer, so it is fully
+# observable without a database: compile the statement the production code
+# actually emits and inspect what SQLAlchemy would hand the driver.  These
+# tests therefore run in every environment, including CI with no Postgres,
+# which is what stops this regression class from going unnoticed again.
+# ---------------------------------------------------------------------------
+
+_ASYNCPG_DIALECT = PGDialect_asyncpg(paramstyle="numeric_dollar")
+
+
+class _FakeResult:
+    """Stands in for a SQLAlchemy ``Result`` — only ``.all()`` is used here."""
+
+    def __init__(self, rows: list) -> None:
+        self._rows = rows
+
+    def all(self) -> list:
+        return self._rows
+
+
+class _RecordingSession:
+    """``AsyncSession`` stand-in that records statements instead of running them.
+
+    ``db._session()`` yields any session passed in verbatim, so injecting this
+    exercises the real production code path in ``db.py`` right up to the
+    driver boundary, with no database involved.
+    """
+
+    def __init__(self, select_batches: list[list] | None = None) -> None:
+        self.executed: list[tuple] = []
+        self._select_batches = list(select_batches or [])
+
+    @asynccontextmanager
+    async def _txn(self):
+        yield self
+
+    def begin(self):
+        return self._txn()
+
+    async def execute(self, statement, params=None):
+        self.executed.append((statement, params))
+        if isinstance(statement, Select):
+            batch = self._select_batches.pop(0) if self._select_batches else []
+            return _FakeResult(batch)
+        return _FakeResult([])
+
+
+def _driver_params(statement, params) -> dict:
+    """Return the bind values exactly as SQLAlchemy would hand them to asyncpg.
+
+    Compiles *statement* for the asyncpg dialect and applies each bind's
+    type-level bind processor — the step that a NullType bind silently skips.
+    """
+    compiled = statement.compile(dialect=_ASYNCPG_DIALECT)
+    raw = compiled.construct_params(params) if params else compiled.construct_params()
+    out: dict = {}
+    for key, bind in compiled.binds.items():
+        if key not in raw:
+            continue
+        processor = bind.type.bind_processor(_ASYNCPG_DIALECT)
+        out[key] = processor(raw[key]) if processor is not None else raw[key]
+    return out
+
+
+def _assert_vector_binds_are_driver_safe(executed: list[tuple]) -> None:
+    """Assert every recorded statement binds its vector as pgvector wire text.
+
+    Two invariants, both of which the #107 code violated:
+    1. No bind value reaches asyncpg as a Python ``list`` — asyncpg has no
+       codec for the ``vector`` extension type and rejects it outright.
+    2. Exactly one bind per UPDATE is the pgvector text form of a full
+       768-component vector, proving the embedding was serialised rather
+       than dropped or truncated.
+    """
+    assert executed, "no statements were executed"
+
+    vector_binds = 0
+    for statement, params in executed:
+        driver_params = _driver_params(statement, params)
+        for key, value in driver_params.items():
+            assert not isinstance(value, list), (
+                f"bind {key!r} reaches asyncpg as a Python list "
+                f"(len={len(value)}); asyncpg has no pgvector codec and will "
+                f"raise DataError 'expected str, got list'. The bind lost its "
+                f"Vector type — see issue #107.\nSQL: {statement}"
+            )
+            if isinstance(value, str) and value.startswith("[") and value.endswith("]"):
+                assert len(value.split(",")) == EMBEDDING_DIM, (
+                    f"bind {key!r} is a {len(value.split(','))}-component "
+                    f"vector; expected {EMBEDDING_DIM}"
+                )
+                vector_binds += 1
+
+    assert vector_binds > 0, (
+        "no bind was serialised to pgvector wire format; the embedding never "
+        "reached the driver as a vector"
+    )
+
+
+@pytest.mark.asyncio
+async def test_embed_and_persist_binds_vector_as_pgvector_text() -> None:
+    """Regression #107: embed_and_persist_chunks must not bind a raw list."""
+    session = _RecordingSession()
+
+    await embed_and_persist_chunks(
+        [{"id": str(uuid.uuid4()), "text": "It was the best of times."}],
+        session=session,
+    )
+
+    assert len(session.executed) == 1, f"expected one UPDATE, got {len(session.executed)}"
+    _assert_vector_binds_are_driver_safe(session.executed)
+
+
+@pytest.mark.asyncio
+async def test_embed_and_persist_binds_every_row_in_a_batch() -> None:
+    """Every row of a multi-row batch must bind a driver-safe vector.
+
+    The reported failure aborted on the first row of the first batch, so a
+    single-row test alone would not prove the loop body is fixed throughout.
+    """
+    rows = [
+        {"id": str(uuid.uuid4()), "text": "Call me Ishmael."},
+        {"id": str(uuid.uuid4()), "text": "To err is human; to forgive, divine."},
+        {"id": str(uuid.uuid4()), "text": "A little learning is a dangerous thing."},
+    ]
+    session = _RecordingSession()
+
+    await embed_and_persist_chunks(rows, session=session)
+
+    assert len(session.executed) == len(rows)
+    _assert_vector_binds_are_driver_safe(session.executed)
+
+
+@pytest.mark.asyncio
+async def test_backfill_embeddings_binds_vector_as_pgvector_text() -> None:
+    """Regression #107: the backfill write path shares the same defect.
+
+    backfill_embeddings() delegates its writes to embed_and_persist_chunks(),
+    so it inherited the bug. This pins that the delegation stays driver-safe.
+    """
+
+    @dataclass
+    class _Row:
+        id: uuid.UUID
+        text: str
+
+    pending = [
+        _Row(id=uuid.uuid4(), text="True wit is Nature to advantage dressed."),
+        _Row(id=uuid.uuid4(), text="The proper study of mankind is man."),
+    ]
+    # First SELECT returns the pending batch; the second returns [] to stop.
+    session = _RecordingSession(select_batches=[pending, []])
+
+    filled = await backfill_embeddings(session=session, batch_size=8)
+
+    assert filled == len(pending)
+    writes = [(s, p) for s, p in session.executed if not isinstance(s, Select)]
+    assert len(writes) == len(pending), f"expected {len(pending)} UPDATEs, got {len(writes)}"
+    _assert_vector_binds_are_driver_safe(writes)
+
+
+# ---------------------------------------------------------------------------
 # Fixtures for live-DB tests
 # ---------------------------------------------------------------------------
 
@@ -145,15 +331,17 @@ class _DBFixture:
     document_id: str
 
 
-@pytest.fixture(scope="module")
-def event_loop():
-    """Module-scoped event loop so all async fixtures share one loop."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# The module-scoped ``db_fixture`` below opens one asyncpg connection and hands
+# it to every live test, so the fixture and the tests must share a single event
+# loop.  pytest-asyncio >= 1.0 removed the old ``event_loop`` fixture override
+# that used to arrange this (this module still carried a dead one); the
+# supported mechanism is an explicit ``loop_scope="module"`` on the fixture and
+# on each test that consumes it.  Without it the fixture runs in the module loop
+# while tests run in per-function loops, and asyncpg fails the connection with
+# "got Future attached to a different loop" before reaching any assertion.
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture(loop_scope="module", scope="module")
 async def db_fixture() -> _DBFixture:  # type: ignore[return]
     """Module-scoped fixture: create a throwaway author + document, yield
     the session and the owned document_id, then clean up via cascade delete.
@@ -214,7 +402,7 @@ async def db_fixture() -> _DBFixture:  # type: ignore[return]
 
 
 @_skip_no_db
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 async def test_insert_embed_retrieve_roundtrip(db_fixture: _DBFixture) -> None:
     """Insert a chunk (embedding=NULL), embed it, RAG-retrieve it.
 
@@ -292,7 +480,7 @@ async def test_insert_embed_retrieve_roundtrip(db_fixture: _DBFixture) -> None:
 
 
 @_skip_no_db
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 async def test_backfill_embeddings(db_fixture: _DBFixture) -> None:
     """Insert several chunks with embedding=NULL, call backfill_embeddings(),
     assert all rows now have non-NULL embeddings and the returned count matches.
@@ -355,7 +543,7 @@ async def test_backfill_embeddings(db_fixture: _DBFixture) -> None:
 
 
 @_skip_no_db
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 async def test_rag_latency_p95_under_200ms(db_fixture: _DBFixture) -> None:
     """Seed ~1000 rows with random 768-dim embeddings, run 50 similarity
     queries, assert p95 latency < 200 ms.
