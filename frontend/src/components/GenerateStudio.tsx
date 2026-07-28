@@ -13,6 +13,13 @@ import type { AuthorCardData, PassportEnvelope } from "@/lib/types";
 
 interface GenerateStudioProps {
   author: AuthorCardData;
+  /**
+   * Signature vocabulary to highlight in the AutorIA column only
+   * (design-system §8.4). Selected from `StyleProfile.distinctive_vocab` by the
+   * parent page, which is the single load point for the profile. Optional and
+   * possibly empty: an author with no computed profile simply gets no marks.
+   */
+  distinctiveTerms?: readonly string[];
 }
 
 /**
@@ -23,7 +30,10 @@ interface GenerateStudioProps {
  * The parent page (server component) owns the page header and data-voice.
  * This component starts in an "idle" visual state before the first generation.
  */
-export function GenerateStudio({ author }: GenerateStudioProps) {
+export function GenerateStudio({
+  author,
+  distinctiveTerms = [],
+}: GenerateStudioProps) {
   const [prompt, setPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vanillaState, setVanillaState] = useState<GenerationState>({
@@ -39,14 +49,6 @@ export function GenerateStudio({ author }: GenerateStudioProps) {
    * Remains `null` until the backend returns a non-null passport (#26).
    */
   const [passport, setPassport] = useState<PassportEnvelope | null>(null);
-
-  /**
-   * Distinctive terms from the StyleProfile — optional enhancement.
-   * Not fetched here; could be passed in from a parent that already has
-   * the StyleProfile loaded. Kept as a future prop without blocking
-   * generation (design-system §7, Deliverable 6).
-   */
-  const [distinctiveTerms] = useState<readonly string[]>([]);
 
   // Keep last prompt so onRetry can re-run it without re-reading stale state.
   const lastPromptRef = useRef<string>("");
