@@ -1,0 +1,114 @@
+# Deploy-image manifest — THE file `railway.toml` installs (see its header).
+#
+# WHY THIS FILE EXISTS (WO-02 / issue #83)
+# ----------------------------------------
+# The Railway image runs ONE process that imports TWO packages: `backend/app`
+# (FastAPI) and `ai_pipeline/autoria_ai`. Per docs/architecture.md §2 the AI
+# pipeline is "a library imported by the backend, not a separate service", so
+# the image's dependency set is the UNION of backend/pyproject.toml and
+# ai_pipeline/pyproject.toml — not either one alone.
+#
+# The union cannot live in `backend/requirements.txt`: that file's own header
+# declares it a mirror of `backend/pyproject.toml` ("Source of truth is
+# pyproject.toml — keep in sync"). Putting ai_pipeline's deps there would make
+# it mirror two pyprojects and silently break that invariant.
+#
+# Build-phase note: Nixpacks/Railpack auto-detect the root `requirements.txt`
+# (which is only `-r backend/requirements.txt`) and install it during the
+# INSTALL phase. `buildCommand` runs afterwards, in the BUILD phase, and layers
+# this file on top — so the `-r` below is a cheap no-op on Railway and makes the
+# file self-contained for local/CI reproduction of the deploy image.
+
+# ---------------------------------------------------------------------------
+# CPU-ONLY PyTorch — the single largest lever on image size.
+#
+# `sentence-transformers` requires `torch>=1.11.0`. Resolving that from PyPI for
+# linux/x86_64 yields the CUDA build, which hard-depends on 15 `nvidia-*`
+# wheels, 3 `cuda-*` wheels and `triton` — 2,196 MB of GPU runtime that nothing
+# in this repo can use. AutorIA never touches a GPU (embedder.py and spaCy both
+# run on CPU) and Railway does not offer one, so every byte of it is dead weight
+# that also blows the image past what the plan will build.
+#
+# download.pytorch.org/whl/cpu publishes the same releases as `+cpu` local
+# versions whose wheel metadata declares NO nvidia/triton dependency at all
+# (10 Requires-Dist, none of them GPU). Measured with
+# `uv pip compile --python-platform x86_64-unknown-linux-gnu`:
+#   torch 2.13.0      (PyPI, CUDA) 526.6 MB + 2,196 MB of nvidia-*/cuda-*/triton
+#   torch 2.13.0+cpu  (this index) 191.8 MB + nothing
+# Whole-image effect: 2,912.2 MB / 144 pkgs -> 381.3 MB / 125 pkgs.
+#
+# WHY THE VERSION IS PINNED EXACTLY, unlike every other entry in this file:
+# with a `>=` range pip would merge both indexes and pick the highest version.
+# That works only as long as the CPU channel has published the release PyPI
+# already has; during a publication-lag window pip would silently fall back to
+# the CUDA build and resurrect 2.6 GB. An exact `+cpu` pin can only be
+# satisfied by the CPU index, so the GPU stack cannot come back by accident.
+# To upgrade: bump this pin to a version listed at
+# https://download.pytorch.org/whl/cpu/torch/ and re-run the uv compile above.
+# ---------------------------------------------------------------------------
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.13.0+cpu
+
+# ---------------------------------------------------------------------------
+# Backend — mirror of backend/pyproject.toml (owned by backend/requirements.txt)
+# ---------------------------------------------------------------------------
+-r backend/requirements.txt
+
+# ---------------------------------------------------------------------------
+# AI pipeline — ai_pipeline/pyproject.toml [project].dependencies
+#
+# Imported at request time by POST /api/generate:
+#   autoria_ai.generator.orchestrate
+#     -> autoria_ai.db        (numpy, pgvector.sqlalchemy, sqlalchemy[asyncpg])
+#     -> autoria_ai.embedder  (sentence_transformers, numpy)
+#     -> autoria_ai.fit_scorer(numpy, scipy)
+#     -> autoria_ai.extractor.vocabulary (sklearn)
+#     -> spacy                (generator._ensure_models)
+# Entries already pinned by backend/requirements.txt above and therefore NOT
+# repeated here: tiktoken, pydantic, python-jose[cryptography],
+# jsonschema[format], ibm-watsonx-ai.
+# ---------------------------------------------------------------------------
+spacy>=3.7
+sentence-transformers>=2.7
+scikit-learn>=1.4
+numpy>=1.26
+# scipy is a *direct* import in ai_pipeline/autoria_ai/fit_scorer.py:22 but is
+# missing from ai_pipeline/pyproject.toml (it only arrives transitively via
+# scikit-learn). Pinned explicitly here so the deploy image does not depend on
+# a transitive edge. Declaring it upstream is out of scope for WO-02.
+scipy>=1.11
+
+# DB / vector store — SQLAlchemy 2.0 async + pgvector (asyncpg is the driver
+# named in the DATABASE_URL DSN, imported by SQLAlchemy, not by our code).
+sqlalchemy>=2.0
+asyncpg>=0.29
+pgvector>=0.3
+
+# ---------------------------------------------------------------------------
+# Deliberately NOT installed, although present in ai_pipeline/pyproject.toml:
+#
+#   umap-learn      only import: scripts/precompute_umap.py (offline job).
+#   psycopg2-binary only imports: scripts/precompute_umap.py, scripts/
+#                   seed_corpus.py (offline sync-driver jobs).
+#
+# Neither is reachable from `backend/app` or from any autoria_ai module the web
+# process imports. umap-learn alone drags in numba + llvmlite (~200 MB) and
+# constrains the numpy range. Given WO-02's stated regression risk (image size
+# on the hobby plan), offline-only tooling stays out of the runtime image. Run
+# those scripts from a dev machine with `pip install -e "ai_pipeline[dev]"`.
+#
+# COLD-START NOTE — `autoria_ai/embedder.py:23` builds SentenceTransformer(
+# "all-mpnet-base-v2") at MODULE level, so importing autoria_ai.db downloads
+# ~418 MB from HuggingFace at RUNTIME (first boot), not at build time. That runs
+# inside the FastAPI lifespan, before the first /health is served, which is why
+# `railway.toml` sets healthcheckTimeout = 300.
+#
+# NOT A PIP DEPENDENCY — the spaCy model `en_core_web_lg` (~560 MB) cannot be
+# listed here: it is not published to PyPI (`pip install en_core_web_lg` 404s).
+# `autoria_ai.generator._ensure_models()` calls `spacy.load("en_core_web_lg")`,
+# so without it POST /api/generate fails with OSError [E050] while /health still
+# returns 200 (backend/app/main.py swallows the warmup failure). It is fetched
+# at BUILD time by the `python -m spacy download en_core_web_lg` step in
+# `railway.toml`'s buildCommand, which resolves the model release matching the
+# spaCy version pip just installed.
+# ---------------------------------------------------------------------------
