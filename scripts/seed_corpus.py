@@ -624,6 +624,11 @@ def build_comparison_lemmas(nlp: Any, authors: list[str] | None = None) -> dict[
     ``style_profile._MAX_LEMMA_CHARS`` (800k chars). The pass streams
     ``nlp.pipe`` and stops at the cap, so it is a fraction of a full feature
     pass; peak extra memory is 3 x 800 KB of lemma text.
+
+    The cap is spent on chunks sampled across the *whole* corpus, and PROPN
+    tokens are excluded -- see docs/style_features.md 4.1 "Preprocessing" and
+    issue #100. Both rules live in ``_lemmas_from_docs``, so this function
+    inherits them.
     """
     from autoria_ai.extractor.style_profile import lemmatize_corpus
 

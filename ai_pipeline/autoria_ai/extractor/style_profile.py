@@ -38,6 +38,10 @@ from autoria_ai.extractor.vocabulary import compute_distinctive_vocab
 # Soft cap so spaCy does not OOM on full Victorian novels in one Doc.
 # Features are still computed over many chunks via nlp.pipe; this only
 # limits how much raw text we keep when building the lemma string for TF-IDF.
+#
+# The cap is a memory bound, not a corpus definition: it is spent on chunks
+# drawn from across the whole corpus (``_spread_order``), never on a prefix.
+# See docs/style_features.md §4.1 "Preprocessing" and issue #100.
 _MAX_LEMMA_CHARS: int = 800_000
 
 # Cap centroid embedding cost on huge corpora (evenly subsampled).
@@ -69,17 +73,65 @@ def _weighted_mean(dicts: list[dict[str, Any]], weights: list[float]) -> dict[st
     return out
 
 
+def _spread_order(n: int) -> list[int]:
+    """Permutation of ``range(n)`` whose every prefix is spread over the range.
+
+    Bisection (van der Corput) order: ``0, n/2, n/4, 3n/4, n/8, …``.  Taking
+    the first *k* elements therefore samples the *whole* sequence rather than
+    its opening — the property :func:`_lemmas_from_docs` needs so that a
+    truncated lemma budget is not spent entirely on the first document of the
+    corpus (issue #100: the 800k-char cap fell at 21% of Dickens' chunks, so
+    ``distinctive_vocab`` was the vocabulary of *Great Expectations* alone).
+
+    Cheap and deterministic: no extra spaCy work, no extra memory, and the
+    same chunks are selected on every run for a given corpus.
+    """
+    if n <= 0:
+        return []
+    order: list[int] = [0]
+    seen: set[int] = {0}
+    denom = 2
+    while len(order) < n and denom <= 2 * n:
+        for num in range(1, denom, 2):
+            idx = (num * n) // denom
+            if idx < n and idx not in seen:
+                seen.add(idx)
+                order.append(idx)
+        denom *= 2
+    order.extend(i for i in range(n) if i not in seen)
+    return order
+
+
+def _in_spread_order(items: list[Any]) -> list[Any]:
+    """*items* reordered by :func:`_spread_order`."""
+    return [items[i] for i in _spread_order(len(items))]
+
+
 def _lemmas_from_docs(docs: Iterable[Any], max_chars: int = _MAX_LEMMA_CHARS) -> str:
-    """Space-joined lower lemmas (alpha only) for TF-IDF input.
+    """Space-joined lower lemmas (alpha, non-proper, len>=3) for TF-IDF input.
 
     *docs* may be a lazy iterable (e.g. the generator returned by
     ``nlp.pipe``): the function stops consuming it as soon as *max_chars*
     is reached, so the cost is bounded by the cap, not by corpus size.
+    Callers are responsible for handing the docs over in spread order
+    (:func:`_in_spread_order`) so that an early stop still samples the whole
+    corpus.
+
+    ``PROPN`` tokens are dropped.  Character and place names are genuinely
+    concentrated in one author's corpus, so TF-IDF ranks them first — but they
+    identify the *novel*, not the author's hand, and ``distinctive_vocab`` is
+    the one feature a non-technical juror reads directly
+    (docs/style_features.md §4.1; decision 2026-07-28 in docs/decision_log.md).
+    The filter lives here, where spaCy's POS tag is already computed, so it is
+    free and stays correct for authors added later — unlike a hand-maintained
+    word blacklist applied after the TF-IDF.
     """
     parts: list[str] = []
     size = 0
     for doc in docs:
         for tok in doc:
+            if tok.pos_ == "PROPN":
+                continue
             if tok.is_alpha and len(tok.lemma_) >= 3:
                 piece = tok.lemma_.lower()
                 parts.append(piece)
@@ -103,11 +155,14 @@ def lemmatize_corpus(
     authors combined.  Callers that own more than one author's corpus (the
     seeding script) use this to build the ``comparison_lemmas`` mapping that
     :func:`compute_style_profile` expects, without having to reimplement the
-    lemma rules — alpha-only, lowercase, ``len >= 3`` — or the
+    lemma rules — alpha-only, lowercase, ``len >= 3``, no ``PROPN`` — or the
     ``_MAX_LEMMA_CHARS`` cap that bounds peak memory per author.
 
     The spaCy pass streams and stops at *max_chars*, so lemmatizing a
-    comparison corpus costs a fraction of a full feature pass over it.
+    comparison corpus costs a fraction of a full feature pass over it.  The
+    chunks are fed in :func:`_spread_order`, so the chunks that fit inside the
+    cap are drawn from every document of the corpus instead of from whichever
+    novel happens to come first (issue #100).
 
     Returns an empty string when *documents* produce no chunks.
     """
@@ -115,7 +170,8 @@ def lemmatize_corpus(
     chunks = chunk_texts if chunk_texts is not None else chunk_text(full_text)
     if not chunks:
         return ""
-    return _lemmas_from_docs(nlp.pipe(chunks, batch_size=64), max_chars=max_chars)
+    sampled = _in_spread_order(chunks)
+    return _lemmas_from_docs(nlp.pipe(sampled, batch_size=64), max_chars=max_chars)
 
 
 def _subsample(items: list[str], max_n: int) -> list[str]:
@@ -170,7 +226,10 @@ def compute_style_profile(
     syntactic = _weighted_mean([compute_syntactic(d) for d in docs], weights)
     stylistic = _weighted_mean([compute_stylistic(d) for d in docs], weights)
 
-    author_lemmas = _lemmas_from_docs(docs)
+    # Spread order, same as lemmatize_corpus: this author's own TF-IDF
+    # "document" must be built the same way as the comparison corpora it is
+    # scored against, and the cap must not fall inside the first novel (#100).
+    author_lemmas = _lemmas_from_docs(_in_spread_order(docs))
     corpora = dict(comparison_lemmas or {})
     corpora[author_slug] = author_lemmas
     try:
