@@ -38,8 +38,12 @@ logger = logging.getLogger(__name__)
 
 WATSONX_MODEL_ID: str = "meta-llama/llama-3-3-70b-instruct"
 
+# Keys must match the Watsonx chat schema (``TextChatParameters``) exactly:
+# an unknown key is dropped in silence, not rejected. ``max_new_tokens`` is the
+# *text-generation* spelling and has no effect on ``ModelInference.chat()``,
+# which is what we call — see backend/tests/test_generation_params.py.
 _GENERATION_PARAMS: dict[str, Any] = {
-    "max_new_tokens": 512,
+    "max_tokens": 512,
     "temperature": 0.7,
     "top_p": 0.9,
 }
