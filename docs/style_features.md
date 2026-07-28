@@ -302,7 +302,7 @@ first_person_ratio = (fp_count / len(doc)) * 1000  # per 1k tokens
 
 **What it measures**: the words that are **most characteristic of one author relative to the others** — not just frequent words, but words that are unusually concentrated in that author's corpus.
 
-**Why it matters**: this is the feature the audience *sees* in the demo. When the AutorIA output contains "countenance", "physiognomy", and "presently" for Dickens, the jury can read and feel the difference without understanding a single number.
+**Why it matters**: this is the feature the audience *sees* in the demo — it is rendered directly in the Style DNA panel, so whatever it ranks first is what a non-technical juror reads. That makes it the one feature where the gap between what the section *wants* and what the algorithm *returns* has to be stated plainly. See **Measured output** below: on the current three-author corpus it returns **common English verbs and nouns**, not rare period diction.
 
 **How it is computed**: standard TF-IDF where each author's full corpus is one "document" and the collection is all three authors combined.
 
@@ -333,9 +333,28 @@ tfidf_matrix = vectorizer.fit_transform(corpora.values())
 
 **Preprocessing**: lemmatize before TF-IDF, exclude stopwords, exclude tokens shorter than 3 characters, and **exclude proper nouns** (spaCy `token.pos_ == "PROPN"`).
 
-**Why proper nouns are excluded** — decision 2026-07-28, see `docs/decision_log.md`. Character and place names *are* statistically distinctive: `pip`, `havisham`, `wemmick` are concentrated in Dickens and nowhere else, so TF-IDF ranks them first. But they describe the **plot** of one novel, not the author's style, and this feature exists to be read by a non-technical juror — the example above (`countenance`, `physiognomy`, `presently`) is the standard the section sets for itself. The filter is applied **inside the lemmatization pass** (`lemmatize_corpus` / `_lemmas_from_docs` in `ai_pipeline/autoria_ai/extractor/style_profile.py`), where spaCy's POS tag is already computed and the rule lives in one place. A stop-word blacklist applied after the TF-IDF is explicitly **not** how this is done: it would have to be maintained by hand for every new author.
+**Why proper nouns are excluded** — decision 2026-07-28, see `docs/decision_log.md`. Character and place names *are* statistically distinctive: `pip`, `havisham`, `wemmick` are concentrated in Dickens and nowhere else, so TF-IDF ranks them first. But they describe the **plot** of one novel, not the author's style, and this feature is labelled to a juror as the author's *style*, which a cast list is not. Removing them did **not** promote rare period diction into their place — it promoted common verbs and nouns (see **Measured output**), and it raised the three-way top-10 overlap from 3 to 5. That trade was accepted knowingly: a wrong-but-varied list is worse than a dull-but-honest one. The filter is applied **inside the lemmatization pass** (`lemmatize_corpus` / `_lemmas_from_docs` in `ai_pipeline/autoria_ai/extractor/style_profile.py`), where spaCy's POS tag is already computed and the rule lives in one place. A stop-word blacklist applied after the TF-IDF is explicitly **not** how this is done: it would have to be maintained by hand for every new author.
 
 **How "full corpus" is realised** — `_MAX_LEMMA_CHARS` (800 000 lemma characters per author) bounds the seed's peak memory to roughly 1.7 GB. That budget is spent on chunks drawn from **across the whole corpus**, in a deterministic bisection order, so every document of every author is represented. It must never be spent as a *prefix*: doing so meant Dickens' `distinctive_vocab` was computed from the first 21% of his chunks — effectively *Great Expectations* alone — which is why the top terms were its cast list (issue #100).
+
+**Measured output** — run 2026-07-28 on the full `corpus/` (10 files, 8.68 MB) through the seed's own code path (`build_comparison_lemmas` + `compute_distinctive_vocab`, `top_n=30`, `_MAX_LEMMA_CHARS = 800 000`). This is what the feature returns today; it is recorded here because the section above must not be read as a promise of anything else.
+
+| # | austen | | dickens | | poe | |
+|---|---|---|---|---|---|---|
+| 1 | say | 0.3786 | say | 0.5737 | say | 0.2716 |
+| 2 | know | 0.2380 | know | 0.2290 | make | 0.1974 |
+| 3 | think | 0.2358 | look | 0.2063 | great | 0.1401 |
+| 4 | make | 0.1919 | come | 0.2044 | time | 0.1340 |
+| 5 | come | 0.1491 | make | 0.1626 | long | 0.1320 |
+| 6 | time | 0.1446 | man | 0.1534 | man | 0.1294 |
+| 7 | good | 0.1435 | time | 0.1442 | know | 0.1233 |
+| 8 | great | 0.1306 | little | 0.1417 | day | 0.1156 |
+| 9 | look | 0.1251 | think | 0.1374 | eye | 0.1095 |
+| 10 | little | 0.1243 | hand | 0.1294 | little | 0.1054 |
+
+**Read this honestly.** These are ordinary high-frequency English words, not signature vocabulary. `countenance`, `physiognomy` and `presently` — the words earlier drafts of this section advertised — appear in **neither the top-10 nor the top-30 of any author**. The three top-10 lists intersect in **5 terms** (`know`, `little`, `make`, `say`, `time`); pairwise, austen∩dickens = 8, austen∩poe = 6, dickens∩poe = 6. What the feature discriminates is *how hard each author leans on the same common words*, not which unusual words each author owns. No proper noun survives in any top-30, so the `PROPN` filter is working as specified.
+
+**Why it cannot do better as specified.** The collection is three documents, so any term appearing in all three has `df = 3/3` and therefore the **same** idf (1.000 with sklearn's smoothing). `countenance` (29 occurrences in Dickens) and `say` (1 866) are idf-tied, so TF-IDF collapses to raw frequency and the common word always wins. Proper nouns were the only terms with a discriminating df, which is exactly why filtering them raised the overlap. Fixing this means changing the scoring (log-odds, or idf against a general-English reference corpus) — a change to the algorithm this section declares, not a tuning knob. It was considered and deferred; see the 2026-07-28 exception entry in `docs/decision_log.md`.
 
 ---
 

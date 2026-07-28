@@ -110,3 +110,37 @@ def test_lemmatize_corpus_samples_every_document() -> None:
     sampled = {marker for marker in _MARKERS if marker in lemmas.split()}
     assert len(sampled) > 1, f"capped corpus sampled only {sampled or 'nothing'}"
     assert sampled == set(_MARKERS), f"documents missing from the sample: {sampled}"
+
+
+# --- Proper-noun filter (issue #100 / WO-18) ------------------------------
+#
+# docs/style_features.md 4.1 requires proper nouns to be dropped *inside* the
+# lemmatization pass, so character and place names never reach the TF-IDF.
+# Without the filter these names are the top-scoring terms of an author's
+# distinctive_vocab -- they identify the novel, not the author's hand.
+# This test fails if the `tok.pos_ == "PROPN"` guard in _lemmas_from_docs is
+# removed: the names below are the only PROPN tokens in the sample.
+
+_PROPER_NOUNS = ("havisham", "wemmick", "pemberley")
+_COMMON_NOUNS = ("parlour", "candle", "housekeeper", "lantern", "garden")
+
+_NAMED_SENTENCE = (
+    "Havisham sat alone in the parlour while Wemmick counted the candles "
+    "and the housekeeper carried a heavy lantern toward the garden gate at "
+    "Pemberley before the evening meal was served. "
+)
+
+
+def test_lemmatize_corpus_drops_proper_nouns() -> None:
+    """Character and place names must not survive into the TF-IDF input."""
+    lemmas = set(
+        lemmatize_corpus(documents=[_NAMED_SENTENCE * 200], nlp=_NLP, max_chars=60_000).split()
+    )
+
+    leaked = sorted(name for name in _PROPER_NOUNS if name in lemmas)
+    assert not leaked, f"proper nouns reached the TF-IDF input: {leaked}"
+
+    # Guard against the test passing for the wrong reason (empty/degenerate
+    # lemma string): the common nouns of the same sentences must survive.
+    kept = sorted(noun for noun in _COMMON_NOUNS if noun in lemmas)
+    assert kept == sorted(_COMMON_NOUNS), f"common nouns were dropped too: {kept}"
