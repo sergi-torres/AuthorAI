@@ -47,6 +47,33 @@ Commonly needed alongside them (see `.env.example`): `WATSONX_URL`,
 3. **Variables** → add: `WATSONX_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`,
    plus `WATSONX_URL`, `WATSONX_PROJECT_ID`, `DATABASE_URL`, and
    `AUTORIA_CORS_ORIGINS` (include your Vercel URL once you have it).
+
+   **Passport signing keys — required, and easy to miss.** `.gitignore`
+   excludes `keys/**` and `*.pem`, so the deployed image contains **no key
+   files**: pointing `PASSPORT_*_KEY_PATH` at `keys/…` resolves to nothing in
+   Railway. Add instead:
+
+   | Variable | Value |
+   | --- | --- |
+   | `PASSPORT_PRIVATE_KEY_PEM` | full contents of `keys/passport.priv.pem` |
+   | `PASSPORT_PUBLIC_KEY_PEM`  | full contents of `keys/passport.pub.pem` |
+   | `PASSPORT_KID`             | must match the `kid` in `keys/jwks.public.json` |
+   | `PASSPORT_VERIFIER_URL`    | the public `/verify` URL |
+
+   Multi-line values paste fine; literal `\n` escapes are also accepted. The
+   `_PEM` pair takes precedence over `_PATH`, so a stale key baked into an
+   image can never outrank the one you set here.
+
+   Without these, `GET /.well-known/jwks.json` answers **500** and
+   `POST /api/generate` cannot sign — the Passport is the demo's centrepiece,
+   and `/health` will not tell you it is broken.
+
+   **The pair must match.** Public and private key travel under the same
+   `kid`, so a mismatched pair produces Passports that fail verification with
+   `invalid_signature` and no other symptom. After deploying, compare the `x`
+   and `y` served by `/.well-known/jwks.json` against `keys/jwks.public.json`
+   in the repo; if they differ, the committed JWKS is stale and offline
+   verification against it will reject every valid Passport.
 4. Deploy. Confirm the Nixpacks plan shows
    `start │ cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 5. Note the public URL (e.g. `https://autoria-api.up.railway.app`).
