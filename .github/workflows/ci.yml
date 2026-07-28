@@ -24,6 +24,79 @@ jobs:
       - name: Black check
         run: black --check .
 
+  test-python:
+    name: Python tests (ai_pipeline, live pgvector)
+    runs-on: ubuntu-latest
+
+    # Ephemeral pgvector matching the Supabase target (PG16 + pgvector).
+    # Issue #107: the embedder's write path is a pgvector/asyncpg type-binding
+    # problem that only a real vector column can catch end to end, so the
+    # live-DB tests in ai_pipeline/tests/test_embedder.py need a DATABASE_URL.
+    # Without this service they self-skip and the suite stays green while the
+    # ingest path is broken — which is exactly how #107 survived four weeks.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: autoria_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Consumed by test_embedder.py's _skip_no_db gate (asyncpg DSN).
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/autoria_test
+      # psql needs the plain libpq form of the same DSN.
+      PGURL: postgresql://postgres:postgres@localhost:5432/autoria_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # sentence-transformers (~420 MB) and spaCy's en_core_web_lg (~560 MB)
+      # dominate the job's runtime; cache them across runs.
+      - name: Cache Hugging Face models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-all-mpnet-base-v2
+
+      - name: Install ai_pipeline + dev deps
+        run: pip install -e "ai_pipeline[dev]"
+
+      - name: Install spaCy model
+        run: python -m spacy download en_core_web_lg
+
+      - name: Apply migrations
+        run: |
+          for f in infra/supabase/migrations/*.sql; do
+            echo "Applying $f"
+            psql "$PGURL" -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+
+      - name: Pytest (ai_pipeline)
+        run: pytest ai_pipeline/tests -q
+
+      # The live-DB tests are the whole point of the service container above.
+      # If DATABASE_URL ever stops reaching them they would silently revert to
+      # SKIPPED, so fail the job instead of letting that pass unnoticed.
+      - name: Assert live-DB tests actually ran
+        run: |
+          pytest ai_pipeline/tests/test_embedder.py -q -rs 2>&1 | tee out.txt
+          if grep -q "skipping live-DB tests" out.txt; then
+            echo "::error::live-DB tests were SKIPPED — DATABASE_URL did not reach pytest"
+            exit 1
+          fi
+
   lint-frontend:
     name: Frontend lint + typecheck (ESLint + tsc)
     runs-on: ubuntu-latest
