@@ -42,23 +42,27 @@ WATSONX_MODEL_ID: str = "meta-llama/llama-3-3-70b-instruct"
 # an unknown key is dropped in silence, not rejected. ``max_new_tokens`` is the
 # *text-generation* spelling and has no effect on ``ModelInference.chat()``,
 # which is what we call — see backend/tests/test_generation_params.py.
-# 320, not the 512 originally written here, because 512 does not fit the
-# latency budget. Measured against real Watsonx (eu-de, llama-3-3-70b, n=5 per
-# cell, hard timeout lifted so the true duration shows):
+# The cap stays at 512 because nothing is wasted there: across ten recorded
+# generations (bob/sessions/Sprint_1/baseline_eval.md) the longest output was
+# 415 tokens and all ten ended on a complete sentence. Lowering the cap would
+# cut real prose, not slack.
+#
+# Measured against real Watsonx (eu-de, llama-3-3-70b, n=5 per cell, hard
+# timeout lifted so the true duration shows):
 #
 #     cap=512  vanilla  median 4.5s  worst 5.9s (~196 words)
-#              autoria  median 7.2s  worst 8.4s (~313 words)   <- over the 8s cap
+#              autoria  median 7.2s  worst 8.4s (~313 words)
 #     cap=320  vanilla  median 5.0s  worst 5.3s (~242 words)
 #              autoria  median 5.4s  worst 5.6s (~223 words)
 #
-# The conditioned branch straddles HARD_TIMEOUT_SECONDS at 512: it sometimes
-# returns and sometimes exhausts all four attempts, and because a failed
-# AutorIA branch cannot be degraded away (the passport needs it), that surfaces
-# as an intermittent 503 from POST /api/generate. 320 keeps a comfortable
-# margin under both the 8s timeout and the 10s client-side abort in
-# frontend/src/lib/api.ts, and still yields ~220 words per column.
+# At 512 the conditioned branch runs past the *old* 8s HARD_TIMEOUT_SECONDS
+# often enough to matter, and a failed AutorIA branch cannot be degraded away
+# because the passport needs it — that surfaced as intermittent 503s. The fix
+# is on the timeout side, not the cap side: see HARD_TIMEOUT_SECONDS in
+# backend/app/services/watsonx_client.py. A generation that is merely slow
+# should arrive late, not die.
 _GENERATION_PARAMS: dict[str, Any] = {
-    "max_tokens": 320,
+    "max_tokens": 512,
     "temperature": 0.7,
     "top_p": 0.9,
 }

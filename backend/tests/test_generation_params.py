@@ -64,7 +64,7 @@ def test_generation_params_match_chat_schema():
 
 def test_output_cap_is_declared():
     """The output cap must be present — an absent key falls back to 1024."""
-    assert _GENERATION_PARAMS.get("max_tokens") == 320
+    assert _GENERATION_PARAMS.get("max_tokens") == 512
     assert "max_new_tokens" not in _GENERATION_PARAMS
 
 
