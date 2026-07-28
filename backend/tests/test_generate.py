@@ -23,6 +23,7 @@ autouse fixture below so no .env file is needed in CI).
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 import types
 import uuid
@@ -733,3 +734,74 @@ def test_passport_db_failure_response_still_contains_passport():
 
     assert "passport" in body
     assert body["passport"]["jws_token"]
+
+
+# ===========================================================================
+# 9. DATABASE_URL is propagated to the orchestrator (issue #87 / WO-06)
+#
+# The orchestrator hands this kwarg straight to
+# autoria_ai.db.retrieve_top_k(database_url=...).  When the route omitted it,
+# autoria_ai.db fell back to os.environ["DATABASE_URL"], the KeyError was
+# swallowed by generator.py's `except Exception`, and every generation
+# returned 200 with an unconditioned prompt and rag_sources: [].
+# ===========================================================================
+
+_TEST_DSN = "postgresql+asyncpg://user:pw@db.example.com:5432/postgres"
+
+
+def _orchestrate_kwargs_with_settings(db_url: str | None) -> dict[str, Any]:
+    """Run one happy-path request with ``settings.database_url = db_url``.
+
+    Returns the kwargs the route passed to the orchestrator.
+    """
+    orchestrate = _make_orchestrate_mock()
+    sb = _make_sb_mock()
+    patched_settings = dataclasses.replace(_gen_route.settings, database_url=db_url)
+
+    with (
+        patch("app.routes.generate.get_client", return_value=sb),
+        patch("app.routes.generate.settings", patched_settings),
+    ):
+        _gen_route._ORCHESTRATE_FN = orchestrate
+        _gen_route._IMPORT_ERROR = None
+        TestClient(app, raise_server_exceptions=False).post(
+            "/api/generate",
+            json={"author_id": "dickens", "prompt": "A foggy night."},
+        )
+
+    _, kwargs = orchestrate.call_args
+    return kwargs
+
+
+def test_orchestrate_receives_database_url_kwarg():
+    """The route must pass ``database_url`` — its absence is the #87 bug."""
+    kwargs = _orchestrate_kwargs_with_settings(_TEST_DSN)
+    assert "database_url" in kwargs
+
+
+def test_orchestrate_receives_configured_dsn():
+    """The DSN forwarded is exactly the one resolved by app.config."""
+    kwargs = _orchestrate_kwargs_with_settings(_TEST_DSN)
+    assert kwargs["database_url"] == _TEST_DSN
+
+
+def test_orchestrate_receives_none_when_database_url_unset():
+    """An unset DATABASE_URL forwards None — RAG degrades, request still 200.
+
+    The explicit one-time startup log (app.config) is what surfaces the
+    misconfiguration; the request path keeps its documented degradation.
+    """
+    kwargs = _orchestrate_kwargs_with_settings(None)
+    assert kwargs["database_url"] is None
+
+
+def test_route_reads_dsn_from_settings_not_os_environ(monkeypatch):
+    """The DSN comes from app.config.settings, not a direct os.getenv call.
+
+    Guards the WO-06 contract: config.py owns DATABASE_URL (including the
+    +asyncpg normalisation), so a raw env var that config never saw must not
+    reach the orchestrator.
+    """
+    monkeypatch.setenv("DATABASE_URL", "postgresql://raw:env@bypass.example.com:5432/postgres")
+    kwargs = _orchestrate_kwargs_with_settings(_TEST_DSN)
+    assert kwargs["database_url"] == _TEST_DSN

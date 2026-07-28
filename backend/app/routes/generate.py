@@ -24,6 +24,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from app.config import settings
 from app.db import get_client
 from app.schemas import GenerateRequest, GenerateResponse
 
@@ -161,7 +162,6 @@ async def generate_text(body: GenerateRequest) -> GenerateResponse:
     try:
         # Import here so the name is available for the except clause below;
         # the module is already cached by _load_orchestrator's sys.path setup.
-        from app.config import settings
         from app.services.watsonx_client import WatsonxError
 
         result: dict[str, Any] = await orchestrate(
@@ -170,6 +170,14 @@ async def generate_text(body: GenerateRequest) -> GenerateResponse:
             author_id=body.author_id,
             author_uuid=author_uuid,
             model_id=_MODEL_ID,
+            # Without this the orchestrator calls retrieve_top_k(database_url=
+            # None), autoria_ai.db falls back to os.environ["DATABASE_URL"],
+            # and the resulting KeyError is swallowed by generator.py's
+            # `except Exception` — so every generation silently ran with zero
+            # RAG passages and shipped a passport with rag_sources: [] (#87).
+            # settings.database_url is already the +asyncpg form that
+            # create_async_engine requires (see app.config.to_asyncpg_dsn).
+            database_url=settings.database_url,
             verifier_url=settings.passport_verifier_url,
         )
     except WatsonxError as exc:
