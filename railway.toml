@@ -13,14 +13,27 @@
 # image needs the union of both pyprojects. See that file's header (WO-02 / #83).
 # The builder's own install phase already runs `pip install -r requirements.txt`
 # (the root shim); buildCommand runs after it and layers the pipeline deps on top.
+#
+# The second half of buildCommand fetches the spaCy model `en_core_web_lg`.
+# It is NOT a PyPI package (`pip install en_core_web_lg` 404s), so it cannot be
+# a line in requirements-deploy.txt; `python -m spacy download` resolves the
+# model release matching the spaCy version pip just installed. Without it
+# `autoria_ai.generator._ensure_models()` raises OSError [E050] and every
+# POST /api/generate returns 500 — while /health still reports 200, because
+# backend/app/main.py swallows the warmup failure.
 
 [build]
 builder = "NIXPACKS"
-buildCommand = "pip install -r requirements-deploy.txt"
+buildCommand = "pip install -r requirements-deploy.txt && python -m spacy download en_core_web_lg"
 
 [deploy]
 startCommand = "cd backend && PYTHONPATH=../ai_pipeline uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+# 300s, not the default 100s: ai_pipeline/autoria_ai/embedder.py:23 constructs
+# SentenceTransformer("all-mpnet-base-v2") at MODULE import, so the first boot
+# downloads ~418 MB from HuggingFace inside the FastAPI lifespan — before the
+# app can answer the first /health probe. At 100s that download does not finish,
+# the healthcheck fails and Railway kills the deploy.
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
