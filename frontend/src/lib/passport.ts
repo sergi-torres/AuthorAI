@@ -37,3 +37,44 @@ export function downloadPassport(passport: PassportEnvelope): void {
 
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Extract the compact JWS token from the text of an uploaded `.json`/`.jws`
+ * file — the exact inverse of {@link downloadPassport}.
+ *
+ * This is the join between the two halves of the MVP §10 Definition of Done
+ * ("Passport issued, downloaded, and verifies with a valid signature"): what
+ * `downloadPassport` writes to disk must be what `/verify` can read back. It
+ * lives here, next to its inverse, so that contract is covered by one
+ * round-trip test instead of two inline copies that can drift apart.
+ *
+ * Accepts either shape:
+ *  - a full `PassportEnvelope` JSON (what we download) → returns `jws_token`
+ *  - a bare compact JWS token in a plain text file    → returned trimmed
+ *
+ * The token is returned **verbatim**. Nothing here re-serialises, re-indents or
+ * otherwise normalises the signed material: the signature covers the compact
+ * JSON embedded inside the JWS, not the pretty-printed `json_payload` copy that
+ * sits beside it in the file for humans to read. Reformatting the token would
+ * invalidate it.
+ */
+export function extractJwsToken(fileText: string): string {
+  const trimmed = fileText.trim();
+
+  // Try to parse as JSON with a jws_token field; fall back to a bare token.
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      "jws_token" in parsed &&
+      typeof (parsed as { jws_token: unknown }).jws_token === "string"
+    ) {
+      return (parsed as { jws_token: string }).jws_token;
+    }
+  } catch {
+    // Not JSON — treat the whole content as a bare token.
+  }
+
+  return trimmed;
+}

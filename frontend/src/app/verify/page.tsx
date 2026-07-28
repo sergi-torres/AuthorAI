@@ -11,6 +11,7 @@
 import { useRef, useState } from "react";
 import { BadgeCheck, Clock, ShieldAlert } from "lucide-react";
 import { verifyPassport } from "@/lib/api";
+import { extractJwsToken } from "@/lib/passport";
 import type { VerifyResponse, PassportPayload, VerifyError } from "@/lib/types";
 import { en } from "@/lib/i18n/en";
 import { FitScoreBar } from "@/components/FitScoreBar";
@@ -253,25 +254,15 @@ export default function VerifyPage() {
   const [state, setState] = useState<PageState>({ kind: "idle" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /** Extract a JWS token string from a .jws/.json file's text. */
+  /**
+   * Extract a JWS token string from a .jws/.json file's text.
+   *
+   * Delegates to `lib/passport.extractJwsToken`, the inverse of the studio's
+   * `downloadPassport`, so a passport downloaded from the studio is guaranteed
+   * to be readable here (MVP §10 Definition of Done).
+   */
   async function readFileToken(file: File): Promise<string> {
-    const text = await file.text();
-    const trimmed = text.trim();
-    // Try to parse as JSON with a jws_token field; fall back to bare token.
-    try {
-      const parsed: unknown = JSON.parse(trimmed);
-      if (
-        parsed !== null &&
-        typeof parsed === "object" &&
-        "jws_token" in parsed &&
-        typeof (parsed as { jws_token: unknown }).jws_token === "string"
-      ) {
-        return (parsed as { jws_token: string }).jws_token;
-      }
-    } catch {
-      // Not JSON — treat the whole content as a bare token.
-    }
-    return trimmed;
+    return extractJwsToken(await file.text());
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
