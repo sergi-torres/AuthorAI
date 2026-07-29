@@ -14,7 +14,11 @@ Coverage
 
 from __future__ import annotations
 
-from autoria_ai.conditioner import build_system_prompt
+import tiktoken
+
+from autoria_ai.conditioner import _MAX_PROMPT_TOKENS, build_system_prompt
+
+_ENC = tiktoken.get_encoding("cl100k_base")
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -233,3 +237,64 @@ def test_vocab_cap_at_fifteen_terms() -> None:
         assert f"word{i}" in result
     for i in range(15, 20):
         assert f"word{i}" not in result
+
+
+# ---------------------------------------------------------------------------
+# Token budget (#90 / WO-09): 5 chunks at the real ~500-token RAG chunk size
+# must not blow the prompt past _MAX_PROMPT_TOKENS.
+# ---------------------------------------------------------------------------
+
+# ~500 tokens under cl100k_base (measured), matching the RAG chunking window
+# documented in backend/app/routes/authors.py and scripts/seed_corpus.py.
+_LONG_CHUNK = "The quick brown fox jumps over the lazy dog. " * 50
+
+
+def test_budget_enforced_with_five_full_size_chunks() -> None:
+    five_long_chunks = [_LONG_CHUNK] * 5
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, five_long_chunks)
+    assert len(_ENC.encode(result)) <= _MAX_PROMPT_TOKENS
+
+
+def test_budget_enforced_regardless_of_vocab_and_chunk_size() -> None:
+    many_terms = [{"term": f"distinctiveword{i}", "score": float(20 - i)} for i in range(15)]
+    profile = {**_MOCK_STYLE_PROFILE, "distinctive_vocab": many_terms}
+    result = build_system_prompt(profile, [_LONG_CHUNK] * 5)
+    assert len(_ENC.encode(result)) <= _MAX_PROMPT_TOKENS
+
+
+def test_budget_truncation_does_not_cut_mid_word() -> None:
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, [_LONG_CHUNK] * 5)
+    # The truncated example-passages segment sits between the fixed markers;
+    # whatever survives must end in the sentence terminator (a whole word),
+    # not a bare word fragment.
+    passages_start = result.index("Here are example passages: ") + len(
+        "Here are example passages: "
+    )
+    passages_end = result.rindex(". Write only in that style")
+    passages_text = result[passages_start:passages_end]
+    assert passages_text  # some passage content survived
+    assert passages_text[-1] in ".!?" or passages_text.endswith("dog")
+
+
+def test_budget_still_respected_below_five_chunks() -> None:
+    """Even under the pre-existing count cap of 5, three full-size chunks
+    alone (~1500 tokens) already exceed the 1200-token budget, so the token
+    safeguard must still apply, not just the count safeguard.
+    """
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, [_LONG_CHUNK] * 3)
+    assert len(_ENC.encode(result)) <= _MAX_PROMPT_TOKENS
+
+
+def test_short_chunks_are_unaffected_by_token_budget() -> None:
+    # Regression guard: small, realistic chunks (like the module's own
+    # fixtures) must come through byte-for-byte, not just under budget.
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, _MOCK_CHUNKS)
+    for chunk in _MOCK_CHUNKS:
+        assert chunk in result
+    assert len(_ENC.encode(result)) <= _MAX_PROMPT_TOKENS
+
+
+def test_empty_chunks_still_under_budget() -> None:
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, [])
+    assert len(_ENC.encode(result)) <= _MAX_PROMPT_TOKENS
+    assert "no example passages provided" in result
