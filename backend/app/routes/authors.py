@@ -34,7 +34,7 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Uploa
 from fastapi.responses import JSONResponse
 from supabase import Client
 
-from app.db import get_client
+from app.db import get_client, get_current_style_profile
 from app.schemas import AuthorSummary
 
 logger = logging.getLogger(__name__)
@@ -270,15 +270,8 @@ async def get_author_style_profile(author_id: str) -> JSONResponse:
 
     author_uuid: str = author_result.data["id"]
 
-    profile_result = (
-        sb.table("style_profiles")
-        .select("json_data")
-        .eq("author_id", author_uuid)
-        .order("computed_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-    if not profile_result.data:
+    style_profile = get_current_style_profile(sb, author_uuid)
+    if style_profile is None:
         raise HTTPException(
             status_code=404,
             detail={
@@ -287,7 +280,7 @@ async def get_author_style_profile(author_id: str) -> JSONResponse:
             },
         )
 
-    return JSONResponse(status_code=200, content=profile_result.data[0]["json_data"])
+    return JSONResponse(status_code=200, content=style_profile)
 
 
 @router.post(

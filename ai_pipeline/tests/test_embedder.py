@@ -50,10 +50,13 @@ from __future__ import annotations
 
 import os
 import statistics
+import subprocess
+import sys
 import time
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -141,6 +144,65 @@ def test_embed_chunks_batch_matches_individual() -> None:
             atol=1e-5,
             err_msg=f"batch[{i}] differs from single encode for: {t!r}",
         )
+
+
+def test_ensure_model_loaded_returns_the_same_singleton_every_time() -> None:
+    """Repeated calls (from embed_chunks or a warmup) share one instance."""
+    from autoria_ai.embedder import ensure_model_loaded
+
+    first = ensure_model_loaded()
+    second = ensure_model_loaded()
+    assert first is second
+
+
+# ---------------------------------------------------------------------------
+# Part A3 — lazy loading (#104): importing this module must not construct the
+# SentenceTransformer. Run in a subprocess with sentence_transformers stubbed
+# out (raising if constructed), so the assertion holds regardless of whether
+# an earlier test in this same session already triggered the real load.
+# ---------------------------------------------------------------------------
+
+_LAZY_IMPORT_CHECK_SCRIPT = """
+import sys
+from unittest.mock import MagicMock
+
+fake_st_module = MagicMock()
+fake_st_module.SentenceTransformer = MagicMock(
+    side_effect=AssertionError("SentenceTransformer constructed at import time (#104)")
+)
+sys.modules["sentence_transformers"] = fake_st_module
+
+import autoria_ai.embedder as embedder
+
+assert embedder._MODEL is None, "embedder._MODEL must be None until first use"
+print("OK")
+"""
+
+
+def test_module_import_does_not_construct_the_model() -> None:
+    """Regression guard for #104.
+
+    ``autoria_ai.db`` and ``autoria_ai.extractor.style_profile`` both import
+    this module at their own top level just for ``EMBEDDING_DIM`` /
+    ``embed_chunks``, and may never actually call either. Before the fix,
+    merely importing ``autoria_ai.embedder`` — directly or transitively —
+    unconditionally constructed (and for a cold process, downloaded) the
+    ~418 MB SentenceTransformer. A subprocess with sentence_transformers
+    stubbed out makes the assertion fail loudly (ImportError from the
+    stubbed constructor) instead of silently passing because a previous
+    test already warmed the real model in this process.
+    """
+    ai_pipeline_root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-c", _LAZY_IMPORT_CHECK_SCRIPT],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        cwd=ai_pipeline_root,
+        env={**os.environ, "PYTHONPATH": str(ai_pipeline_root)},
+    )
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "OK" in result.stdout
 
 
 # ---------------------------------------------------------------------------

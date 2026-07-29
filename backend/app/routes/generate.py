@@ -25,7 +25,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from app.config import settings
-from app.db import get_client
+from app.db import get_client, get_current_style_profile
 from app.schemas import GenerateRequest, GenerateResponse
 
 logger = logging.getLogger(__name__)
@@ -122,17 +122,12 @@ async def generate_text(body: GenerateRequest) -> GenerateResponse:
     author_uuid: str = author_result.data["id"]
 
     # ------------------------------------------------------------------
-    # 2. Fetch latest StyleProfile  (same ORDER+LIMIT pattern as authors.py)
+    # 2. Fetch the current StyleProfile (shared helper — see app.db for why
+    #    "current" must mean latest computed_at, not an unordered/unlimited
+    #    select; #108).
     # ------------------------------------------------------------------
-    profile_result = (
-        sb.table("style_profiles")
-        .select("json_data")
-        .eq("author_id", author_uuid)
-        .order("computed_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-    if not profile_result.data:
+    style_profile = get_current_style_profile(sb, author_uuid)
+    if style_profile is None:
         raise HTTPException(
             status_code=404,
             detail={
@@ -140,8 +135,6 @@ async def generate_text(body: GenerateRequest) -> GenerateResponse:
                 "message": f"StyleProfile not yet computed for '{body.author_id}'",
             },
         )
-
-    style_profile: dict[str, Any] = profile_result.data[0]["json_data"]
 
     # ------------------------------------------------------------------
     # 3. Delegate to the orchestrator

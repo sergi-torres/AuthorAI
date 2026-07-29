@@ -124,3 +124,12 @@ cp .env.example .env   # fill in real values
 cd backend && uvicorn app.main:app --reload --port 8000
 curl http://localhost:8000/internal/env-check
 ```
+
+This runs the same code against the same Supabase project as Railway would,
+which is enough to test application logic. It is **not** running inside the
+Railway image itself — dependency resolution, image size, and OS differ
+between a dev machine and Railway's Linux container. Those divergences (and
+the reproducible way to set up `ai_pipeline` + `backend` locally in the first
+place) are documented separately in **[docs/LOCAL_DEV.md](LOCAL_DEV.md)**
+(#101), which is explicitly out of scope for this file: this file is about
+Vercel/Railway/Supabase, `LOCAL_DEV.md` is about the dev machine.

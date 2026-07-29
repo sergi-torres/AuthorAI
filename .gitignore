@@ -105,3 +105,4 @@ logs/
 # ─── Misc ───
 .streamlit/secrets.toml
 tempCodeRunnerFile.py
+.linvenv/
