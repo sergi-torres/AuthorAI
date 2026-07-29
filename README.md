@@ -170,8 +170,12 @@ make keys
 # 5. Start local Postgres + pgvector
 make db-up
 
-# 6. Seed the database with the 3 preloaded authors
-make seed
+# 6. Seed the database: raw text + embeddings + style profiles
+make seed-full
+# ⚠️  This step is slow on first run. It downloads two large ML models:
+#     • all-mpnet-base-v2  (~420 MB, sentence-transformers)
+#     • en_core_web_lg     (~560 MB, spaCy)
+# If you only need raw text without profiles/embeddings, use `make seed` instead.
 
 # 7. Start backend + frontend (parallel)
 make dev

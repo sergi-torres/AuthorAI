@@ -9,7 +9,7 @@
 # Usage: `make help` to list targets.
 
 .DEFAULT_GOAL := help
-.PHONY: help install install-py install-front keys db-up db-down seed seed-dry demo \
+.PHONY: help install install-py install-front keys db-up db-down seed seed-full seed-dry demo \
         dev back front lint format test clean
 
 # ---- Meta -------------------------------------------------------------------
@@ -58,9 +58,13 @@ db-down: ## Stop the local database
 	$(call need_file,docker-compose.yml,Sprint 1)
 	docker compose down
 
-seed: ## Seed the DB with the 3 preloaded authors (Austen, Dickens, Poe)
+seed: ## Seed the DB with raw text only — fast, no ML models required
 	$(call need_file,scripts/seed_corpus.py,Sprint 2)
 	python scripts/seed_corpus.py
+
+seed-full: ## Seed the DB + compute embeddings and style profiles (downloads ~980 MB of ML models on first run)
+	$(call need_file,scripts/seed_corpus.py,Sprint 2)
+	python scripts/seed_corpus.py --with-embeddings --with-profiles
 
 seed-dry: ## Validate corpus files and print manifest without touching the DB
 	$(call need_file,scripts/seed_corpus.py,Sprint 2)
