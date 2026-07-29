@@ -70,22 +70,6 @@ UMAP_N_COMPONENTS: int = 2
 #: Source table for embeddings.  Override with env var CHUNK_TABLE.
 DEFAULT_CHUNK_TABLE: str = "public.chunks"
 
-#: DDL for the output table.
-_CREATE_UMAP_COORDS_DDL = """
-CREATE TABLE IF NOT EXISTS public.umap_coords (
-    id        SERIAL      PRIMARY KEY,
-    author_id UUID        NOT NULL,
-    x         DOUBLE PRECISION NOT NULL,
-    y         DOUBLE PRECISION NOT NULL
-);
-"""
-
-#: Index for fast lookups by author — created alongside the table.
-_CREATE_UMAP_COORDS_IDX = """
-CREATE INDEX IF NOT EXISTS umap_coords_author_id_idx
-    ON public.umap_coords (author_id);
-"""
-
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -253,15 +237,6 @@ def reduce_to_2d(embeddings: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def ensure_umap_coords_table(conn: psycopg2.extensions.connection) -> None:
-    """Create ``public.umap_coords`` and its index if they do not exist."""
-    with conn.cursor() as cur:
-        cur.execute(_CREATE_UMAP_COORDS_DDL)
-        cur.execute(_CREATE_UMAP_COORDS_IDX)
-    conn.commit()
-    log.info("Table public.umap_coords is ready.")
-
-
 def save_coords(
     conn: psycopg2.extensions.connection,
     author_ids: list[str],
@@ -402,7 +377,6 @@ def run(
             sys.exit(1)
 
         coords = reduce_to_2d(embeddings)
-        ensure_umap_coords_table(conn)
         save_coords(conn, author_ids, coords)
         update_style_profiles(conn, author_ids, coords)
     finally:
