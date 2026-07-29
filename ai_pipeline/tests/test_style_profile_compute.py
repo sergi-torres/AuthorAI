@@ -7,7 +7,7 @@ Skipped when spaCy / numpy are not installed in the active environment
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -167,7 +167,7 @@ _AUTHOR_A = "aaaaaaaa-0000-0000-0000-000000000001"
 _AUTHOR_B = "bbbbbbbb-0000-0000-0000-000000000002"
 
 
-def _make_coords() -> "np.ndarray":
+def _make_coords() -> np.ndarray:
     """Synthetic 2-D coords: 4 points for author A, 3 for author B."""
     return np.array(
         [
@@ -185,15 +185,15 @@ def _make_coords() -> "np.ndarray":
     )
 
 
-def _make_author_ids() -> "list[str]":
+def _make_author_ids() -> list[str]:
     return [_AUTHOR_A] * 4 + [_AUTHOR_B] * 3
 
 
 def test_update_style_profiles_sql_payload() -> None:
     """update_style_profiles writes correct centroid/spread JSON via UPDATE."""
     # Import lazily: the script lives outside the package; add scripts/ to sys.path
-    import sys
     import os
+    import sys
 
     scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
     scripts_dir = os.path.normpath(scripts_dir)
@@ -201,7 +201,7 @@ def test_update_style_profiles_sql_payload() -> None:
         sys.path.insert(0, scripts_dir)
 
     # psycopg2 may not be installed in every CI image — skip gracefully.
-    psycopg2 = pytest.importorskip("psycopg2")
+    pytest.importorskip("psycopg2")
 
     # Patch psycopg2.connect so the script never touches a real DB.
     mock_conn = MagicMock()
@@ -210,7 +210,7 @@ def test_update_style_profiles_sql_payload() -> None:
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
     # Import after sys.path is set up.
-    import precompute_umap  # noqa: PLC0415
+    import precompute_umap
 
     author_ids = _make_author_ids()
     coords = _make_coords()
@@ -219,7 +219,7 @@ def test_update_style_profiles_sql_payload() -> None:
 
     # One UPDATE call per author, then one commit.
     assert mock_conn.commit.called
-    update_calls = [c for c in mock_cur.execute.call_args_list]
+    update_calls = list(mock_cur.execute.call_args_list)
     assert len(update_calls) == 2, f"Expected 2 UPDATE calls, got {len(update_calls)}"
 
     # Collect (payload_dict, author_id) from the two calls.
@@ -247,8 +247,8 @@ def test_update_style_profiles_sql_payload() -> None:
 
 def test_update_style_profiles_spread_formula() -> None:
     """spread = mean Euclidean distance of each chunk from its author centroid."""
-    import sys
     import os
+    import sys
 
     scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
     scripts_dir = os.path.normpath(scripts_dir)
@@ -262,7 +262,7 @@ def test_update_style_profiles_spread_formula() -> None:
     mock_conn.cursor.return_value.__enter__ = lambda s: mock_cur
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
-    import precompute_umap  # noqa: PLC0415
+    import precompute_umap
 
     # Four points equidistant from centroid (0,0) at radius=1.
     coords = np.array([[1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0]], dtype=np.float64)
