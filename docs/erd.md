@@ -140,6 +140,17 @@ The versioned "stylistic DNA" (StyleProfile JSON v1.0 — see MVP §4.2). Stored
 `jsonb` so the whole profile is queryable. Recomputes **append** a new row; the
 *current* profile for an author is the one with the latest `computed_at`.
 
+This is a deliberate choice, not an oversight (see #108, resolved
+2026-07-29 in `docs/decision_log.md`): history is kept on purpose, so any
+query for "the" StyleProfile of an author **must** order by `computed_at
+desc` and limit to 1, or it returns an arbitrary row once an author has more
+than one — which happens on every re-seed or recompute. `backend/app/db.py`
+exposes `get_current_style_profile(sb, author_uuid)` for exactly this; use
+it instead of querying `style_profiles` directly. A verification step that
+wants to assert "the corpus is seeded" should check
+`count(distinct author_id)` (or "every author has a current profile"), not
+a raw `count(*)` — a second seed run is expected to add rows.
+
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` PK | |

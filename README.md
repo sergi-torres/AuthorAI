@@ -185,6 +185,13 @@ To run the AI pipeline end-to-end on the seeded corpus without the web stack:
 make demo
 ```
 
+> The dev `.venv` above is what we use day-to-day; it is **not** a
+> container-parity copy of the Railway deploy image, and a few of the ways
+> those two diverge are easy to trip over (e.g. a local dependency check that
+> looks clean can still be 2+ GB heavier on Railway's Linux target). See
+> **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** before trusting a local
+> measurement as a stand-in for a deploy one.
+
 ---
 
 ## 🗂️ Repository Structure
