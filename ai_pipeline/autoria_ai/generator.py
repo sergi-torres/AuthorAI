@@ -87,10 +87,11 @@ def _ensure_models() -> tuple[Any, Any]:
         _nlp = spacy.load("en_core_web_lg")
         logger.info("spaCy en_core_web_lg ready.")
     if _embedding_model is None:
-        # Reuse embedder singleton (loads all-mpnet-base-v2 once).
-        from autoria_ai.embedder import _MODEL as emb
+        # Reuse embedder singleton, loading all-mpnet-base-v2 on this first
+        # call rather than at import time (#104).
+        from autoria_ai.embedder import ensure_model_loaded
 
-        _embedding_model = emb
+        _embedding_model = ensure_model_loaded()
         logger.info("sentence-transformers embedding model ready.")
     if _tok_enc is None:
         _tok_enc = tiktoken.get_encoding("cl100k_base")

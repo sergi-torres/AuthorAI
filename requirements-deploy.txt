@@ -72,10 +72,10 @@ spacy>=3.7
 sentence-transformers>=2.7
 scikit-learn>=1.4
 numpy>=1.26
-# scipy is a *direct* import in ai_pipeline/autoria_ai/fit_scorer.py:22 but is
-# missing from ai_pipeline/pyproject.toml (it only arrives transitively via
-# scikit-learn). Pinned explicitly here so the deploy image does not depend on
-# a transitive edge. Declaring it upstream is out of scope for WO-02.
+# Direct import in ai_pipeline/autoria_ai/fit_scorer.py:22, now declared
+# upstream in ai_pipeline/pyproject.toml (#105). Kept listed here too, like
+# every other ai_pipeline dependency in this file, since this file mirrors
+# ai_pipeline/pyproject.toml's runtime-reachable subset, not just backend's.
 scipy>=1.11
 
 # DB / vector store — SQLAlchemy 2.0 async + pgvector (asyncpg is the driver
@@ -97,11 +97,14 @@ pgvector>=0.3
 # on the hobby plan), offline-only tooling stays out of the runtime image. Run
 # those scripts from a dev machine with `pip install -e "ai_pipeline[dev]"`.
 #
-# COLD-START NOTE — `autoria_ai/embedder.py:23` builds SentenceTransformer(
-# "all-mpnet-base-v2") at MODULE level, so importing autoria_ai.db downloads
-# ~418 MB from HuggingFace at RUNTIME (first boot), not at build time. That runs
-# inside the FastAPI lifespan, before the first /health is served, which is why
-# `railway.toml` sets healthcheckTimeout = 300.
+# COLD-START NOTE — `autoria_ai/embedder.py` loads SentenceTransformer(
+# "all-mpnet-base-v2") lazily, on first use rather than at import (#104), but
+# the FastAPI lifespan still calls autoria_ai.generator.warmup_models() at
+# startup so the first real request isn't the one paying for it. `railway.toml`'s
+# buildCommand now pre-fetches this model into the image at BUILD time (same
+# technique as the en_core_web_lg line below), so that startup load reads from
+# local disk instead of downloading ~418 MB from HuggingFace at RUNTIME. 300s
+# healthcheckTimeout is kept as a safety margin for a cold cache.
 #
 # NOT A PIP DEPENDENCY — the spaCy model `en_core_web_lg` (~560 MB) cannot be
 # listed here: it is not published to PyPI (`pip install en_core_web_lg` 404s).

@@ -13,6 +13,9 @@ dependencies = [
     "umap-learn>=0.5",
     "tiktoken>=0.7",
     "numpy>=1.26",
+    # Direct import in autoria_ai/fit_scorer.py:22. Previously undeclared and
+    # only present transitively via scikit-learn (see #105).
+    "scipy>=1.11",
     "pydantic>=2.7",
     "python-jose[cryptography]>=3.3",
     "jsonschema[format]>=4.18",
