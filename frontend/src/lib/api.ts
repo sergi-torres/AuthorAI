@@ -119,6 +119,23 @@ export async function listAuthors(): Promise<AuthorSummary[]> {
 }
 
 /**
+ * DELETE /api/authors/{author_id} — remove a live-added author (204).
+ * Preloaded voices (austen/dickens/poe) return 403; callers should hide the
+ * control via `isDeletableAuthor` rather than relying on the error.
+ */
+export async function deleteAuthor(authorId: string): Promise<void> {
+  const label = `DELETE /api/authors/${authorId}`;
+  const res = await fetchOrThrow(
+    `${API_BASE}/api/authors/${encodeURIComponent(authorId)}`,
+    { method: "DELETE" },
+    label,
+  );
+  if (res.status === 204) return;
+  if (res.status >= 500) throw new ServerError(label, res.status);
+  throw new Error(`${label} failed with status ${res.status}`);
+}
+
+/**
  * POST /api/authors/{author_id}/documents — multipart .txt/.md upload (202 async).
  *
  * CONTRACT GAP: the API has no create-author endpoint, yet listAuthors is

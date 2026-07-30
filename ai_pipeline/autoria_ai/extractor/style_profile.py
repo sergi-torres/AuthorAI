@@ -6,7 +6,7 @@ compute_style_profile(author_slug, documents, nlp, ...) -> dict
     Runs lexical / syntactic / stylistic extractors, distinctive vocab,
     and semantic centroid.  ``embedding_umap_2d`` is a placeholder
     (``{centroid:[0,0], spread:0}``) — real UMAP lives in
-    ``scripts/precompute_umap.py``.
+    ``autoria_ai.umap_projector`` / ``scripts/precompute_umap.py``.
 lemmatize_corpus(documents, nlp, ...) -> str
     One author's corpus as a single lemmatized string, ready to be used as
     another author's ``comparison_lemmas`` entry (docs/style_features.md §4.1).
@@ -303,7 +303,7 @@ def compute_style_profile(
         "stylistic": stylistic,
         "distinctive_vocab": distinctive,
         "semantic_centroid": centroid,
-        # Pre-projection placeholder — scripts/precompute_umap.py reads the
+        # Pre-projection placeholder — umap_projector / precompute_umap.py reads the
         # umap_coords table (created by 0004_umap_coords.sql) and overwrites
         # this field with real 2-D centroid + spread after UMAP fitting.
         "embedding_umap_2d": {"centroid": [0.0, 0.0], "spread": 0.0},

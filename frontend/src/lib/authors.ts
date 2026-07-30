@@ -46,6 +46,15 @@ export const AUTHORS: AuthorCardData[] = [
 export const AUTHORS_BY_ID: Readonly<Record<string, AuthorCardData>> =
   Object.fromEntries(AUTHORS.map((a) => [a.id, a]));
 
+/** Demo-seeded voices — never shown with a delete control; API also 403s. */
+export const PROTECTED_AUTHOR_IDS: ReadonlySet<string> = new Set(
+  AUTHORS.map((a) => a.id),
+);
+
+export function isDeletableAuthor(authorId: string): boolean {
+  return !PROTECTED_AUTHOR_IDS.has(authorId);
+}
+
 /**
  * Live author list: GET /api/authors merged with seed bios, falling back to
  * the seed constant when the API is unreachable (demo-safe — the selector

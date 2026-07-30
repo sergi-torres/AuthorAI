@@ -26,9 +26,13 @@ client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
-def _skip_embedding_backfill():
-    """Upload background task must not load sentence-transformers in unit tests."""
-    with patch("app.routes.authors._embed_document_chunks"):
+def _skip_heavy_background_work():
+    """Upload background task must not load ML / hit a real DB in unit tests."""
+    with (
+        patch("app.routes.authors._embed_document_chunks"),
+        patch("app.routes.authors._recompute_umap_safe"),
+        patch("app.routes.authors._build_style_profile", return_value={"author_id": "x"}),
+    ):
         yield
 
 
