@@ -201,6 +201,29 @@ def test_high_subordination_ratio_produces_heavy_rule() -> None:
     }
     result = build_system_prompt(profile, [])
     assert "heavy use of subordinate clauses" in result
+    assert "MUST use periods" in result
+
+
+def test_sentence_length_rule_forbids_significantly_longer_sentences() -> None:
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, ["A short passage."])
+    assert "Do not write sentences that are significantly longer than this average." in result
+
+
+def test_dialogue_rule_reads_ratio_from_stylistic_not_syntactic() -> None:
+    """dialogue_ratio is a stylistic feature; reading it from syntactic always yields 0."""
+    profile = {
+        "author_id": "dickens",
+        "syntactic": {
+            "avg_sentence_length_tokens": 28.0,
+            "subordination_ratio": 0.2,
+            # Intentionally wrong place — must be ignored:
+            "dialogue_ratio": 0.0,
+        },
+        "stylistic": {"dialogue_ratio": 0.24},
+        "distinctive_vocab": [],
+    }
+    result = build_system_prompt(profile, [])
+    assert "Integrate conversational dialogue frequently" in result
 
 
 def test_medium_subordination_ratio_produces_moderate_rule() -> None:
