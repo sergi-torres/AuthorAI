@@ -77,7 +77,7 @@ export interface StyleProfile {
   syntactic: SyntacticFeatures;
   /** Stylistic / rhetorical features. */
   stylistic: StylisticFeatures;
-  /** Top distinctive vocabulary items (TF-IDF ranked). Rendered as a top-10 table in the Style DNA panel. */
+  /** Top distinctive vocabulary items (log-odds-ratio ranked). Rendered as a top-10 table in the Style DNA panel. */
   distinctive_vocab: DistinctiveTerm[];
   /**
    * 768-dimensional mean embedding vector.
@@ -122,7 +122,7 @@ export interface GenerationOutput {
 /** Mirrors DistinctiveTerm in api_contract.yaml (StyleProfile.distinctive_vocab items). */
 export interface DistinctiveTerm {
   term: string;
-  /** TF-IDF score vs reference corpus. */
+  /** Log-odds-ratio vs the other authors (Jeffreys prior), normalized to [0, 1]. */
   score: number;
 }
 

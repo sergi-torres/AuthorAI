@@ -34,8 +34,8 @@ Pipeline (5 stages, run in order)
                 ``en_core_web_lg`` spaCy model (``make install-py``).
                 Before the first profile, every author's corpus is
                 lemmatized once (``build_comparison_lemmas``) so
-                ``distinctive_vocab`` is a real three-document TF-IDF —
-                docs/style_features.md 4.1. This holds even with
+                ``distinctive_vocab`` is a real three-author weighted
+                log-odds-ratio — docs/style_features.md 4.1. This holds even with
                 ``--author``: the other two authors are still lemmatized,
                 because they are the comparison documents.
 
@@ -608,17 +608,20 @@ def run_embedding_backfill(database_url: str) -> int:
 
 
 def build_comparison_lemmas(nlp: Any, authors: list[str] | None = None) -> dict[str, str]:
-    """Lemmatize every author's corpus once, for the cross-author TF-IDF.
+    """Lemmatize every author's corpus once, for the cross-author log-odds-ratio.
 
-    ``docs/style_features.md`` §4.1 defines ``distinctive_vocab`` as TF-IDF
-    where *each author's full corpus is one "document" and the collection is
-    all three authors combined*. A single-document collection makes the IDF
-    term constant, which collapses the ranking to raw frequency — that is why
-    this mapping has to be built before any profile is computed.
+    ``docs/style_features.md`` §4.1 defines ``distinctive_vocab`` as a
+    weighted log-odds-ratio (with an informative Dirichlet prior) where
+    *each author's full corpus is one "bag" and the background is the pooled
+    lemmas of the other authors*. This replaced an earlier TF-IDF approach,
+    which degenerates with only three "documents" — see the ratified entry
+    in ``docs/decision_log.md``. Comparison lemmas still need to be built
+    before any profile is computed, since each author's z-scores depend on
+    the other two authors' pooled word counts.
 
     *authors* defaults to **every** slug in AUTHOR_MANIFEST, deliberately
     ignoring ``--author``: seeding one author still needs the other two as
-    comparison documents, otherwise the TF-IDF degenerates again.
+    the background corpus, otherwise there is nothing to compare against.
 
     Cost: one extra spaCy pass per author, each capped at
     ``style_profile._MAX_LEMMA_CHARS`` (800k chars). The pass streams
@@ -638,9 +641,13 @@ def build_comparison_lemmas(nlp: Any, authors: list[str] | None = None) -> dict[
         docs = load_documents(slug)
         texts = [d.cleaned_text for d in docs if d.cleaned_text.strip()]
         if not texts:
-            log.warning("Stage 5/5 profiles: no corpus text for %s -- excluded from TF-IDF", slug)
+            log.warning(
+                "Stage 5/5 profiles: no corpus text for %s -- excluded from log-odds-ratio", slug
+            )
             continue
-        log.info("Stage 5/5 profiles: lemmatizing %s corpus for cross-author TF-IDF...", slug)
+        log.info(
+            "Stage 5/5 profiles: lemmatizing %s corpus for cross-author log-odds-ratio...", slug
+        )
         lemmas[slug] = lemmatize_corpus(documents=texts, nlp=nlp)
     log.info(
         "Stage 5/5 profiles: comparison corpora ready for %d author(s): %s",
@@ -668,8 +675,8 @@ def seed_style_profile(
     the (slow) model load happens exactly once.
 
     ``comparison_lemmas`` is the ``{slug: lemmatized_corpus}`` mapping from
-    ``build_comparison_lemmas`` — every author's corpus, so TF-IDF sees the
-    three-document collection that docs/style_features.md §4.1 specifies.
+    ``build_comparison_lemmas`` — every author's corpus, so the log-odds-ratio
+    sees the three-author background that docs/style_features.md §4.1 specifies.
     ``compute_style_profile`` overwrites this author's own entry with the
     lemmas from its own pass (same rules, same ``_MAX_LEMMA_CHARS`` cap), so
     passing the whole mapping — self included — is intentional and harmless.
@@ -761,8 +768,8 @@ def run(
         report.authors_upserted = len(author_ids)
 
         # Built once for the whole run, after the first DB write has proven the
-        # connection: every author's lemmas are needed as comparison documents
-        # for every other author's TF-IDF (see build_comparison_lemmas /
+        # connection: every author's lemmas are needed as background counts
+        # for every other author's log-odds-ratio (see build_comparison_lemmas /
         # docs/style_features.md 4.1).
         comparison_lemmas = build_comparison_lemmas(nlp) if with_profiles else None
 

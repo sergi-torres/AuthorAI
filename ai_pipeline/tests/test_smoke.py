@@ -69,6 +69,48 @@ def test_clean_text_collapses_multiple_blank_lines() -> None:
     assert "Line two." in result
 
 
+def test_clean_text_strips_bare_illustration_marker() -> None:
+    result = clean_text("Before.\n\n[Illustration]\n\nAfter.")
+    assert "Illustration" not in result
+    assert "Before." in result
+    assert "After." in result
+
+
+def test_clean_text_strips_illustration_with_single_line_caption() -> None:
+    result = clean_text(
+        'Before.\n\n[Illustration: "I cannot imagine how they will spend it."]\n\nAfter.'
+    )
+    assert "Illustration" not in result
+    assert "imagine" not in result
+    assert "Before." in result
+    assert "After." in result
+
+
+def test_clean_text_strips_illustration_with_nested_copyright_bracket() -> None:
+    # Real shape from Pride and Prejudice: a multi-line caption followed by a
+    # Gutenberg credit line nested in its own brackets inside the outer one.
+    sample = (
+        "This was invitation enough.\n\n"
+        "[Illustration:\n\n"
+        '"He came down to see the place"\n\n'
+        "[_Copyright 1894 by George Allen._]]\n\n"
+        "This was invitation enough for real."
+    )
+    result = clean_text(sample)
+    assert "Illustration" not in result
+    assert "Copyright" not in result
+    assert "came down to see the place" not in result
+    assert "This was invitation enough for real." in result
+
+
+def test_clean_text_illustration_marker_does_not_eat_following_prose() -> None:
+    # Regression guard: an over-greedy pattern could swallow everything up to
+    # the LAST "]" in the document instead of stopping at this block's own.
+    sample = "[Illustration]\n\nThe next paragraph [in brackets] must survive."
+    result = clean_text(sample)
+    assert "The next paragraph [in brackets] must survive." in result
+
+
 # ── chunker ──────────────────────────────────────────────────────────────────
 #
 # Test corpus: "The quick brown fox " repeated N times.

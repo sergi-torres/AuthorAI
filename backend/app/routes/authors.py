@@ -73,13 +73,22 @@ def _ensure_ai_pipeline_on_path() -> None:
 def _build_style_profile(author_slug: str, documents: list[str], sb: Client) -> dict[str, Any]:
     """Load spaCy + compute StyleProfile for *author_slug* from document texts.
 
-    Fetches other authors' texts for TF-IDF comparison when available.
+    Fetches other authors' texts for log-odds comparison when available.
     Separated so tests can patch this without loading ML models.
+
+    NOTE: comparison corpora MUST be built with lemmatize_corpus() — the same
+    spaCy-based pipeline used for this author's own lemmas (NOUN/ADJ/ADV,
+    alpha-only, len>=3, lowercased lemmas). Using raw .lower() text collapses
+    discrimination and produces near-identical distinctive_vocab across authors.
     """
     _ensure_ai_pipeline_on_path()
     import spacy  # type: ignore[import-untyped]
 
-    from autoria_ai.extractor.style_profile import compute_style_profile
+    from autoria_ai.extractor.style_profile import compute_style_profile, lemmatize_corpus
+
+    # Load the model once — reused for both comparison lemmatization below
+    # and for compute_style_profile's own spaCy pass.
+    nlp = spacy.load("en_core_web_lg")
 
     comparison: dict[str, str] = {}
     try:
@@ -88,12 +97,12 @@ def _build_style_profile(author_slug: str, documents: list[str], sb: Client) -> 
             docs = sb.table("documents").select("raw_text").eq("author_id", row["id"]).execute()
             texts = [d["raw_text"] for d in (docs.data or []) if d.get("raw_text")]
             if texts:
-                # Cheap lemma proxy for comparison corpora (whitespace tokens).
-                comparison[row["slug"]] = " ".join(texts)[:800_000].lower()
+                # lemmatize_corpus applies the same rules as the author's own
+                # log-odds bag: spaCy lemmas, NOUN/ADJ/ADV, alpha-only, len>=3.
+                comparison[row["slug"]] = lemmatize_corpus(documents=texts, nlp=nlp)
     except Exception:
-        logger.exception("comparison corpora fetch failed; continuing with single-author TF-IDF")
+        logger.exception("comparison corpora fetch failed; continuing with single-author log-odds")
 
-    nlp = spacy.load("en_core_web_lg")
     return compute_style_profile(
         author_slug=author_slug,
         documents=documents,
@@ -138,7 +147,9 @@ def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> 
         logger.exception("recompute failed for author %s (%s)", author_slug, author_uuid)
 
 
-def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
+def _chunk_and_insert(
+    document_id: str, author_uuid: str, author_id: str, raw_text: str, sb: Client
+) -> None:
     """Chunk raw_text with tiktoken cl100k_base and insert into chunks table.
 
     Window: size=500 tokens, overlap=50 tokens.
@@ -181,6 +192,10 @@ def _chunk_and_insert(document_id: str, raw_text: str, sb: Client) -> None:
         return
 
     _embed_document_chunks(document_id, sb)
+
+    # After embedding, automatically trigger the style profile computation
+    # so the frontend polling loop eventually detects the author as ready!
+    _recompute_style_profile(author_uuid, author_id, sb)
 
 
 def _embed_document_chunks(document_id: str, sb: Client) -> None:
@@ -304,13 +319,15 @@ async def upload_author_document(
     sb = get_client()
 
     author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
-    if author_result.data is None:
-        raise HTTPException(
-            status_code=404,
-            detail={"error": "not_found", "message": f"Author '{author_id}' not found"},
-        )
 
-    author_uuid: str = author_result.data["id"]
+    if author_result is None or getattr(author_result, "data", None) is None:
+        # Auto-create the author since they don't exist yet!
+        insert_res = (
+            sb.table("authors").insert({"name": title or author_id, "slug": author_id}).execute()
+        )
+        author_uuid = insert_res.data[0]["id"]
+    else:
+        author_uuid = author_result.data["id"]
 
     filename: str = file.filename or ""
     ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -361,7 +378,7 @@ async def upload_author_document(
     )
     document_id: str = insert_result.data[0]["id"]
 
-    background_tasks.add_task(_chunk_and_insert, document_id, raw_text, sb)
+    background_tasks.add_task(_chunk_and_insert, document_id, author_uuid, author_id, raw_text, sb)
 
     return JSONResponse(
         status_code=202,

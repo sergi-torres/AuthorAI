@@ -100,7 +100,7 @@ You upload your corpus (3+ long texts). AutorIA extracts your "stylistic DNA":
 - Lexical metrics (Type-Token Ratio, word length, hapax…)
 - Syntactic metrics (sentence length, subordination, dependency tree depth…)
 - Stylistic metrics (punctuation distribution, POS, discourse markers…)
-- Distinctive vocabulary (TF-IDF vs reference corpus)
+- Distinctive vocabulary (log-odds-ratio vs the other authors)
 - Author's mean semantic embedding
 → Output: a versioned, visualizable `StyleProfile v1.0` JSON.
 
@@ -361,7 +361,7 @@ Deploy: Railway (~$5/mo)
 spaCy 3.7 + en_core_web_lg
 sentence-transformers + all-mpnet-base-v2 (768-dim, English)
 umap-learn (server-side 2D precompute)
-scikit-learn (TF-IDF)
+scikit-learn (log-odds-ratio word counts)
 tiktoken (approx chunking)
 ```
 

@@ -138,7 +138,7 @@ export const DISTINCTIVE_HIGHLIGHT_LIMIT = 10;
  * Picks the terms to highlight in the AutorIA column from a StyleProfile's
  * `distinctive_vocab` (contract shape `{term, score}`).
  *
- * Ranks by TF-IDF score descending, drops blank terms, and de-duplicates
+ * Ranks by score descending (Jeffreys log-odds-ratio, [0, 1]), drops blank terms, and de-duplicates
  * case-insensitively (the highlight matcher is case-insensitive, so two casings
  * of one word would build a redundant alternation branch). Ties keep the
  * incoming order, which is already the API's ranking.

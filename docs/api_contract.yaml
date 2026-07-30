@@ -634,7 +634,12 @@ components:
           type: string
         score:
           type: number
-          description: TF-IDF score vs reference corpus
+          minimum: 0
+          maximum: 1
+          description: >-
+            Log-odds-ratio vs the pooled other authors (Jeffreys prior α=0.5),
+            normalized to [0, 1] within each author's run. Not a TF-IDF value.
+            See docs/style_features.md §4.1.
 
     EmbeddingUmap2d:
       type: object

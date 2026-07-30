@@ -14,6 +14,23 @@ _PG_END = re.compile(
     re.IGNORECASE,
 )
 
+# Illustrated Gutenberg editions (e.g. Pride and Prejudice, Sense and
+# Sensibility, Great Expectations in this corpus) embed bracketed image
+# placeholders — bare "[Illustration]" or "[Illustration: caption text]" —
+# inline wherever a plate appeared in the printed book. These are page-layout
+# artifacts, not prose, but were surviving into the lemmatized corpus used for
+# distinctive_vocab: 193 occurrences of the word "illustration" put it in
+# Austen's TF-IDF/log-odds top terms, which is not a style signal by any
+# definition (docs/decision_log.md, 2026-07-30 distinctive_vocab entries).
+# The caption can itself contain one bracketed sub-run (Gutenberg's own
+# "[_Copyright 1894 by George Allen._]" credit line nested inside the
+# illustration block), so the pattern allows exactly one level of nested
+# brackets rather than stopping at the first "]" it finds.
+_PG_ILLUSTRATION = re.compile(
+    r"\[Illustration(?:[^\[\]]|\[[^\[\]]*\])*\]",
+    re.IGNORECASE,
+)
+
 # Two or more consecutive blank lines (any mix of spaces/tabs between newlines).
 _MULTI_BLANK = re.compile(r"\n{3,}")
 
@@ -43,7 +60,10 @@ def clean_text(text: str) -> str:
     # the punct_distribution em-dash bucket (§3.1) captures them.
     text = text.replace("--", "\u2014")  # — (U+2014 EM DASH)
 
-    # ── 5. Collapse multiple consecutive blank lines → single blank line ──────
+    # ── 5. Strip "[Illustration]" / "[Illustration: caption]" blocks ─────────
+    text = _PG_ILLUSTRATION.sub("", text)
+
+    # ── 6. Collapse multiple consecutive blank lines → single blank line ──────
     text = _MULTI_BLANK.sub("\n\n", text)
 
     return text.strip()

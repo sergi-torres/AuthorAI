@@ -201,7 +201,7 @@
 
     "distinctive_vocab": {
       "type": "array",
-      "description": "Top-30 terms most characteristic of this author vs the other two, ranked by TF-IDF score. See docs/style_features.md §4.",
+      "description": "Top-30 terms most characteristic of this author vs the other two, ranked by Jeffreys log-odds-ratio (α=0.5), scores normalized to [0, 1]. See docs/style_features.md §4.1.",
       "minItems": 1,
       "maxItems": 30,
       "items": {
@@ -211,12 +211,13 @@
         "properties": {
           "term": {
             "type": "string",
-            "description": "Lemmatized term (alpha only, min 3 chars)."
+            "description": "Lemmatized term (NOUN/ADJ/ADV, alpha only, min 3 chars)."
           },
           "score": {
             "type": "number",
             "minimum": 0.0,
-            "description": "TF-IDF score relative to the 3-author base corpus. Higher = more distinctive."
+            "maximum": 1.0,
+            "description": "Log-odds-ratio vs the pooled other authors (Jeffreys prior α=0.5), normalized to [0, 1] by dividing by the max raw score in this run. Higher = more distinctive."
           }
         }
       }

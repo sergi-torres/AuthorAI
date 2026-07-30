@@ -201,6 +201,29 @@ def test_high_subordination_ratio_produces_heavy_rule() -> None:
     }
     result = build_system_prompt(profile, [])
     assert "heavy use of subordinate clauses" in result
+    assert "MUST use periods" in result
+
+
+def test_sentence_length_rule_forbids_significantly_longer_sentences() -> None:
+    result = build_system_prompt(_MOCK_STYLE_PROFILE, ["A short passage."])
+    assert "Do not write sentences that are significantly longer than this average." in result
+
+
+def test_dialogue_rule_reads_ratio_from_stylistic_not_syntactic() -> None:
+    """dialogue_ratio is a stylistic feature; reading it from syntactic always yields 0."""
+    profile = {
+        "author_id": "dickens",
+        "syntactic": {
+            "avg_sentence_length_tokens": 28.0,
+            "subordination_ratio": 0.2,
+            # Intentionally wrong place — must be ignored:
+            "dialogue_ratio": 0.0,
+        },
+        "stylistic": {"dialogue_ratio": 0.24},
+        "distinctive_vocab": [],
+    }
+    result = build_system_prompt(profile, [])
+    assert "Integrate conversational dialogue frequently" in result
 
 
 def test_medium_subordination_ratio_produces_moderate_rule() -> None:
@@ -267,10 +290,8 @@ def test_budget_truncation_does_not_cut_mid_word() -> None:
     # The truncated example-passages segment sits between the fixed markers;
     # whatever survives must end in the sentence terminator (a whole word),
     # not a bare word fragment.
-    passages_start = result.index("Here are example passages: ") + len(
-        "Here are example passages: "
-    )
-    passages_end = result.rindex(". Write only in that style")
+    passages_start = result.index("verbatim):\n---\n") + len("verbatim):\n---\n")
+    passages_end = result.rindex("\n---\n\nWrite ONLY the requested text")
     passages_text = result[passages_start:passages_end]
     assert passages_text  # some passage content survived
     assert passages_text[-1] in ".!?" or passages_text.endswith("dog")

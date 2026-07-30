@@ -163,9 +163,9 @@ export const en = {
 
     // Distinctive vocabulary table (#41)
     vocabSectionTitle: "Distinctive vocabulary",
-    vocabCaption: "Top terms ranked by TF-IDF against the reference corpus.",
+    vocabCaption: "Top terms ranked by log-odds-ratio against the other authors.",
     vocabTermHeader: "Term",
-    vocabScoreHeader: "TF-IDF",
+    vocabScoreHeader: "Score",
     vocabEmpty: "Distinctive vocabulary not yet computed.",
   },
 

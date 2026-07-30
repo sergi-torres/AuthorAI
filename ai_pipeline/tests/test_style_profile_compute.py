@@ -119,11 +119,12 @@ def test_lemmatize_corpus_samples_every_document() -> None:
 # --- Proper-noun filter (issue #100 / WO-18) ------------------------------
 #
 # docs/style_features.md 4.1 requires proper nouns to be dropped *inside* the
-# lemmatization pass, so character and place names never reach the TF-IDF.
-# Without the filter these names are the top-scoring terms of an author's
-# distinctive_vocab -- they identify the novel, not the author's hand.
-# This test fails if the `tok.pos_ == "PROPN"` guard in _lemmas_from_docs is
-# removed: the names below are the only PROPN tokens in the sample.
+# lemmatization pass, so character and place names never reach the log-odds
+# scorer. Without the filter these names are the top-scoring terms of an
+# author's distinctive_vocab -- they identify the novel, not the author's hand.
+# This test fails if the NOUN/ADJ/ADV allow-list in _lemmas_from_docs is
+# widened to include PROPN: the names below are the only PROPN tokens in the
+# sample.
 
 _PROPER_NOUNS = ("havisham", "wemmick", "pemberley")
 _COMMON_NOUNS = ("parlour", "candle", "housekeeper", "lantern", "garden")
@@ -136,18 +137,31 @@ _NAMED_SENTENCE = (
 
 
 def test_lemmatize_corpus_drops_proper_nouns() -> None:
-    """Character and place names must not survive into the TF-IDF input."""
+    """Character and place names must not survive into the log-odds input."""
     lemmas = set(
         lemmatize_corpus(documents=[_NAMED_SENTENCE * 200], nlp=_NLP, max_chars=60_000).split()
     )
 
     leaked = sorted(name for name in _PROPER_NOUNS if name in lemmas)
-    assert not leaked, f"proper nouns reached the TF-IDF input: {leaked}"
+    assert not leaked, f"proper nouns reached the log-odds input: {leaked}"
 
     # Guard against the test passing for the wrong reason (empty/degenerate
     # lemma string): the common nouns of the same sentences must survive.
     kept = sorted(noun for noun in _COMMON_NOUNS if noun in lemmas)
     assert kept == sorted(_COMMON_NOUNS), f"common nouns were dropped too: {kept}"
+
+
+def test_lemmatize_corpus_keeps_only_noun_adj_adv() -> None:
+    """Narrative verbs must not reach distinctive_vocab input (§4.1 POS filter)."""
+    text = (
+        "She said she knew and thought and made the elegant sensible garden "
+        "quietly while the amiable lady walked slowly toward the parlour. "
+    )
+    lemmas = set(lemmatize_corpus(documents=[text * 100], nlp=_NLP, max_chars=60_000).split())
+    verb_noise = {"say", "know", "think", "make", "walk"}
+    leaked = sorted(v for v in verb_noise if v in lemmas)
+    assert not leaked, f"verbs reached the log-odds input: {leaked}"
+    assert "garden" in lemmas or "parlour" in lemmas or "lady" in lemmas
 
 
 # ---------------------------------------------------------------------------
