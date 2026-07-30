@@ -50,8 +50,12 @@ python scripts/generate_keys.py
 # 6. Local database (Postgres + pgvector via Docker)
 docker compose up -d
 
-# 7. Seed the 3 demo authors
-python scripts/seed_corpus.py
+# 7. Seed the 3 demo authors (raw text + embeddings + style profiles)
+python scripts/seed_corpus.py --with-embeddings --with-profiles
+# ⚠️  This step is slow on first run. It downloads two large ML models:
+#     • all-mpnet-base-v2  (~420 MB, sentence-transformers)
+#     • en_core_web_lg     (~560 MB, spaCy)
+# Omit both flags for a fast seed (raw text only, no profiles/embeddings).
 ```
 
 Editor extensions (highly recommended — auto-format on save): **Ruff**, **Black Formatter**, **Prettier**, **Python**. See §8.4.

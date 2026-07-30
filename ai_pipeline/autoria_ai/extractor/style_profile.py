@@ -271,7 +271,9 @@ def compute_style_profile(
         "stylistic": stylistic,
         "distinctive_vocab": distinctive,
         "semantic_centroid": centroid,
-        # Placeholder — scripts/precompute_umap.py owns real 2-D coords.
+        # Pre-projection placeholder — scripts/precompute_umap.py reads the
+        # umap_coords table (created by 0004_umap_coords.sql) and overwrites
+        # this field with real 2-D centroid + spread after UMAP fitting.
         "embedding_umap_2d": {"centroid": [0.0, 0.0], "spread": 0.0},
     }
 

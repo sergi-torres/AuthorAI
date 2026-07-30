@@ -6,7 +6,8 @@ Skipped when spaCy / numpy are not installed in the active environment
 
 from __future__ import annotations
 
-from unittest.mock import patch
+import json
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -60,6 +61,9 @@ def test_compute_style_profile_shape(mock_embeddings) -> None:
     assert profile["corpus_stats"]["n_tokens"] > 0
     assert 0.0 < profile["lexical"]["avg_word_length"] < 20.0
     assert len(profile["semantic_centroid"]) == 768
+    # embedding_umap_2d starts as the pre-projection placeholder; the real
+    # centroid/spread is written later by scripts/precompute_umap.py once
+    # umap_coords rows exist (WO-07 / 0004_umap_coords.sql).
     assert profile["embedding_umap_2d"] == {"centroid": [0.0, 0.0], "spread": 0.0}
     assert set(profile["stylistic"]["punct_distribution"].keys()) >= {",", ".", '"'}
 
@@ -144,3 +148,134 @@ def test_lemmatize_corpus_drops_proper_nouns() -> None:
     # lemma string): the common nouns of the same sentences must survive.
     kept = sorted(noun for noun in _COMMON_NOUNS if noun in lemmas)
     assert kept == sorted(_COMMON_NOUNS), f"common nouns were dropped too: {kept}"
+
+
+# ---------------------------------------------------------------------------
+# UMAP projection back-fill (WO-07)
+# ---------------------------------------------------------------------------
+#
+# update_style_profiles() in scripts/precompute_umap.py aggregates per-chunk
+# UMAP coords into a { "centroid": [x, y], "spread": float } dict and writes
+# it to style_profiles.json_data.embedding_umap_2d via a parameterised UPDATE.
+#
+# The test uses a synthetic (author_id, coords) fixture so it runs without a
+# real database or UMAP installation.  psycopg2 is mocked at the connection
+# level: we capture the SQL and parameters passed to cur.execute and verify
+# they encode the correct centroid / spread values.
+
+_AUTHOR_A = "aaaaaaaa-0000-0000-0000-000000000001"
+_AUTHOR_B = "bbbbbbbb-0000-0000-0000-000000000002"
+
+
+def _make_coords() -> np.ndarray:
+    """Synthetic 2-D coords: 4 points for author A, 3 for author B."""
+    return np.array(
+        [
+            # author A — centroid should be (1.0, 2.0)
+            [0.0, 1.0],
+            [1.0, 2.0],
+            [2.0, 3.0],
+            [1.0, 2.0],
+            # author B — centroid should be (10.0, 20.0)
+            [9.0, 18.0],
+            [10.0, 20.0],
+            [11.0, 22.0],
+        ],
+        dtype=np.float64,
+    )
+
+
+def _make_author_ids() -> list[str]:
+    return [_AUTHOR_A] * 4 + [_AUTHOR_B] * 3
+
+
+def test_update_style_profiles_sql_payload() -> None:
+    """update_style_profiles writes correct centroid/spread JSON via UPDATE."""
+    # Import lazily: the script lives outside the package; add scripts/ to sys.path
+    import os
+    import sys
+
+    scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
+    scripts_dir = os.path.normpath(scripts_dir)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+
+    # psycopg2 may not be installed in every CI image — skip gracefully.
+    pytest.importorskip("psycopg2")
+
+    # Patch psycopg2.connect so the script never touches a real DB.
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cur
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    # Import after sys.path is set up.
+    import precompute_umap
+
+    author_ids = _make_author_ids()
+    coords = _make_coords()
+
+    precompute_umap.update_style_profiles(mock_conn, author_ids, coords)
+
+    # One UPDATE call per author, then one commit.
+    assert mock_conn.commit.called
+    update_calls = list(mock_cur.execute.call_args_list)
+    assert len(update_calls) == 2, f"Expected 2 UPDATE calls, got {len(update_calls)}"
+
+    # Collect (payload_dict, author_id) from the two calls.
+    results: dict[str, dict] = {}
+    for c in update_calls:
+        args = c.args  # (sql, (payload_json, author_id))
+        payload_json, aid = args[1]
+        results[aid] = json.loads(payload_json)
+
+    # Author A: centroid = mean([0,1,2,1], [1,2,3,2]) = [1.0, 2.0]
+    centroid_a = results[_AUTHOR_A]["centroid"]
+    assert abs(centroid_a[0] - 1.0) < 1e-9, centroid_a
+    assert abs(centroid_a[1] - 2.0) < 1e-9, centroid_a
+    assert results[_AUTHOR_A]["spread"] >= 0.0
+
+    # Author B: centroid = mean([9,10,11], [18,20,22]) = [10.0, 20.0]
+    centroid_b = results[_AUTHOR_B]["centroid"]
+    assert abs(centroid_b[0] - 10.0) < 1e-9, centroid_b
+    assert abs(centroid_b[1] - 20.0) < 1e-9, centroid_b
+    assert results[_AUTHOR_B]["spread"] >= 0.0
+
+    # The two authors must have different centroids.
+    assert centroid_a != centroid_b
+
+
+def test_update_style_profiles_spread_formula() -> None:
+    """spread = mean Euclidean distance of each chunk from its author centroid."""
+    import os
+    import sys
+
+    scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
+    scripts_dir = os.path.normpath(scripts_dir)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+
+    pytest.importorskip("psycopg2")
+
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cur
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    import precompute_umap
+
+    # Four points equidistant from centroid (0,0) at radius=1.
+    coords = np.array([[1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0]], dtype=np.float64)
+    author_ids = [_AUTHOR_A] * 4
+
+    precompute_umap.update_style_profiles(mock_conn, author_ids, coords)
+
+    update_calls = mock_cur.execute.call_args_list
+    assert len(update_calls) == 1
+    payload_json, _ = update_calls[0].args[1]
+    result = json.loads(payload_json)
+
+    # centroid = (0, 0); each point is distance 1 from centre → spread = 1.0
+    assert abs(result["centroid"][0]) < 1e-9
+    assert abs(result["centroid"][1]) < 1e-9
+    assert abs(result["spread"] - 1.0) < 1e-9, f"spread={result['spread']}"

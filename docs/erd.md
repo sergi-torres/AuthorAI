@@ -1,7 +1,7 @@
 # AutorIA — Database ERD
 
-> **Status**: draft for Sprint 0 · **Owner**: P3 · **Last updated**: 2026-06-29
-> **Source of truth for the schema**: [`infra/supabase/migrations/0001_init.sql`](../infra/supabase/migrations/0001_init.sql)
+> **Status**: draft for Sprint 0 · **Owner**: P3 · **Last updated**: 2026-07-30
+> **Source of truth for the schema**: [`infra/supabase/migrations/0001_init.sql`](../infra/supabase/migrations/0001_init.sql) · [`infra/supabase/migrations/0004_umap_coords.sql`](../infra/supabase/migrations/0004_umap_coords.sql)
 > **Higher-level data model**: [`docs/MVP.md`](MVP.md) §6 (Database)
 
 This document is the human-readable companion to the SQL migration. It explains
@@ -22,8 +22,10 @@ The data flows in one direction during ingest:
 
 ```
 author ─► documents ─► chunks (+ embeddings)
-   │
-   ├─► style_profiles   (computed from the whole corpus)
+   │                       │
+   │                       └─► umap_coords  (precomputed by precompute_umap.py)
+   │                                │
+   ├─► style_profiles   ◄───────────┘  (embedding_umap_2d projected back)
    └─► passports        (emitted per conditioned generation)
 ```
 
@@ -37,6 +39,7 @@ erDiagram
     AUTHORS ||--o{ STYLE_PROFILES  : "has"
     AUTHORS ||--o{ PASSPORTS       : "has"
     DOCUMENTS ||--o{ CHUNKS        : "split into"
+    AUTHORS ||--o{ UMAP_COORDS     : "has chunks in"
 
     AUTHORS {
         uuid        id PK
@@ -82,6 +85,13 @@ erDiagram
         jsonb       json_data "Passport payload"
         text        jws_token "compact JWS, ES256"
         timestamptz created_at
+    }
+
+    UMAP_COORDS {
+        serial      id PK
+        uuid        author_id "denormalised; no FK (volatile cache)"
+        float8      x "UMAP dim 1"
+        float8      y "UMAP dim 2"
     }
 ```
 
@@ -172,6 +182,28 @@ payload and its signed token so verification is fully reproducible offline.
 | `jws_token` | `text` | Compact JWS signed with **ES256** (ECDSA P-256). |
 | `created_at` | `timestamptz` | |
 
+### `umap_coords`
+Volatile cache holding the per-chunk 2-D UMAP coordinates produced by
+[`scripts/precompute_umap.py`](../scripts/precompute_umap.py). One row per
+embedded chunk. The table is **truncated and repopulated** on every precompute
+run; `scripts/precompute_umap.py` then aggregates these rows per author into a
+`{ "centroid": [x, y], "spread": float }` value which it writes back to
+`style_profiles.json_data.embedding_umap_2d` — the field the Style DNA scatter
+plot reads.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `serial` PK | Surrogate key; reset on every repopulation. |
+| `author_id` | `uuid` (no FK) | Denormalised author UUID. No FK constraint: table is a volatile cache; the FK would add latency to the TRUNCATE + re-insert without referential-integrity value. |
+| `x` | `double precision` | 1st UMAP dimension. |
+| `y` | `double precision` | 2nd UMAP dimension. |
+
+> **No FK on `author_id`**: the table is populated in a single bulk load from
+> the precompute script and is never modified row-by-row. A FK would require
+> either DEFERRABLE INITIALLY DEFERRED gymnastics on every reload or a
+> per-row existence check, with no safety gain (the data is always regenerated
+> from live `style_profiles` rows anyway).
+
 ---
 
 ## 4. Relationships & cascade behaviour
@@ -198,6 +230,7 @@ passports). This keeps "remove an author" a single, clean operation.
 | `chunks_embedding_hnsw_idx` | `chunks(embedding)` | **HNSW** ANN search, `vector_cosine_ops`. The core RAG index. |
 | `style_profiles_author_id_computed_at_idx` | `style_profiles(author_id, computed_at desc)` | Get the latest profile per author. |
 | `passports_author_id_idx` | `passports(author_id)` | List passports by author. |
+| `umap_coords_author_id_idx` | `umap_coords(author_id)` | Fast per-author aggregation by `scripts/precompute_umap.py`. B-tree (not HNSW — aggregation, not ANN). |
 
 ### Vector search
 
