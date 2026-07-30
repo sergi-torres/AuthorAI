@@ -65,6 +65,7 @@ _TEMPLATE = (
     "from their published prose. Obey ALL of the following constraints — they are "
     "non-negotiable:\n"
     "1. SENTENCE LENGTH: Target an average of exactly {avg_sentence_length} words per sentence. "
+    "Do not write sentences that are significantly longer than this average. "
     "Match the rhythm and length of the provided passages.\n"
     "2. SYNTACTIC COMPLEXITY: {subordination_rule}.\n"
     "3. NARRATIVE MODE: {dialogue_rule}\n"
@@ -149,10 +150,7 @@ def build_system_prompt(style_profile: dict, rag_chunks: list[str]) -> str:
     # -- subordination rule (natural language translation) ---------------------
     subordination_ratio: float = syntactic.get("subordination_ratio", 0.0)
     if subordination_ratio >= 0.3:
-        subordination_rule = (
-            "heavy use of subordinate clauses, BUT you MUST still use periods (.) to end sentences "
-            "and avoid massive run-on sentences. Do not exceed the target average sentence length."
-        )
+        subordination_rule = "heavy use of subordinate clauses. However, you MUST use periods (.) frequently to end sentences and prevent the average sentence length from exceeding the target"
     elif subordination_ratio >= 0.15:
         subordination_rule = "moderate use of subordinate clauses"
     else:
