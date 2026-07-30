@@ -243,6 +243,10 @@ function ReadyLayout({
   const topVocab = [...profile.distinctive_vocab]
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
+  // Scores are [0, 1] (Jeffreys log-odds normalized per author). Bars still
+  // scale relative to the top term so the ranking is visually clear even when
+  // the top score is slightly below 1.0 after rounding.
+  const maxVocabScore = topVocab.length > 0 ? topVocab[0].score : 0;
 
   return (
     <Card className="shadow-paper animate-fade-rise">
@@ -335,7 +339,10 @@ function ReadyLayout({
                           <div
                             className="h-full rounded-full bg-voice"
                             style={{
-                              width: `${Math.min(item.score * 100, 100)}%`,
+                              width:
+                                maxVocabScore > 0
+                                  ? `${Math.min((item.score / maxVocabScore) * 100, 100)}%`
+                                  : "0%",
                             }}
                           />
                         </div>

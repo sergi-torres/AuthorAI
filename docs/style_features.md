@@ -301,63 +301,64 @@ first_person_ratio = (fp_count / len(doc)) * 1000  # per 1k tokens
 
 ## 4. Distinctive vocabulary
 
-### 4.1 `distinctive_vocab` — TF-IDF Signature Words
+### 4.1 `distinctive_vocab` — Log-Odds-Ratio Signature Words (Jeffreys prior)
 
-**What it measures**: the words that are **most characteristic of one author relative to the others** — not just frequent words, but words that are unusually concentrated in that author's corpus.
+**What it measures**: the words that are **most characteristic of one author relative to the others** — words used at a higher *rate* by that author than by the rest combined.
 
-**Why it matters**: this is the feature the audience *sees* in the demo — it is rendered directly in the Style DNA panel, so whatever it ranks first is what a non-technical juror reads. That makes it the one feature where the gap between what the section *wants* and what the algorithm *returns* has to be stated plainly. See **Measured output** below: on the current three-author corpus it returns **common English verbs and nouns**, not rare period diction.
+**Why it matters**: this is the feature the audience *sees* in the demo — it is rendered directly in the Style DNA panel, so whatever it ranks first is what a non-technical juror reads.
 
-**How it is computed**: standard TF-IDF where each author's full corpus is one "document" and the collection is all three authors combined.
+**Algorithm history** — this section originally specified TF-IDF (each author's corpus as one "document," idf over the 3-document collection). That algorithm is **replaced as of 2026-07-30** (see `docs/decision_log.md`) by log-odds-ratio. A first Monroe/Colaresi/Quinn (2008) weighted z-score variant was prototyped the same day; measured side-by-side against a Jeffreys-prior (α=0.5) variant with a NOUN/ADJ/ADV-only lemma filter, the Jeffreys+POS-filter combination produced the more juror-readable signature lists and was adopted (scores normalized to [0, 1]). The reason TF-IDF had to go: with only 3 documents, any term present in all three has `df = 3/3` and therefore the *same* idf, which collapses the ranking to raw frequency — measured 3-way top-10 overlap under TF-IDF was **5** (`know`, `little`, `make`, `say`, `time`), against a ≤3 target.
+
+**How it is computed**: for each author, compare per-word rates against the pooled other authors, with a Jeffreys prior (α = 0.5) to avoid `log(0)`. Keep only terms with positive log-odds, then normalize by the maximum raw score in that run so the stored range is `[0, 1]`.
 
 ```python
-from sklearn.feature_extraction.text import TfidfVectorizer
+import math
+from collections import Counter
 
-# Each value is the author's corpus already lemmatized and PROPN-filtered
-# (see Preprocessing below), sampled across every document of the corpus.
-corpora = {
-    "austen": "<full austen corpus>",
-    "dickens": "<full dickens corpus>",
-    "poe": "<full poe corpus>"
-}
+alpha = 0.5  # Jeffreys prior
+# Each value is the author's corpus already lemmatized and POS-filtered
+# to NOUN/ADJ/ADV (see Preprocessing below).
+author_counts = Counter(author_tokens)
+other_counts = Counter(other_tokens)
+total_a = sum(author_counts.values())
+total_o = sum(other_counts.values())
 
-vectorizer = TfidfVectorizer(
-    stop_words="english",
-    ngram_range=(1, 1),
-    max_features=50000,
-    token_pattern=r"(?u)\b[a-zA-Z]{3,}\b"  # min 3 chars, alpha only
-)
-
-tfidf_matrix = vectorizer.fit_transform(corpora.values())
-# For each author: sort features by TF-IDF score descending
-# Store top-N as distinctive_vocab list
+for term, count_a in author_counts.items():
+    count_o = other_counts.get(term, 0)
+    p_a = (count_a + alpha) / (total_a + 2 * alpha)
+    p_o = (count_o + alpha) / (total_o + 2 * alpha)
+    log_odds = math.log(p_a / (1 - p_a)) - math.log(p_o / (1 - p_o))
+    # keep log_odds > 0; normalize by max(raw) → score in [0, 1]
 ```
 
-**Stored as**: a list of `{ "term": str, "score": float }` objects, sorted by score descending. Top 30 terms per author.
+Implemented in `ai_pipeline/autoria_ai/extractor/vocabulary.py::compute_distinctive_vocab`.
 
-**Preprocessing**: lemmatize before TF-IDF, exclude stopwords, exclude tokens shorter than 3 characters, and **exclude proper nouns** (spaCy `token.pos_ == "PROPN"`).
+**Stored as**: a list of `{ "term": str, "score": float }` objects, sorted by score descending, **only terms with positive log-odds**, scores normalized to `[0, 1]` within each author's run. Top 30 terms per author.
 
-**Why proper nouns are excluded** — decision 2026-07-28, see `docs/decision_log.md`. Character and place names *are* statistically distinctive: `pip`, `havisham`, `wemmick` are concentrated in Dickens and nowhere else, so TF-IDF ranks them first. But they describe the **plot** of one novel, not the author's style, and this feature is labelled to a juror as the author's *style*, which a cast list is not. Removing them did **not** promote rare period diction into their place — it promoted common verbs and nouns (see **Measured output**), and it raised the three-way top-10 overlap from 3 to 5. That trade was accepted knowingly: a wrong-but-varied list is worse than a dull-but-honest one. The filter is applied **inside the lemmatization pass** (`lemmatize_corpus` / `_lemmas_from_docs` in `ai_pipeline/autoria_ai/extractor/style_profile.py`), where spaCy's POS tag is already computed and the rule lives in one place. A stop-word blacklist applied after the TF-IDF is explicitly **not** how this is done: it would have to be maintained by hand for every new author.
+**Preprocessing**: lemmatize before scoring; keep only spaCy ``NOUN`` / ``ADJ`` / ``ADV`` (narrative verbs like `say`/`know`/`think` appear in all literary prose and add noise, not signal); exclude English stopwords; exclude tokens shorter than 3 characters; exclude a small set of corpus-metadata lemmas (`copyright`, `chapter`, `illustration`, …). Proper nouns are excluded as a consequence of the POS allow-list (decision 2026-07-28: character/place names are plot, not style).
 
-**How "full corpus" is realised** — `_MAX_LEMMA_CHARS` (800 000 lemma characters per author) bounds the seed's peak memory to roughly 1.7 GB. That budget is spent on chunks drawn from **across the whole corpus**, in a deterministic bisection order, so every document of every author is represented. It must never be spent as a *prefix*: doing so meant Dickens' `distinctive_vocab` was computed from the first 21% of his chunks — effectively *Great Expectations* alone — which is why the top terms were its cast list (issue #100).
+**Corpus cleaning companion**: Project Gutenberg's illustrated editions embed `[Illustration]` / `[Illustration: caption]` markup inline. `cleaner.py::clean_text` strips these blocks before lemmatization; the metadata stop list above is a second line of defence if a lemma still slips through.
 
-**Measured output** — run 2026-07-28 on the full `corpus/` (10 files, 8.68 MB) through the seed's own code path (`build_comparison_lemmas` + `compute_distinctive_vocab`, `top_n=30`, `_MAX_LEMMA_CHARS = 800 000`). This is what the feature returns today; it is recorded here because the section above must not be read as a promise of anything else.
+**How "full corpus" is realised**: `_MAX_LEMMA_CHARS` (800 000 lemma characters per author) bounds the seed's peak memory. That budget is spent on chunks drawn from **across the whole corpus**, in a deterministic bisection order (issue #100).
 
-| # | austen | | dickens | | poe | |
+**Measured output** — run 2026-07-30 on the full `corpus/` with the Jeffreys log-odds scorer + NOUN/ADJ/ADV filter (`top_n=10` shown; production stores top 30). Scores are `[0, 1]`-normalized within each author.
+
+| # | austen | score | dickens | score | poe | score |
 |---|---|---|---|---|---|---|
-| 1 | say | 0.3786 | say | 0.5737 | say | 0.2716 |
-| 2 | know | 0.2380 | know | 0.2290 | make | 0.1974 |
-| 3 | think | 0.2358 | look | 0.2063 | great | 0.1401 |
-| 4 | make | 0.1919 | come | 0.2044 | time | 0.1340 |
-| 5 | come | 0.1491 | make | 0.1626 | long | 0.1320 |
-| 6 | time | 0.1446 | man | 0.1534 | man | 0.1294 |
-| 7 | good | 0.1435 | time | 0.1442 | know | 0.1233 |
-| 8 | great | 0.1306 | little | 0.1417 | day | 0.1156 |
-| 9 | look | 0.1251 | think | 0.1374 | eye | 0.1095 |
-| 10 | little | 0.1243 | hand | 0.1294 | little | 0.1054 |
+| 1 | madam | 1.00 | trooper | 1.00 | color | 1.00 |
+| 2 | regiment | 0.89 | convict | 0.90 | thicket | 0.99 |
+| 3 | surprize | 0.87 | beadle | 0.89 | gray | 0.97 |
+| 4 | voluntarily | 0.84 | sergeant | 0.88 | velocity | 0.97 |
+| 5 | civility | 0.83 | forge | 0.86 | diameter | 0.97 |
+| 6 | imprudent | 0.82 | client | 0.84 | solution | 0.94 |
+| 7 | matrimony | 0.81 | courtyard | 0.79 | endeavor | 0.93 |
+| 8 | surprized | 0.78 | professional | 0.79 | ballast | 0.93 |
+| 9 | shire | 0.77 | workhouse | 0.78 | balloon | 0.91 |
+| 10 | flattery | 0.76 | keeper | 0.78 | negro | 0.90 |
 
-**Read this honestly.** These are ordinary high-frequency English words, not signature vocabulary. `countenance`, `physiognomy` and `presently` — the words earlier drafts of this section advertised — appear in **neither the top-10 nor the top-30 of any author**. The three top-10 lists intersect in **5 terms** (`know`, `little`, `make`, `say`, `time`); pairwise, austen∩dickens = 8, austen∩poe = 6, dickens∩poe = 6. What the feature discriminates is *how hard each author leans on the same common words*, not which unusual words each author owns. No proper noun survives in any top-30, so the `PROPN` filter is working as specified.
+**Read this honestly.** The three-way top-10 overlap is **0** (down from 5 under TF-IDF), and every pairwise overlap is also 0. The lists read as recognisably different registers to a non-technical reader: Austen's courtship/society lexicon (`matrimony`, `civility`, `surprize`), Dickens' institutional/social world (`workhouse`, `beadle`, `convict`), Poe's scientific/gothic diction (`velocity`, `ballast`, `balloon`). A Monroe z-score variant without the POS filter ranked high-frequency narrative verbs (`say`, `think`, `talk`) first — statistically valid, but poorer for the Style DNA panel a jury reads.
 
-**Why it cannot do better as specified.** The collection is three documents, so any term appearing in all three has `df = 3/3` and therefore the **same** idf (1.000 with sklearn's smoothing). `countenance` (29 occurrences in Dickens) and `say` (1 866) are idf-tied, so TF-IDF collapses to raw frequency and the common word always wins. Proper nouns were the only terms with a discriminating df, which is exactly why filtering them raised the overlap. Fixing this means changing the scoring (log-odds, or idf against a general-English reference corpus) — a change to the algorithm this section declares, not a tuning knob. It was considered and deferred; see the 2026-07-28 exception entry in `docs/decision_log.md`.
+**Known limitation**: log-odds finds words *concentrated in one author's corpus*, which is not always *authorial style* — plot- or story-specific nouns can still surface (Poe's `balloon`/`ballast` track particular tales). Down-weighting terms concentrated in one *document* within an author's own corpus remains a candidate future issue.
 
 ---
 
@@ -418,15 +419,15 @@ fit_score (0–1, then ×100) = weighted sum of:
 
   cosine_sim(embed_generated, semantic_centroid)           × 0.35
   (1 − |asl_generated − asl_profile| / asl_profile)       × 0.20
-  (1 − |ttr_generated − mattr_profile| / mattr_profile)   × 0.15
+  (1 − |ttr_generated − mattr_profile|)                    × 0.15
   jaccard(pos_dist_generated, pos_dist_profile)            × 0.15
-  vocab_overlap(generated_vocab, distinctive_vocab_top30)  × 0.15
+  vocab_overlap(generated_vocab, distinctive_vocab_top15)  × 0.15
 ```
 
 Where:
 - `asl` = average sentence length in tokens
 - `jaccard(A, B)` = sum of min(A[k], B[k]) / sum of max(A[k], B[k]) over all POS tags
-- `vocab_overlap` = |generated_lemmas ∩ top30_distinctive| / 30
+- `vocab_overlap` = min(1.0, |generated_lemmas ∩ top15_distinctive| / 5.0)
 
 Output is clipped to [0, 1] and multiplied by 100. Displayed as e.g. **"87% Dickens-fit"**.
 
@@ -467,7 +468,7 @@ raw .txt files
          ├── lexical_features()     §1.1 – §1.3
          ├── syntactic_features()   §2.1 – §2.4
          └── stylistic_features()   §3.1 – §3.4
-    → TfidfVectorizer (sklearn)
+    → Jeffreys log-odds-ratio (α=0.5, scores [0, 1])
          └── distinctive_vocab()    §4.1
     → SentenceTransformer all-mpnet-base-v2
          └── semantic_features()    §5.1 – §5.2

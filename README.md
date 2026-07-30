@@ -85,7 +85,7 @@ The `StyleProfile v1.0` captures an author's stylistic DNA across four orthogona
 | **Lexical**                | Type-Token Ratio, MATTR-500, hapax ratio, avg word length         | `ai_pipeline/autoria_ai/extractor/lexical.py`    |
 | **Syntactic**              | Sentence length distribution, subordination ratio, dep-tree depth | `ai_pipeline/autoria_ai/extractor/syntactic.py`  |
 | **Stylistic**              | Punctuation & POS distribution, discourse markers                 | `ai_pipeline/autoria_ai/extractor/stylistic.py`  |
-| **Distinctive Vocabulary** | Top-50 TF-IDF terms vs reference corpus                           | `ai_pipeline/autoria_ai/extractor/vocabulary.py` |
+| **Distinctive Vocabulary** | Top-30 terms vs the other authors, ranked by log-odds-ratio        | `ai_pipeline/autoria_ai/extractor/vocabulary.py` |
 | **Semantic**               | Author centroid (768-dim) + UMAP 2D projection                    | `ai_pipeline/autoria_ai/embedder.py`             |
 
 Full feature spec → **[docs/style_features.md](docs/style_features.md)**.

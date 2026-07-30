@@ -14,7 +14,7 @@ lemmatize_corpus(documents, nlp, ...) -> str
 Pipeline (docs/style_features.md §8)
 ------------------------------------
 cleaned documents → chunk (500 / 50) → spaCy ``nlp.pipe`` on chunks
-→ aggregate linguistic features → TF-IDF distinctive vocab →
+→ aggregate linguistic features → Jeffreys log-odds-ratio distinctive vocab →
 sentence-transformers centroid over chunks.
 """
 
@@ -37,7 +37,8 @@ from autoria_ai.extractor.vocabulary import compute_distinctive_vocab
 
 # Soft cap so spaCy does not OOM on full Victorian novels in one Doc.
 # Features are still computed over many chunks via nlp.pipe; this only
-# limits how much raw text we keep when building the lemma string for TF-IDF.
+# limits how much raw text we keep when building the lemma string for
+# distinctive_vocab (Jeffreys log-odds-ratio, formerly TF-IDF / Monroe z-score).
 #
 # The cap is a memory bound, not a corpus definition: it is spent on chunks
 # drawn from across the whole corpus (``_spread_order``), never on a prefix.
@@ -108,7 +109,7 @@ def _in_spread_order(items: list[Any]) -> list[Any]:
 
 
 def _lemmas_from_docs(docs: Iterable[Any], max_chars: int = _MAX_LEMMA_CHARS) -> str:
-    """Space-joined lower lemmas (alpha, non-proper, len>=3) for TF-IDF input.
+    """Space-joined lower lemmas (NOUN/ADJ/ADV, alpha, len>=3) for log-odds input.
 
     *docs* may be a lazy iterable (e.g. the generator returned by
     ``nlp.pipe``): the function stops consuming it as soon as *max_chars*
@@ -117,23 +118,39 @@ def _lemmas_from_docs(docs: Iterable[Any], max_chars: int = _MAX_LEMMA_CHARS) ->
     (:func:`_in_spread_order`) so that an early stop still samples the whole
     corpus.
 
-    ``PROPN`` tokens are dropped.  Character and place names are genuinely
-    concentrated in one author's corpus, so TF-IDF ranks them first — but they
-    identify the *novel*, not the author's hand, and ``distinctive_vocab`` is
-    the one feature a non-technical juror reads directly
+    Only ``NOUN``, ``ADJ``, and ``ADV`` tokens are kept.  These three POS
+    categories carry the strongest stylistic fingerprint in computational
+    stylistics: authors differ most in descriptive adjectives (Poe:
+    *ghastly/sepulchral*, Austen: *amiable/sensible*), thematic nouns, and
+    manner adverbs.  Common narrative verbs (say, know, think, make) appear
+    at high frequency in **all** literary prose and add noise to the ranking
+    rather than signal.  ``PROPN`` tokens are also excluded — character and
+    place names identify the *novel*, not the author's hand
     (docs/style_features.md §4.1; decision 2026-07-28 in docs/decision_log.md).
-    The filter lives here, where spaCy's POS tag is already computed, so it is
-    free and stays correct for authors added later — unlike a hand-maintained
-    word blacklist applied after the TF-IDF.
+
+    A small set of corpus-metadata lemmas (``_CORPUS_META_STOPS``) are also
+    filtered out: these are editorial / Project Gutenberg structural words
+    (e.g. *copyright*, *chapter*, *edition*) that survive the header/footer
+    strip in some editions and rank spuriously high.
     """
+    _KEEP_POS: frozenset[str] = frozenset({"NOUN", "ADJ", "ADV"})
+    # Editorial / Gutenberg structural words that are NOT style features.
+    # Kept small and specific — only words observed to pollute the ranking.
+    _CORPUS_META_STOPS: frozenset[str] = frozenset({
+        "copyright", "gutenberg", "project", "ebook", "produce",
+        "transcribe", "edition", "chapter", "volume", "illustration",
+        "preface", "appendix", "footnote", "translator", "publisher",
+    })
     parts: list[str] = []
     size = 0
     for doc in docs:
         for tok in doc:
-            if tok.pos_ == "PROPN":
+            if tok.pos_ not in _KEEP_POS:
                 continue
             if tok.is_alpha and len(tok.lemma_) >= 3:
                 piece = tok.lemma_.lower()
+                if piece in _CORPUS_META_STOPS:
+                    continue
                 parts.append(piece)
                 size += len(piece) + 1
                 if size >= max_chars:
@@ -148,14 +165,15 @@ def lemmatize_corpus(
     chunk_texts: list[str] | None = None,
     max_chars: int = _MAX_LEMMA_CHARS,
 ) -> str:
-    """Lemmatize *documents* into the single TF-IDF "document" of §4.1.
+    """Lemmatize *documents* into the single log-odds bag of §4.1.
 
-    docs/style_features.md §4.1 defines ``distinctive_vocab`` as TF-IDF where
-    each author's full corpus is one document and the collection is all three
-    authors combined.  Callers that own more than one author's corpus (the
-    seeding script) use this to build the ``comparison_lemmas`` mapping that
-    :func:`compute_style_profile` expects, without having to reimplement the
-    lemma rules — alpha-only, lowercase, ``len >= 3``, no ``PROPN`` — or the
+    docs/style_features.md §4.1 defines ``distinctive_vocab`` as Jeffreys
+    log-odds-ratio where each author's full corpus is one bag and the
+    background is the pooled lemmas of the other authors.  Callers that own
+    more than one author's corpus (the seeding script) use this to build the
+    ``comparison_lemmas`` mapping that :func:`compute_style_profile` expects,
+    without having to reimplement the lemma rules — NOUN/ADJ/ADV only,
+    alpha-only, lowercase, ``len >= 3``, no corpus-metadata stops — or the
     ``_MAX_LEMMA_CHARS`` cap that bounds peak memory per author.
 
     The spaCy pass streams and stops at *max_chars*, so lemmatizing a
@@ -203,7 +221,7 @@ def compute_style_profile(
     nlp:
         Loaded spaCy model (``en_core_web_lg``).  Caller owns lifecycle.
     comparison_lemmas:
-        Optional ``{slug: lemmatized_corpus}`` for TF-IDF.  When omitted or
+        Optional ``{slug: lemmatized_corpus}`` for cross-author log-odds.  When omitted or
         containing only this author, distinctive_vocab may be empty / weak.
     chunk_texts:
         Precomputed ~500-token chunks.  When ``None``, documents are chunked
@@ -226,7 +244,7 @@ def compute_style_profile(
     syntactic = _weighted_mean([compute_syntactic(d) for d in docs], weights)
     stylistic = _weighted_mean([compute_stylistic(d) for d in docs], weights)
 
-    # Spread order, same as lemmatize_corpus: this author's own TF-IDF
+    # Spread order, same as lemmatize_corpus: this author's own log-odds
     # "document" must be built the same way as the comparison corpora it is
     # scored against, and the cap must not fall inside the first novel (#100).
     author_lemmas = _lemmas_from_docs(_in_spread_order(docs))

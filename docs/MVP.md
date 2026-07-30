@@ -172,7 +172,7 @@ Built with **spaCy `en_core_web_lg`** (linguistic features) + **sentence-transfo
 - `lexical` — vocabulary richness (TTR, MATTR-500, hapax ratio, word length).
 - `syntactic` — sentence architecture (length + variation, subordination, dependency-tree depth, noun/verb balance).
 - `stylistic` — punctuation and part-of-speech distributions + recurring discourse markers.
-- `distinctive_vocab` — signature words (TF-IDF vs a base corpus).
+- `distinctive_vocab` — signature words (Jeffreys log-odds-ratio vs the other authors, scores [0, 1]; see `docs/decision_log.md`, 2026-07-30).
 - `semantic_centroid` / `embedding_umap_2d` — where the author "lives" in meaning-space (the 2D point on the demo map).
 
 **`fit_score` — how we measure "in-voice" (0–100):**
@@ -320,7 +320,7 @@ Each is justified so we don't reopen the discussion mid-sprint.
 - spaCy 3.7 + `en_core_web_lg`
 - sentence-transformers + `all-mpnet-base-v2` (768-dim, English)
 - `umap-learn` (server-side 2D precompute, not client)
-- scikit-learn (TF-IDF for distinctive vocab)
+- scikit-learn (log-odds-ratio word counts for distinctive vocab)
 - tiktoken (approximate chunking)
 
 ### LLM

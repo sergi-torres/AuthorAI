@@ -61,12 +61,24 @@ _SENTENCE_END_RE = re.compile(r"[.!?][\"'\u201d\u2019)\]]*\s")
 # ---------------------------------------------------------------------------
 
 _TEMPLATE = (
-    "Write in the style of author {author_id}. "
-    "Your writing must have: average sentence length ~{avg_sentence_length} tokens "
-    "with high variation, {subordination_rule}, and vocabulary including terms like "
-    "{vocab_list}. "
-    "Here are example passages: {chunks}. "
-    "Write only in that style; do not explain."
+    "You are writing as {author_id}. Every sentence must be indistinguishable "
+    "from their published prose. Obey ALL of the following constraints — they are "
+    "non-negotiable:\n"
+    "1. SENTENCE LENGTH: Target an average of exactly {avg_sentence_length} words per sentence. "
+    "Match the rhythm and length of the provided passages.\n"
+    "2. SYNTACTIC COMPLEXITY: {subordination_rule}.\n"
+    "3. NARRATIVE MODE: {dialogue_rule}\n"
+    "4. SIGNATURE VOCABULARY — these words are statistically unique to {author_id}'s "
+    "writing. Weave as many as naturally possible into your prose: {vocab_list}.\n"
+    "5. TONE AND REGISTER: Match the emotional register, irony level, and narrative "
+    "distance demonstrated in the example passages below.\n\n"
+    "AUTHENTIC EXAMPLE PASSAGES from {author_id} "
+    "(study rhythm, diction and voice — do not copy verbatim):\n"
+    "---\n"
+    "{chunks}\n"
+    "---\n\n"
+    "Write ONLY the requested text in {author_id}'s voice. "
+    "No preamble, no meta-commentary, no explanations."
 )
 
 
@@ -121,35 +133,13 @@ def _fit_chunks_to_token_budget(chunks: list[str], budget_tokens: int) -> list[s
 
 
 def build_system_prompt(style_profile: dict, rag_chunks: list[str]) -> str:
-    """Compose the conditioned system prompt for the Watsonx LLM.
-
-    Parameters
-    ----------
-    style_profile:
-        A StyleProfile v1.0 dict (see ``autoria_ai/schemas/style_profile.json``).
-        Missing keys are handled with safe fallbacks so the function never raises
-        on a partial profile.
-    rag_chunks:
-        Retrieved example passages (top-k by cosine similarity from pgvector).
-        At most ``_MAX_CHUNKS`` (5) are considered; the result is then packed
-        into the remaining token budget (see module docstring), so the
-        returned prompt never exceeds ``_MAX_PROMPT_TOKENS`` tokens
-        regardless of how long the individual chunks are.
-
-    Returns
-    -------
-    str
-        A fully-rendered system prompt string ready to be passed as the
-        ``system`` parameter of a Watsonx chat-completion call, guaranteed to
-        be at most ``_MAX_PROMPT_TOKENS`` tokens under cl100k_base.
-    """
+    """Compose the conditioned system prompt for the Watsonx LLM."""
     # -- author id -------------------------------------------------------------
     author_id: str = style_profile.get("author_id", "unknown")
 
     # -- avg sentence length ---------------------------------------------------
     syntactic: dict = style_profile.get("syntactic", {})
     avg_sentence_length: float = syntactic.get("avg_sentence_length_tokens", 20.0)
-    # Format as integer-like when it's a whole number, otherwise one decimal.
     avg_sl_str = (
         str(int(avg_sentence_length))
         if avg_sentence_length == int(avg_sentence_length)
@@ -159,11 +149,23 @@ def build_system_prompt(style_profile: dict, rag_chunks: list[str]) -> str:
     # -- subordination rule (natural language translation) ---------------------
     subordination_ratio: float = syntactic.get("subordination_ratio", 0.0)
     if subordination_ratio >= 0.3:
-        subordination_rule = "heavy use of subordinate clauses"
+        subordination_rule = (
+            "heavy use of subordinate clauses, BUT you MUST still use periods (.) to end sentences "
+            "and avoid massive run-on sentences. Do not exceed the target average sentence length."
+        )
     elif subordination_ratio >= 0.15:
         subordination_rule = "moderate use of subordinate clauses"
     else:
         subordination_rule = "straightforward clause structure with few subordinate clauses"
+    # -- dialogue rule (dialogue_ratio lives under stylistic, not syntactic) ---
+    stylistic: dict = style_profile.get("stylistic", {})
+    dialogue_ratio: float = stylistic.get("dialogue_ratio", 0.0)
+    if dialogue_ratio >= 0.15:
+        dialogue_rule = "Integrate conversational dialogue frequently, mirroring the author's formatting and pacing."
+    elif dialogue_ratio >= 0.05:
+        dialogue_rule = "Use dialogue sparingly and only when appropriate to the scene."
+    else:
+        dialogue_rule = "Focus heavily on prose and internal exposition; avoid dialogue unless strictly necessary."
 
     #  -- distinctive vocab (top 10-15 terms to avoid token bloat) -------------
     raw_vocab: list[dict] = style_profile.get("distinctive_vocab", [])
@@ -175,13 +177,12 @@ def build_system_prompt(style_profile: dict, rag_chunks: list[str]) -> str:
     # -- rag chunks: count cap first (existing safeguard), then token budget --
     count_capped_chunks: list[str] = rag_chunks[:_MAX_CHUNKS]
 
-    # Everything except `chunks` is fixed at this point, so the true chunk
-    # budget is whatever tokens are left after rendering the rest of the
-    # template with the "no passages" fallback in place of the real chunks.
     fixed_prompt = _TEMPLATE.format(
         author_id=author_id,
         avg_sentence_length=avg_sl_str,
+        max_sentence_length=str(int(avg_sentence_length * 1.5)),
         subordination_rule=subordination_rule,
+        dialogue_rule=dialogue_rule,
         vocab_list=vocab_list,
         chunks=_NO_CHUNKS_FALLBACK,
     )
@@ -194,22 +195,22 @@ def build_system_prompt(style_profile: dict, rag_chunks: list[str]) -> str:
     prompt = _TEMPLATE.format(
         author_id=author_id,
         avg_sentence_length=avg_sl_str,
+        max_sentence_length=str(int(avg_sentence_length * 1.5)),
         subordination_rule=subordination_rule,
+        dialogue_rule=dialogue_rule,
         vocab_list=vocab_list,
         chunks=chunks_text,
     )
 
-    # Defense in depth: BPE merges across the chunk/template boundary can
-    # shift the count by a token or two relative to the estimate above. If
-    # that ever pushes the total over budget, drop the last chunk and retry
-    # rather than ship a prompt over the contract.
     while _token_count(prompt) > _MAX_PROMPT_TOKENS and safe_chunks:
         safe_chunks = safe_chunks[:-1]
         chunks_text = _CHUNK_SEPARATOR.join(safe_chunks) if safe_chunks else _NO_CHUNKS_FALLBACK
         prompt = _TEMPLATE.format(
             author_id=author_id,
             avg_sentence_length=avg_sl_str,
+            max_sentence_length=str(int(avg_sentence_length * 1.5)),
             subordination_rule=subordination_rule,
+            dialogue_rule=dialogue_rule,
             vocab_list=vocab_list,
             chunks=chunks_text,
         )

@@ -59,9 +59,15 @@ def _syntactic_score(doc: Any, asl_profile: float) -> float:
 
 
 def _lexical_score(doc: Any, mattr_profile: float) -> float:
-    """1 - |ttr_generated - mattr_profile| / mattr_profile.
+    """1 - |ttr_generated - mattr_profile|.
 
     ttr_generated = unique_lemmas / total_lemmas  (punctuation excluded).
+
+    Note: We use absolute error rather than relative error because TTR is
+    highly dependent on text length. A short generated text (e.g., 150 words)
+    will naturally have a much higher TTR (~0.7-0.8) than the 500-word
+    MATTR profile (~0.5). Using relative error |TTR-MATTR|/MATTR heavily
+    penalizes this unavoidable mathematical property.
     """
     if mattr_profile == 0.0:
         return 0.0
@@ -69,7 +75,7 @@ def _lexical_score(doc: Any, mattr_profile: float) -> float:
     if not lemmas:
         return 0.0
     ttr_generated = len(set(lemmas)) / len(lemmas)
-    return float(1.0 - abs(ttr_generated - mattr_profile) / mattr_profile)
+    return float(1.0 - abs(ttr_generated - mattr_profile))
 
 
 def _pos_distribution(doc: Any) -> dict[str, float]:
@@ -113,12 +119,17 @@ def _stylistic_score(doc: Any, pos_dist_profile: dict[str, float]) -> float:
 
 
 def _vocabulary_score(doc: Any, distinctive_vocab: list[dict]) -> float:
-    """len(generated_lemmas ∩ top30_distinctive) / 30."""
-    top30: set[str] = {entry["term"] for entry in distinctive_vocab[:30] if "term" in entry}
-    if not top30:
+    """min(1.0, len(generated_lemmas ∩ top15) / 5).
+
+    The LLM is prompted to weave in terms from a limited list (top 15).
+    It is impossible/unnatural to weave all 15 words into a single short
+    generated paragraph. A realistic target is ~5 terms.
+    """
+    top15: set[str] = {entry["term"] for entry in distinctive_vocab[:15] if "term" in entry}
+    if not top15:
         return 0.0
     generated_lemmas = {t.lemma_.lower() for t in doc if t.is_alpha}
-    return float(len(generated_lemmas & top30) / 30)
+    return float(min(1.0, len(generated_lemmas & top15) / 5.0))
 
 
 # ---------------------------------------------------------------------------
