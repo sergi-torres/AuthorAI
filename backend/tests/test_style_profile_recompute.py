@@ -73,8 +73,11 @@ _FAKE_PROFILE = {
 
 @pytest.fixture(autouse=True)
 def _patch_build_style_profile():
-    with patch("app.routes.authors._build_style_profile", return_value=_FAKE_PROFILE):
-        yield
+    with (
+        patch("app.routes.authors._build_style_profile", return_value=_FAKE_PROFILE),
+        patch("app.routes.authors._recompute_umap_safe") as mock_umap,
+    ):
+        yield mock_umap
 
 
 def _make_sb_mock(
@@ -166,8 +169,10 @@ def test_recompute_404_unknown_author(mock_get_client: MagicMock) -> None:
 def test_recompute_background_task_insert_called(
     mock_build: MagicMock,
     mock_get_client: MagicMock,
+    _patch_build_style_profile: MagicMock,
 ) -> None:
     mock_build.return_value = {**_FAKE_PROFILE, "author_id": "poe"}
+    mock_umap = _patch_build_style_profile
 
     sb = _make_sb_mock(author_found=True)
     mock_get_client.return_value = sb
@@ -201,3 +206,4 @@ def test_recompute_background_task_insert_called(
         "SCONJ",
         "OTHER",
     }
+    mock_umap.assert_called_once()

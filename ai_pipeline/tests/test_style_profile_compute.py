@@ -168,7 +168,7 @@ def test_lemmatize_corpus_keeps_only_noun_adj_adv() -> None:
 # UMAP projection back-fill (WO-07)
 # ---------------------------------------------------------------------------
 #
-# update_style_profiles() in scripts/precompute_umap.py aggregates per-chunk
+# update_style_profiles() in autoria_ai.umap_projector aggregates per-chunk
 # UMAP coords into a { "centroid": [x, y], "spread": float } dict and writes
 # it to style_profiles.json_data.embedding_umap_2d via a parameterised UPDATE.
 #
@@ -205,31 +205,19 @@ def _make_author_ids() -> list[str]:
 
 def test_update_style_profiles_sql_payload() -> None:
     """update_style_profiles writes correct centroid/spread JSON via UPDATE."""
-    # Import lazily: the script lives outside the package; add scripts/ to sys.path
-    import os
-    import sys
-
-    scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
-    scripts_dir = os.path.normpath(scripts_dir)
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
-
     # psycopg2 may not be installed in every CI image — skip gracefully.
     pytest.importorskip("psycopg2")
+    from autoria_ai.umap_projector import update_style_profiles
 
-    # Patch psycopg2.connect so the script never touches a real DB.
     mock_conn = MagicMock()
     mock_cur = MagicMock()
     mock_conn.cursor.return_value.__enter__ = lambda s: mock_cur
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
-    # Import after sys.path is set up.
-    import precompute_umap
-
     author_ids = _make_author_ids()
     coords = _make_coords()
 
-    precompute_umap.update_style_profiles(mock_conn, author_ids, coords)
+    update_style_profiles(mock_conn, author_ids, coords)
 
     # One UPDATE call per author, then one commit.
     assert mock_conn.commit.called
@@ -261,28 +249,19 @@ def test_update_style_profiles_sql_payload() -> None:
 
 def test_update_style_profiles_spread_formula() -> None:
     """spread = mean Euclidean distance of each chunk from its author centroid."""
-    import os
-    import sys
-
-    scripts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "scripts")
-    scripts_dir = os.path.normpath(scripts_dir)
-    if scripts_dir not in sys.path:
-        sys.path.insert(0, scripts_dir)
-
     pytest.importorskip("psycopg2")
+    from autoria_ai.umap_projector import update_style_profiles
 
     mock_conn = MagicMock()
     mock_cur = MagicMock()
     mock_conn.cursor.return_value.__enter__ = lambda s: mock_cur
     mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
-    import precompute_umap
-
     # Four points equidistant from centroid (0,0) at radius=1.
     coords = np.array([[1.0, 0.0], [-1.0, 0.0], [0.0, 1.0], [0.0, -1.0]], dtype=np.float64)
     author_ids = [_AUTHOR_A] * 4
 
-    precompute_umap.update_style_profiles(mock_conn, author_ids, coords)
+    update_style_profiles(mock_conn, author_ids, coords)
 
     update_calls = mock_cur.execute.call_args_list
     assert len(update_calls) == 1

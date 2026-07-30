@@ -95,6 +95,30 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
+  /api/authors/{author_id}:
+    delete:
+      tags: [authors]
+      operationId: deleteAuthor
+      summary: Delete an author and their corpus
+      description: |
+        Deletes the author row (cascade: documents, chunks, style_profiles,
+        passports). Also clears that author's `umap_coords` rows (no FK) and
+        enqueues a background global UMAP recompute so remaining authors keep
+        separated Style DNA scatter centroids.
+      parameters:
+        - $ref: "#/components/parameters/AuthorId"
+      responses:
+        "204":
+          description: Author deleted; UMAP recompute enqueued
+        "404":
+          description: Unknown author_id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   /api/authors/{author_id}/style-profile:
     get:
       tags: [authors]

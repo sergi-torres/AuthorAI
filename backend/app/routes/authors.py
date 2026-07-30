@@ -1,10 +1,11 @@
 """Authors routes.
 
 Implements:
-  GET  /api/authors                                        — list all authors
-  GET  /api/authors/{author_id}/style-profile              — getAuthorStyleProfile
-  POST /api/authors/{author_id}/documents                  — uploadAuthorDocument
-  POST /api/authors/{author_id}/style-profile/recompute    — recomputeAuthorStyleProfile
+  GET    /api/authors                                        — list all authors
+  DELETE /api/authors/{author_id}                            — deleteAuthor
+  GET    /api/authors/{author_id}/style-profile              — getAuthorStyleProfile
+  POST   /api/authors/{author_id}/documents                  — uploadAuthorDocument
+  POST   /api/authors/{author_id}/style-profile/recompute    — recomputeAuthorStyleProfile
 
 GET /authors reads ``public.authors`` and derives ``has_style_profile`` /
 ``n_documents`` from ``style_profiles`` and ``documents``.
@@ -18,6 +19,10 @@ The POST /recompute handler resolves the slug → UUID, estimates wall-clock
 seconds from corpus n_tokens, schedules a BackgroundTask, and returns 202
 {status:"computing", estimated_seconds:N} — docs/api_contract.yaml
 §StyleProfileRecomputeAccepted and Decision Log 2026-07-20.
+
+After a successful StyleProfile insert (upload or recompute) and after author
+delete, a process-locked global UMAP recompute refreshes ``embedding_umap_2d``
+for every remaining author so the Style DNA scatter stays consistent.
 """
 
 from __future__ import annotations
@@ -25,12 +30,14 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
 import sys
+import threading
 from pathlib import Path
 from typing import Annotated, Any
 
 import tiktoken
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import JSONResponse
 from supabase import Client
 
@@ -50,6 +57,9 @@ _ALLOWED_EXTENSIONS: frozenset[str] = frozenset({".txt", ".md"})
 _MAX_FILE_BYTES: int = 10 * 1024 * 1024
 _CHUNK_SIZE: int = 500
 _CHUNK_OVERLAP: int = 50
+
+# Serialize global UMAP fits so overlapping uploads do not race truncate+insert.
+_UMAP_LOCK = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -111,10 +121,37 @@ def _build_style_profile(author_slug: str, documents: list[str], sb: Client) -> 
     )
 
 
+def _recompute_umap_safe() -> None:
+    """Recompute global UMAP 2-D centroids; never raise to callers.
+
+    Uses a process-level lock so concurrent upload/recompute/delete background
+    tasks serialize the truncate+refit.  Missing ``DATABASE_URL`` or too few
+    embedded chunks are soft skips.
+    """
+    database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        logger.warning("UMAP recompute skipped: DATABASE_URL is not set")
+        return
+
+    with _UMAP_LOCK:
+        try:
+            _ensure_ai_pipeline_on_path()
+            from autoria_ai.umap_projector import recompute_umap
+
+            ok = recompute_umap(database_url=database_url)
+            if ok:
+                logger.info("UMAP recompute completed after author corpus change")
+            else:
+                logger.warning("UMAP recompute skipped (insufficient embedded chunks)")
+        except Exception:
+            logger.exception("UMAP recompute failed; Style DNA scatter may be stale")
+
+
 def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> None:
     """Compute a real StyleProfile and INSERT into style_profiles.
 
     Errors are logged but not re-raised: the 202 has already been sent.
+    On success, refreshes global UMAP centroids for the Style DNA scatter.
     """
     try:
         docs_result = (
@@ -145,6 +182,9 @@ def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> 
         logger.info("style_profiles row inserted for author %s (%s)", author_slug, author_uuid)
     except Exception:
         logger.exception("recompute failed for author %s (%s)", author_slug, author_uuid)
+        return
+
+    _recompute_umap_safe()
 
 
 def _chunk_and_insert(
@@ -261,6 +301,53 @@ async def list_authors() -> list[AuthorSummary]:
         )
         for row in authors
     ]
+
+
+@router.delete(
+    "/authors/{author_id}",
+    status_code=204,
+    summary="Delete an author and their corpus",
+    operation_id="deleteAuthor",
+    responses={
+        404: {"description": "Unknown author_id"},
+        500: {"description": "Unexpected server error"},
+    },
+)
+async def delete_author(
+    author_id: str,
+    background_tasks: BackgroundTasks,
+) -> Response:
+    """Delete *author_id* (slug) and cascade corpus rows; refresh UMAP after.
+
+    ``umap_coords`` has no FK to ``authors``, so those rows are deleted
+    explicitly before the author row. Documents / chunks / style_profiles /
+    passports cascade from ``authors``. Global UMAP is recomputed in a
+    background task so remaining authors keep separated scatter positions.
+    """
+    sb = get_client()
+
+    author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
+    if author_result is None or getattr(author_result, "data", None) is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": f"Author '{author_id}' not found"},
+        )
+
+    author_uuid: str = author_result.data["id"]
+
+    try:
+        # No FK on umap_coords — clear this author's cache rows first.
+        sb.table("umap_coords").delete().eq("author_id", author_uuid).execute()
+        sb.table("authors").delete().eq("id", author_uuid).execute()
+    except Exception:
+        logger.exception("delete failed for author %s (%s)", author_id, author_uuid)
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "internal_error", "message": f"Failed to delete author '{author_id}'"},
+        ) from None
+
+    background_tasks.add_task(_recompute_umap_safe)
+    return Response(status_code=204)
 
 
 @router.get(
