@@ -4,22 +4,33 @@
 [![IBM Bob](https://img.shields.io/badge/Built%20with-IBM%20Bob-1F70C1)](https://ibm.biz/university-bob)
 [![Watsonx](https://img.shields.io/badge/LLM-IBM%20Watsonx-052e56)](https://www.ibm.com/products/watsonx-ai)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Postgres + pgvector](https://img.shields.io/badge/DB-Postgres%20%2B%20pgvector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 [![AI Builders Challenge July 2026](https://img.shields.io/badge/Challenge-AI%20Builders%20July%202026-FF6F00)](https://aibuilderschallenge-bob.bemyapp.com)
+[![Live](https://img.shields.io/badge/Live-quebasto.com-0B7A4B)](https://quebasto.com)
 
 > AutorIA learns an author's stylistic DNA from their prior work, generates AI assistance that preserves their voice, and issues a cryptographically signed **Authorship Passport** documenting what was AI, what was human, and what sources were referenced — complying with **EU AI Act Article 50**.
 
 ---
 
-## 🎬 Demo
+## 🎬 Try it live
 
-> _Coming July 31. This section will hold the YouTube video and the public deploy URL._
+|                       | URL                                                            |
+| --------------------- | -------------------------------------------------------------- |
+| **Live app**          | **[https://quebasto.com](https://quebasto.com)**               |
+| **Passport verifier** | **[https://quebasto.com/verify](https://quebasto.com/verify)** |
+| **API docs (local)**  | `http://localhost:8000/docs` after `make back`                 |
 
-- **Live demo**: <!-- https://autoria.vercel.app -->
-- **3-min video**: <!-- https://youtu.be/... -->
-- **Authorship Passport verifier**: <!-- https://autoria.vercel.app/verify -->
+**Suggested 90-second walkthrough:**
+
+1. Open [quebasto.com](https://quebasto.com) → pick **Charles Dickens**.
+2. Inspect the **Style DNA** panel (radar + UMAP 2D map + distinctive vocabulary).
+3. Prompt e.g. _"Write a paragraph about a foggy London evening in the 1840s"_.
+4. Compare **vanilla Llama 3.3** vs **AutorIA (Dickens voice)** — fit scores and metrics update side by side.
+5. Download the **Authorship Passport** → paste it into [`/verify`](https://quebasto.com/verify) → signature ✓.
+
+Preloaded voices: **Jane Austen**, **Charles Dickens**, **Edgar Allan Poe**. You can also upload a new author live (`.txt` / `.md`); the three demo voices are protected from accidental deletion.
 
 ---
 
@@ -35,9 +46,26 @@ And starting **August 2026**, [EU AI Act Article 50](https://artificialintellige
 
 AutorIA is the authorship layer for AI-assisted creators. Three pieces:
 
-1. **Style DNA Extraction** — ingest an author's corpus, extract a quantifiable `StyleProfile` (lexical, syntactic, stylistic, semantic).
+1. **Style DNA Extraction** — ingest an author's corpus, extract a quantifiable `StyleProfile` (lexical, syntactic, stylistic, semantic + distinctive vocabulary).
 2. **Conditioned Generation** — given a prompt, generate text that preserves the author's voice (compared side-by-side with the vanilla model output).
 3. **Authorship Passport** — every generation is bundled with a cryptographically signed JSON manifest, verifiable by anyone with the public key.
+
+---
+
+## ✅ What we shipped (MVP delivered)
+
+End-to-end product, deployed and demoable:
+
+| Area                    | Delivered                                                                                                                                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Corpus & onboarding** | 3 Project Gutenberg authors seeded; live `.txt`/`.md` upload; async chunking + embedding + StyleProfile recompute; delete live-added authors (demo voices protected)                                   |
+| **Style DNA**           | Full `StyleProfile v1.0`: lexical / syntactic / stylistic features (spaCy), Jeffreys log-odds distinctive vocab, 768-dim semantic centroid, server-side UMAP 2D (auto-recomputed on author add/remove) |
+| **Generation**          | Parallel vanilla vs conditioned calls on IBM Watsonx `meta-llama/llama-3-3-70b-instruct`; RAG top-k passages from pgvector; calibrated 5-component `fit_score` (0–100)                                 |
+| **Passport**            | JWS ES256 signed Authorship Passport; public JWKS; download + online `/verify` screen                                                                                                                  |
+| **Studio UI**           | Author gallery, Style DNA (radar + scatter + vocab), side-by-side studio with comparative metrics & distinctive-vocab highlights, Passport card                                                        |
+| **Infra**               | Supabase (Postgres + pgvector), Railway (FastAPI + AI pipeline), Vercel (Next.js) → **https://quebasto.com**                                                                                           |
+| **Quality**             | GitHub Actions CI (lint + tests), pytest + Vitest, OpenAPI contract in `docs/api_contract.yaml`                                                                                                        |
+| **IBM Bob**             | 4 Custom Modes + 26+ BobShell session exports under [`bob/`](bob/)                                                                                                                                     |
 
 ---
 
@@ -51,7 +79,7 @@ AutorIA helps individual creators **preserve their authentic voice** when using 
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Technical Execution** | Full AI pipeline (spaCy + sentence-transformers + Watsonx) + real cryptographic signing (JWS ES256) + Postgres + pgvector with HNSW indexing |
 | **Innovation**          | The "auditable authorship" layer is novel — almost nobody is building this in time for EU AI Act                                             |
-| **Feasibility**         | Focused MVP, mainstream stack, verifiable demo, clear path to scale                                                                          |
+| **Feasibility**         | Focused MVP, mainstream stack, live deploy at [quebasto.com](https://quebasto.com), clear path to scale                                      |
 | **Challenge Fit**       | Solves a concrete, named, urgent problem in a creative industry                                                                              |
 | **Real-World Impact**   | EU AI Act creates urgent demand (€14B AI-assisted creative market, August 2026 deadline)                                                     |
 
@@ -65,8 +93,8 @@ High-level:
 
 ```mermaid
 graph LR
-    User([Creator]) --> Web[Next.js Frontend]
-    Web --> API[FastAPI Backend]
+    User([Creator]) --> Web[Next.js Frontend<br/>quebasto.com]
+    Web --> API[FastAPI Backend<br/>Railway]
     API --> Pipeline[AI Pipeline<br/>spaCy + sentence-transformers]
     API --> Watsonx[(IBM Watsonx<br/>Llama 3.3 70B)]
     API --> DB[(Postgres + pgvector<br/>Supabase)]
@@ -74,19 +102,32 @@ graph LR
     Signer --> Passport[Authorship Passport]
 ```
 
+**Public API surface** (full OpenAPI → [`docs/api_contract.yaml`](docs/api_contract.yaml)):
+
+```
+GET    /api/authors
+GET    /api/authors/{author_id}/style-profile
+POST   /api/authors/{author_id}/documents
+POST   /api/authors/{author_id}/style-profile/recompute
+DELETE /api/authors/{author_id}
+POST   /api/generate
+POST   /api/passports/verify
+GET    /.well-known/jwks.json
+```
+
 ---
 
 ## 🧬 How It Works — AI Pipeline
 
-The `StyleProfile v1.0` captures an author's stylistic DNA across four orthogonal layers:
+The `StyleProfile v1.0` captures an author's stylistic DNA across orthogonal layers:
 
-| Layer                      | Examples                                                          | File                                             |
-| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------ |
-| **Lexical**                | Type-Token Ratio, MATTR-500, hapax ratio, avg word length         | `ai_pipeline/autoria_ai/extractor/lexical.py`    |
-| **Syntactic**              | Sentence length distribution, subordination ratio, dep-tree depth | `ai_pipeline/autoria_ai/extractor/syntactic.py`  |
-| **Stylistic**              | Punctuation & POS distribution, discourse markers                 | `ai_pipeline/autoria_ai/extractor/stylistic.py`  |
-| **Distinctive Vocabulary** | Top-30 terms vs the other authors, ranked by log-odds-ratio        | `ai_pipeline/autoria_ai/extractor/vocabulary.py` |
-| **Semantic**               | Author centroid (768-dim) + UMAP 2D projection                    | `ai_pipeline/autoria_ai/embedder.py`             |
+| Layer                      | Examples                                                          | File                                                       |
+| -------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Lexical**                | Type-Token Ratio, MATTR-500, hapax ratio, avg word length         | `ai_pipeline/autoria_ai/extractor/lexical.py`              |
+| **Syntactic**              | Sentence length distribution, subordination ratio, dep-tree depth | `ai_pipeline/autoria_ai/extractor/syntactic.py`            |
+| **Stylistic**              | Punctuation & POS distribution, discourse markers, dialogue ratio | `ai_pipeline/autoria_ai/extractor/stylistic.py`            |
+| **Distinctive Vocabulary** | Top-30 terms vs the other authors (Jeffreys log-odds-ratio)       | `ai_pipeline/autoria_ai/extractor/vocabulary.py`           |
+| **Semantic**               | Author centroid (768-dim) + UMAP 2D projection                    | `ai_pipeline/autoria_ai/embedder.py` + `umap_projector.py` |
 
 Full feature spec → **[docs/style_features.md](docs/style_features.md)**.
 
@@ -105,7 +146,7 @@ Every generation emits a JSON manifest signed with **JWS (ES256)**, containing:
 - AI / human contribution percentages
 - `fit_score` against the target StyleProfile
 
-The signature can be verified **publicly and offline** against the AutorIA public key at `/.well-known/jwks.json` — no AutorIA service required.
+The signature can be verified **publicly and offline** against the AutorIA public key at `/.well-known/jwks.json` — no AutorIA service required. Online verification is also available at **[quebasto.com/verify](https://quebasto.com/verify)**.
 
 → Full spec: **[docs/passport_schema.md](docs/passport_schema.md)**.
 
@@ -113,9 +154,7 @@ The signature can be verified **publicly and offline** against the AutorIA publi
 
 ## 🤖 How We Used IBM Bob
 
-> ⚠️ **This is THE most important section for IBM judges.** It will be completed in Sprint 3 (Jul 22–28) with screenshots, metrics, and BobShell exports.
-
-We built AutorIA in 30 days with IBM Bob as our main copilot. Four Custom Modes — one per owner plus a shared crypto mode — orchestrated different parts of the development cycle:
+We built AutorIA in ~30 days with IBM Bob as our main copilot. Four Custom Modes — one per technical pillar — orchestrated different parts of the development cycle:
 
 | Custom Mode             | Purpose                                                                                  | Doc                                                                                    |
 | ----------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
@@ -124,44 +163,53 @@ We built AutorIA in 30 days with IBM Bob as our main copilot. Four Custom Modes 
 | **StudioComposer**      | Style DNA viz, side-by-side UI, `/verify` screen, API contract alignment, i18n           | [`bob/custom-modes/studio-composer.md`](bob/custom-modes/studio-composer.md)           |
 | **PassportAuditor**     | Designing and verifying the JWS-signed Passport                                          | [`bob/custom-modes/passport-auditor.md`](bob/custom-modes/passport-auditor.md)         |
 
-Weekly BobShell session exports for each team member live in **[`bob/sessions/`](bob/sessions/)** (created on the first Friday of Sprint 1, July 10).
+BobShell session exports live in **[`bob/sessions/`](bob/sessions/)** (Sprint 1 + Sprint 2, all three owners — **26+ exports**).
 
-The complete Bob usage report (metrics + screenshots + analysis) lives in **[`bob/usage-report.md`](bob/usage-report.md)**.
-
-Our team's operational playbook for using Bob — prompt patterns, export workflow, anti-patterns — lives in **[`bob/playbook.md`](bob/playbook.md)**.
+The Bob usage report lives in **[`bob/usage-report.md`](bob/usage-report.md)**. Our operational playbook (prompt patterns, export workflow, anti-patterns) is in **[`bob/playbook.md`](bob/playbook.md)**.
 
 ---
 
 ## ⚙️ Tech Stack
 
-| Layer           | Tech                                                                                                   | Why                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| **Frontend**    | Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui + Recharts                                 | Modern React, fast static + SSR, great DX for visualizations                    |
-| **Backend**     | FastAPI + Python 3.11 + Pydantic v2 + SQLAlchemy 2 + asyncpg                                           | Async by default, type-safe, fits a Python AI pipeline natively                 |
-| **AI Pipeline** | spaCy 3.7 (`en_core_web_lg`) + sentence-transformers (`all-mpnet-base-v2`) + scikit-learn + umap-learn | Industry-standard English NLP; strong 768-dim semantic embeddings; reproducible |
-| **LLM**         | IBM Watsonx (`meta-llama/llama-3-3-70b-instruct`) — sole model in use; `ibm/granite-4-h-small` declared as an unexercised fallback | Every generation runs on IBM Watsonx; strong creative English generation        |
-| **Database**    | PostgreSQL 16 + pgvector (Supabase)                                                                    | Single DB for relational + vector; HNSW index for fast RAG                      |
-| **Crypto**      | python-jose, ES256 (ECDSA P-256)                                                                       | Standard JWS; small signatures; native browser verification                     |
-| **Hosting**     | Vercel (frontend) + Railway (backend) + Supabase (DB)                                                  | Zero-ops, free or near-free tiers, push-to-deploy                               |
-| **Dev tools**   | IBM Bob + GitHub + GitHub Projects + GitHub Actions + Docker Compose                                   | Bob is mandatory; the rest is best-in-class CI/CD for this size                 |
+| Layer           | Tech                                                                                                                               | Why                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Frontend**    | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind v4 + shadcn/ui + Recharts                                               | Modern React, fast SSR, strong DX for Style DNA visualizations                     |
+| **Backend**     | FastAPI + Python 3.11 + Pydantic v2 + SQLAlchemy 2 + asyncpg / supabase-py                                                         | Async by default, type-safe, fits a Python AI pipeline natively                    |
+| **AI Pipeline** | spaCy 3.7 (`en_core_web_lg`) + sentence-transformers (`all-mpnet-base-v2`) + scikit-learn + umap-learn                             | Industry-standard English NLP; strong 768-dim semantic embeddings; reproducible    |
+| **LLM**         | IBM Watsonx (`meta-llama/llama-3-3-70b-instruct`) — sole model in use; `ibm/granite-4-h-small` declared as an unexercised fallback | Every generation runs on IBM Watsonx; honest A/B (same model ± style conditioning) |
+| **Database**    | PostgreSQL 16 + pgvector (Supabase)                                                                                                | Single DB for relational + vector; HNSW index for fast RAG                         |
+| **Crypto**      | python-jose, ES256 (ECDSA P-256)                                                                                                   | Standard JWS; small signatures; native browser verification                        |
+| **Hosting**     | Vercel (frontend) + Railway (backend) + Supabase (DB) → **[quebasto.com](https://quebasto.com)**                                   | Zero-ops deploy with custom domain                                                 |
+| **Dev tools**   | IBM Bob + GitHub + GitHub Projects + GitHub Actions + Docker Compose                                                               | Bob is mandatory; the rest is best-in-class CI/CD for this size                    |
 
 ---
 
 ## 🚀 Getting Started (Local Setup)
 
-Prerequisites: **Python 3.11**, **Node 20+**, **Docker Desktop**.
+> **Judges / reviewers:** the fastest path is the live app at **[https://quebasto.com](https://quebasto.com)**. Use the steps below only if you want to run the full stack on your machine.
+
+### Prerequisites
+
+- **Python 3.11**
+- **Node 20+**
+- **Docker Desktop** (local Postgres + pgvector)
+- **Make** (optional but recommended)
+  - Windows: `winget install GnuWin32.Make`, or use WSL / run the underlying commands from the `Makefile` by hand
+- An **IBM Watsonx** API key + project (required for live generation)
+
+### Quick start
 
 ```bash
 # 1. Clone
-git clone https://github.com/sergi-torres/AuthorAI.git
+git clone https://github.com/sergi-torres/autorIA.git
 cd autorIA
 
-# 2. Copy env templates and fill in real values (Watsonx API key, etc.)
+# 2. Copy env templates and fill in real values (Watsonx, Supabase / DATABASE_URL)
 cp .env.example .env
-# Next.js reads env from frontend/, not the repo root — it needs its own copy:
+# Next.js reads env from frontend/, not the repo root:
 cp frontend/.env.local.example frontend/.env.local
 
-# 3. Install all dependencies
+# 3. Install all dependencies (Python editable installs + spaCy model + npm)
 make install
 
 # 4. Generate Authorship Passport signing keypair (one-time)
@@ -172,29 +220,47 @@ make db-up
 
 # 6. Seed the database: raw text + embeddings + style profiles
 make seed-full
-# ⚠️  This step is slow on first run. It downloads two large ML models:
+# ⚠️  Slow on first run — downloads ~980 MB of ML models:
 #     • all-mpnet-base-v2  (~420 MB, sentence-transformers)
 #     • en_core_web_lg     (~560 MB, spaCy)
 # If you only need raw text without profiles/embeddings, use `make seed` instead.
 
-# 7. Start backend + frontend (parallel)
-make dev
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:8000  (docs at /docs)
+# 7. Start backend and frontend in two terminals
+make back    # FastAPI  → http://localhost:8000  (OpenAPI at /docs)
+make front   # Next.js  → http://localhost:3000
 ```
 
-To run the AI pipeline end-to-end on the seeded corpus without the web stack:
+`make dev` starts the DB and prints the same two-terminal reminder.
+
+### Minimal env checklist
+
+Fill at least these in `.env` / `frontend/.env.local` (see [`.env.example`](.env.example)):
+
+| Variable                                                 | Where                 | Purpose                                         |
+| -------------------------------------------------------- | --------------------- | ----------------------------------------------- |
+| `DATABASE_URL`                                           | root `.env`           | Local Docker Postgres or Supabase pooler        |
+| `SUPABASE_URL` / `SUPABASE_KEY`                          | root `.env`           | Backend DB access (`service_role` locally/prod) |
+| `WATSONX_API_KEY` / `WATSONX_URL` / `WATSONX_PROJECT_ID` | root `.env`           | Live generation                                 |
+| `PASSPORT_*_KEY_PATH` (or `*_PEM`) + `PASSPORT_KID`      | root `.env`           | Passport signing (`make keys`)                  |
+| `NEXT_PUBLIC_API_BASE_URL`                               | `frontend/.env.local` | Usually `http://localhost:8000`                 |
+| `AUTORIA_CORS_ORIGINS`                                   | root `.env`           | Include `http://localhost:3000`                 |
+
+Smoke-check secrets (booleans only): `GET http://localhost:8000/internal/env-check`.
+
+### Pipeline-only demo (no web stack)
 
 ```bash
 make demo
 ```
 
-> The dev `.venv` above is what we use day-to-day; it is **not** a
-> container-parity copy of the Railway deploy image, and a few of the ways
-> those two diverge are easy to trip over (e.g. a local dependency check that
-> looks clean can still be 2+ GB heavier on Railway's Linux target). See
-> **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** before trusting a local
-> measurement as a stand-in for a deploy one.
+### Tests & lint
+
+```bash
+make test
+make lint
+```
+
+> Local `.venv` day-to-day setup is **not** a byte-for-byte copy of the Railway image. Known traps (editable installs across worktrees, torch CPU vs CUDA resolution, lint pin drift) are documented in **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)**. Production deploy notes: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ---
 
@@ -202,14 +268,15 @@ make demo
 
 ```
 autorIA/
-├── ai_pipeline/         # CORE — feature extraction, generation, passport (P2 owner)
-├── backend/             # FastAPI app + routes + DB layer (P3 owner)
-├── frontend/            # Next.js 14 app (P1 owner)
+├── ai_pipeline/         # CORE — feature extraction, generation, passport (P2)
+├── backend/             # FastAPI app + routes + DB layer (P3)
+├── frontend/            # Next.js 16 app (P1)
 ├── bob/                 # IBM Bob workspace: Custom Modes + sessions + report
 ├── corpus/              # Demo texts (Austen, Dickens, Poe)
-├── docs/                # MVP, decision log, architecture, schemas, sprint plan
+├── docs/                # MVP, decision log, architecture, schemas, local/deploy guides
 ├── infra/               # Supabase SQL migrations
-├── scripts/             # seed, run_demo, generate_keys, etc.
+├── scripts/             # seed, run_demo, generate_keys, UMAP precompute, etc.
+├── keys/                # Public JWKS sample (private PEMs are gitignored)
 ├── .github/             # CI workflow, PR & issue templates
 ├── docker-compose.yml   # Local Postgres + pgvector
 ├── Makefile             # Common commands
@@ -239,11 +306,11 @@ autorIA/
 
 ## 👥 Team
 
-|     | Name           | Role                             | GitHub                                      | LinkedIn                                              |
-| --- | -------------- | -------------------------------- | ------------------------------------------- | ----------------------------------------------------- |
-| P1  | Sergi Torres   | Frontend + Pitch + Bob Champion  | [sergi-torres](https://github.com/sergi-torres) | [LinkedIn](https://www.linkedin.com/in/storres-dev/)  |
-| P2  | David Muñoz    | AI/ML Engineer                   | [Davisuco28](https://github.com/Davisuco28)   | [LinkedIn](https://www.linkedin.com/in/dmunoz-dev/)   |
-| P3  | Pablo Chaume   | Backend + AI Generation + Crypto | [PabloVc-77](https://github.com/PabloVc-77) | [LinkedIn](https://www.linkedin.com/in/pablo-v-chaume-magraner/) |
+|     | Name         | Role                             | GitHub                                          | LinkedIn                                                         |
+| --- | ------------ | -------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| P1  | Sergi Torres | Frontend + Pitch + Bob Champion  | [sergi-torres](https://github.com/sergi-torres) | [LinkedIn](https://www.linkedin.com/in/storres-dev/)             |
+| P2  | David Muñoz  | AI/ML Engineer                   | [Davisuco28](https://github.com/Davisuco28)     | [LinkedIn](https://www.linkedin.com/in/dmunoz-dev/)              |
+| P3  | Pablo Chaume | Backend + AI Generation + Crypto | [PabloVc-77](https://github.com/PabloVc-77)     | [LinkedIn](https://www.linkedin.com/in/pablo-v-chaume-magraner/) |
 
 ---
 
