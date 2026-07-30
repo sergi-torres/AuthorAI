@@ -67,3 +67,13 @@ def test_delete_unknown_author_404(mock_get_client: MagicMock) -> None:
     assert resp.status_code == 404
     body = resp.json()
     assert body["detail"]["error"] == "not_found"
+
+
+@patch("app.routes.authors.get_client")
+def test_delete_preloaded_author_403(mock_get_client: MagicMock) -> None:
+    """Austen / Dickens / Poe are demo seeds — API refuses delete."""
+    for slug in ("austen", "dickens", "poe"):
+        resp = client.delete(f"/api/authors/{slug}")
+        assert resp.status_code == 403, slug
+        assert resp.json()["detail"]["error"] == "forbidden"
+    mock_get_client.assert_not_called()

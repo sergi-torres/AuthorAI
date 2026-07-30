@@ -105,11 +105,25 @@ paths:
         passports). Also clears that author's `umap_coords` rows (no FK) and
         enqueues a background global UMAP recompute so remaining authors keep
         separated Style DNA scatter centroids.
+
+        The three preloaded demo voices (`austen`, `dickens`, `poe`) cannot be
+        deleted — the API returns 403 and the gallery UI hides the control.
       parameters:
         - $ref: "#/components/parameters/AuthorId"
       responses:
         "204":
           description: Author deleted; UMAP recompute enqueued
+        "403":
+          description: Preloaded author cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                preloaded:
+                  value:
+                    error: forbidden
+                    message: Author 'austen' is a preloaded demo voice and cannot be deleted
         "404":
           description: Unknown author_id
           content:

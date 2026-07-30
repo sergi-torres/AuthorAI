@@ -29,6 +29,11 @@ export const en = {
       "Select a literary voice to explore its Style DNA or generate new text.",
     cardCta: "Explore →",
     documentCount: (n: number) => `${n} ${n === 1 ? "document" : "documents"}`,
+    deleteAuthor: "Remove author",
+    deleteConfirm: (name: string) =>
+      `Remove ${name} and their corpus from the gallery? This cannot be undone.`,
+    deleteError: "Could not remove this author — check that the API is running.",
+    deleting: "Removing…",
   },
 
   authorDetail: {

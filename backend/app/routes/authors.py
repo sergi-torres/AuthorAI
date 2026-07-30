@@ -34,7 +34,7 @@ import os
 import sys
 import threading
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
 import tiktoken
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Response, UploadFile
@@ -57,6 +57,9 @@ _ALLOWED_EXTENSIONS: frozenset[str] = frozenset({".txt", ".md"})
 _MAX_FILE_BYTES: int = 10 * 1024 * 1024
 _CHUNK_SIZE: int = 500
 _CHUNK_OVERLAP: int = 50
+
+# Demo-seeded voices — never deletable (UI hides the control; API enforces).
+PROTECTED_AUTHOR_SLUGS: Final[frozenset[str]] = frozenset({"austen", "dickens", "poe"})
 
 # Serialize global UMAP fits so overlapping uploads do not race truncate+insert.
 _UMAP_LOCK = threading.Lock()
@@ -309,6 +312,7 @@ async def list_authors() -> list[AuthorSummary]:
     summary="Delete an author and their corpus",
     operation_id="deleteAuthor",
     responses={
+        403: {"description": "Preloaded author (austen/dickens/poe) cannot be deleted"},
         404: {"description": "Unknown author_id"},
         500: {"description": "Unexpected server error"},
     },
@@ -319,11 +323,23 @@ async def delete_author(
 ) -> Response:
     """Delete *author_id* (slug) and cascade corpus rows; refresh UMAP after.
 
+    Preloaded demo authors (``austen``, ``dickens``, ``poe``) return 403.
     ``umap_coords`` has no FK to ``authors``, so those rows are deleted
     explicitly before the author row. Documents / chunks / style_profiles /
     passports cascade from ``authors``. Global UMAP is recomputed in a
     background task so remaining authors keep separated scatter positions.
     """
+    if author_id in PROTECTED_AUTHOR_SLUGS:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "forbidden",
+                "message": (
+                    f"Author '{author_id}' is a preloaded demo voice and cannot be deleted"
+                ),
+            },
+        )
+
     sb = get_client()
 
     author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
