@@ -77,7 +77,9 @@ def test_clean_text_strips_bare_illustration_marker() -> None:
 
 
 def test_clean_text_strips_illustration_with_single_line_caption() -> None:
-    result = clean_text('Before.\n\n[Illustration: "I cannot imagine how they will spend it."]\n\nAfter.')
+    result = clean_text(
+        'Before.\n\n[Illustration: "I cannot imagine how they will spend it."]\n\nAfter.'
+    )
     assert "Illustration" not in result
     assert "imagine" not in result
     assert "Before." in result

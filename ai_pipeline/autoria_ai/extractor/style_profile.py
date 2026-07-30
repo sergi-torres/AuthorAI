@@ -136,11 +136,25 @@ def _lemmas_from_docs(docs: Iterable[Any], max_chars: int = _MAX_LEMMA_CHARS) ->
     _KEEP_POS: frozenset[str] = frozenset({"NOUN", "ADJ", "ADV"})
     # Editorial / Gutenberg structural words that are NOT style features.
     # Kept small and specific — only words observed to pollute the ranking.
-    _CORPUS_META_STOPS: frozenset[str] = frozenset({
-        "copyright", "gutenberg", "project", "ebook", "produce",
-        "transcribe", "edition", "chapter", "volume", "illustration",
-        "preface", "appendix", "footnote", "translator", "publisher",
-    })
+    _CORPUS_META_STOPS: frozenset[str] = frozenset(
+        {
+            "copyright",
+            "gutenberg",
+            "project",
+            "ebook",
+            "produce",
+            "transcribe",
+            "edition",
+            "chapter",
+            "volume",
+            "illustration",
+            "preface",
+            "appendix",
+            "footnote",
+            "translator",
+            "publisher",
+        }
+    )
     parts: list[str] = []
     size = 0
     for doc in docs:

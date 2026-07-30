@@ -641,9 +641,13 @@ def build_comparison_lemmas(nlp: Any, authors: list[str] | None = None) -> dict[
         docs = load_documents(slug)
         texts = [d.cleaned_text for d in docs if d.cleaned_text.strip()]
         if not texts:
-            log.warning("Stage 5/5 profiles: no corpus text for %s -- excluded from log-odds-ratio", slug)
+            log.warning(
+                "Stage 5/5 profiles: no corpus text for %s -- excluded from log-odds-ratio", slug
+            )
             continue
-        log.info("Stage 5/5 profiles: lemmatizing %s corpus for cross-author log-odds-ratio...", slug)
+        log.info(
+            "Stage 5/5 profiles: lemmatizing %s corpus for cross-author log-odds-ratio...", slug
+        )
         lemmas[slug] = lemmatize_corpus(documents=texts, nlp=nlp)
     log.info(
         "Stage 5/5 profiles: comparison corpora ready for %d author(s): %s",

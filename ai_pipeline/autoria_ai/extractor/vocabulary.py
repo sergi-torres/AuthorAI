@@ -8,7 +8,7 @@ compute_distinctive_vocab(corpora_lemmas, author_id, top_n=30) -> list[dict]
 
 Algorithm change (2026-07-30)
 -----------------------------
-Replaced TF-IDF with **log-odds-ratio** (Jeffreys prior, α=0.5).
+Replaced TF-IDF with **log-odds-ratio** (Jeffreys prior, alpha=0.5).
 
 Why log-odds-ratio is better here:
 - TF-IDF with 3 documents is dominated by raw term frequency.  A word like
@@ -23,9 +23,9 @@ Why log-odds-ratio is better here:
 
 Formula
 -------
-  p_a  = (count_in_author   + α) / (total_author_tokens   + 2α)
-  p_o  = (count_in_others   + α) / (total_other_tokens    + 2α)
-  log_odds = log(p_a / (1 − p_a)) − log(p_o / (1 − p_o))
+  p_a  = (count_in_author   + alpha) / (total_author_tokens   + 2*alpha)
+  p_o  = (count_in_others   + alpha) / (total_other_tokens    + 2*alpha)
+  log_odds = log(p_a / (1 - p_a)) - log(p_o / (1 - p_o))
 
 Scores are normalized by dividing by the maximum raw log-odds in this run so
 the output range is [0, 1].
@@ -104,11 +104,11 @@ def compute_distinctive_vocab(
             continue
         count_o = other_counts.get(term, 0)
 
-        # Proportions with Jeffreys prior (add α to numerator and 2α to total)
+        # Proportions with Jeffreys prior (add alpha to numerator and 2*alpha to total)
         p_a = (count_a + _SMOOTH) / (total_a + 2 * _SMOOTH)
         p_o = (count_o + _SMOOTH) / (total_o + 2 * _SMOOTH)
 
-        # Log-odds: log(p/(1-p)) − log(q/(1-q))
+        # Log-odds: log(p/(1-p)) - log(q/(1-q))
         log_odds = math.log(p_a / (1.0 - p_a)) - math.log(p_o / (1.0 - p_o))
 
         # Only keep terms that are more characteristic of this author, not less.
@@ -122,7 +122,4 @@ def compute_distinctive_vocab(
     max_score = max(raw_scores.values())
     ranked = sorted(raw_scores.items(), key=lambda x: x[1], reverse=True)
 
-    return [
-        {"term": term, "score": round(score / max_score, 4)}
-        for term, score in ranked[:top_n]
-    ]
+    return [{"term": term, "score": round(score / max_score, 4)} for term, score in ranked[:top_n]]

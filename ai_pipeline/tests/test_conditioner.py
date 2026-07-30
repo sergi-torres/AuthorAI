@@ -290,9 +290,7 @@ def test_budget_truncation_does_not_cut_mid_word() -> None:
     # The truncated example-passages segment sits between the fixed markers;
     # whatever survives must end in the sentence terminator (a whole word),
     # not a bare word fragment.
-    passages_start = result.index("verbatim):\n---\n") + len(
-        "verbatim):\n---\n"
-    )
+    passages_start = result.index("verbatim):\n---\n") + len("verbatim):\n---\n")
     passages_end = result.rindex("\n---\n\nWrite ONLY the requested text")
     passages_text = result[passages_start:passages_end]
     assert passages_text  # some passage content survived

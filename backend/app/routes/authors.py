@@ -101,9 +101,7 @@ def _build_style_profile(author_slug: str, documents: list[str], sb: Client) -> 
                 # log-odds bag: spaCy lemmas, NOUN/ADJ/ADV, alpha-only, len>=3.
                 comparison[row["slug"]] = lemmatize_corpus(documents=texts, nlp=nlp)
     except Exception:
-        logger.exception(
-            "comparison corpora fetch failed; continuing with single-author log-odds"
-        )
+        logger.exception("comparison corpora fetch failed; continuing with single-author log-odds")
 
     return compute_style_profile(
         author_slug=author_slug,
@@ -149,7 +147,9 @@ def _recompute_style_profile(author_uuid: str, author_slug: str, sb: Client) -> 
         logger.exception("recompute failed for author %s (%s)", author_slug, author_uuid)
 
 
-def _chunk_and_insert(document_id: str, author_uuid: str, author_id: str, raw_text: str, sb: Client) -> None:
+def _chunk_and_insert(
+    document_id: str, author_uuid: str, author_id: str, raw_text: str, sb: Client
+) -> None:
     """Chunk raw_text with tiktoken cl100k_base and insert into chunks table.
 
     Window: size=500 tokens, overlap=50 tokens.
@@ -192,7 +192,7 @@ def _chunk_and_insert(document_id: str, author_uuid: str, author_id: str, raw_te
         return
 
     _embed_document_chunks(document_id, sb)
-    
+
     # After embedding, automatically trigger the style profile computation
     # so the frontend polling loop eventually detects the author as ready!
     _recompute_style_profile(author_uuid, author_id, sb)
@@ -319,10 +319,12 @@ async def upload_author_document(
     sb = get_client()
 
     author_result = sb.table("authors").select("id").eq("slug", author_id).maybe_single().execute()
-    
+
     if author_result is None or getattr(author_result, "data", None) is None:
         # Auto-create the author since they don't exist yet!
-        insert_res = sb.table("authors").insert({"name": title or author_id, "slug": author_id}).execute()
+        insert_res = (
+            sb.table("authors").insert({"name": title or author_id, "slug": author_id}).execute()
+        )
         author_uuid = insert_res.data[0]["id"]
     else:
         author_uuid = author_result.data["id"]
