@@ -22,7 +22,7 @@ info:
 servers:
   - url: http://localhost:8000
     description: Local development (FastAPI + Uvicorn)
-  - url: https://api.autoria.app
+  - url: https://api.quebasto.com
     description: Production (Railway)
 
 tags:
@@ -356,7 +356,7 @@ paths:
                         ai_pct: 100
                         note: "v1: 100% AI-assisted. Human-edit tracking is in the roadmap."
                       fit_score: 87
-                      verifier_url: https://autoria.app/verify
+                      verifier_url: https://quebasto.com/verify
                     errors: []
                 invalidSignature:
                   value:
@@ -788,7 +788,7 @@ components:
         verifier_url:
           type: string
           format: uri
-          example: https://autoria.app/verify
+          example: https://quebasto.com/verify
 
     AuthorVoiceRef:
       type: object

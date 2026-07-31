@@ -1,6 +1,6 @@
 # 📘 AutorIA — Team Onboarding Guide
 
-> **Last updated**: 2026-06-25
+> **Last updated**: 2026-07-31 (stack + key-storage facts reconciled with the shipped system; the rest is the original June onboarding text)
 > **For**: P2 and P3 joining the project
 > **Reading time**: 40–50 minutes — read it fully before your first commit
 > **If you only read one thing**: §3 (Roles), §6 (MVP), §9 (IBM Bob) and §11 (Daily workflow)
@@ -339,11 +339,10 @@ Full document at **`docs/MVP.md`**. Executive summary:
 ### Frontend (P1)
 
 ```
-Next.js 14 (App Router) + TypeScript
-Tailwind CSS + shadcn/ui
-Recharts (radar + bars)
-D3 / react-scatter-chart (UMAP 2D)
-Deploy: Vercel (free tier)
+Next.js 16 (App Router) + React 19 + TypeScript
+Tailwind CSS v4 + shadcn/ui (base-nova)
+Recharts 3 (radar + bars + UMAP 2D scatter)
+Deploy: Vercel — https://quebasto.com
 ```
 
 ### Backend (P3)
@@ -389,8 +388,8 @@ Index: HNSW on chunks.embedding with vector_cosine_ops
 ```
 python-jose[cryptography]
 Algorithm: ES256 (ECDSA P-256 + SHA-256)
-EC keypair generated at seed (script generate_keys.py)
-Private → Supabase Vault, NEVER commit
+EC keypair generated locally by scripts/generate_keys.py (`make keys`)
+Private → PASSPORT_PRIVATE_KEY_PEM in the platform secret store, NEVER commit
 Public → /.well-known/jwks.json
 ```
 
@@ -449,7 +448,7 @@ autoria/
 │
 ├── corpus/                    ← demo texts of the 3 authors
 ├── infra/supabase/migrations/ ← initial SQL
-├── scripts/                   ← seed, generate_keys, run_demo, etc.
+├── scripts/                   ← seed_corpus, generate_keys, precompute_umap, smoke_demo
 └── docs/                      ← MVP, decision_log, architecture, etc.
 ```
 

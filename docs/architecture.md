@@ -1,6 +1,6 @@
 # AutorIA — Architecture
 
-> **Status**: draft for Sprint 0 · **Owners**: P1 (frontend), P2 (pipeline), P3 (backend/crypto) · **Last updated**: 2026-06-29
+> **Status**: current — reconciled against the shipped code · **Owners**: P1 (frontend), P2 (pipeline), P3 (backend/crypto) · **Last updated**: 2026-07-31
 > **Related specs**: [`docs/MVP.md`](MVP.md) · [`docs/api_contract.yaml`](api_contract.yaml) · [`docs/erd.md`](erd.md) · [`docs/passport_schema.md`](passport_schema.md)
 
 This document describes the architecture of AutorIA using the **C4 model**
@@ -74,7 +74,7 @@ graph TB
     user([Creator])
 
     subgraph vercel [Vercel]
-        fe["Frontend<br/>Next.js 14 + TS + Tailwind + shadcn<br/>(frontend/)"]
+        fe["Frontend<br/>Next.js 16 + TS + Tailwind + shadcn<br/>(frontend/)"]
     end
 
     subgraph railway [Railway]
@@ -83,9 +83,10 @@ graph TB
     end
 
     subgraph supabase [Supabase]
-        db[("PostgreSQL 16 + pgvector<br/>authors · documents · chunks ·<br/>style_profiles · passports")]
-        vault[["Supabase Vault<br/>EC private key"]]
+        db[("PostgreSQL 16 + pgvector<br/>authors · documents · chunks ·<br/>style_profiles · passports · umap_coords")]
     end
+
+    secrets[["Platform secret store<br/>(Railway variables)<br/>EC private key PEM"]]
 
     watsonx[("IBM Watsonx")]
 
@@ -96,7 +97,7 @@ graph TB
     be -->|"SQLAlchemy 2.0 + asyncpg"| db
     pipe -->|"vector search (pgvector)"| db
     be -->|"HTTPS (ibm-watsonx-ai SDK)"| watsonx
-    be -.->|"reads private key at boot"| vault
+    be -.->|"reads the private key PEM at boot"| secrets
 
     classDef ext fill:#eee,stroke:#999,color:#333;
     class watsonx ext;
@@ -104,11 +105,19 @@ graph TB
 
 | Container | Tech | Responsibility | Host |
 |---|---|---|---|
-| **Frontend** | Next.js 14, TypeScript, Tailwind, shadcn/ui, Recharts, D3 | UI: author selector, Style DNA viz, side-by-side, `/verify` | Vercel |
+| **Frontend** | Next.js 16 + React 19, TypeScript, Tailwind v4, shadcn/ui (`base-nova`), Recharts 3 | UI: author selector, Style DNA viz, side-by-side, `/verify` | Vercel |
 | **Backend API** | FastAPI, Uvicorn, Pydantic v2, SQLAlchemy 2.0 + asyncpg | HTTP contract, orchestration, persistence, signing | Railway |
 | **AI Pipeline** | spaCy 3.7, sentence-transformers, scikit-learn, umap-learn, tiktoken, python-jose | Extraction, embeddings, RAG, conditioned generation, fit_score, Passport build/sign/verify | in-process with backend |
 | **Database** | Postgres 16 + pgvector | Relational + vector storage; HNSW RAG index | Supabase |
-| **Vault** | Supabase Vault | Stores the EC private signing key | Supabase |
+| **Key material** | EC P-256 PEM injected as an environment variable | The Passport signing key, read at boot by `passport/keys.py` | Railway variables |
+
+> **Correction to earlier drafts.** `MVP.md` §6 and the Sprint 0 version of this
+> document said the private key would live in **Supabase Vault**. It does not, and
+> never did: `passport/keys.py` resolves the key from `PASSPORT_PRIVATE_KEY_PEM` (or a
+> `_PATH` fallback for local dev), because the deploy image contains no key files —
+> `.gitignore` excludes `keys/**`. The security property is unchanged (the private key
+> is never in git and never leaves the backend process); the storage mechanism is the
+> platform secret store. See [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
 
 > The AI pipeline is a **library imported by the backend**, not a separate
 > service — one fewer moving part for a 30-day MVP. It could be extracted into
@@ -123,27 +132,33 @@ graph TB
 ```mermaid
 graph LR
     subgraph backend [backend/app]
-        main["main.py<br/>app + /health"]
-        r_auth["routes/authors.py<br/>GET /api/authors<br/>GET …/style-profile"]
-        r_ing["routes/ingest.py<br/>POST …/documents"]
+        main["main.py<br/>app + lifespan warmup"]
+        r_health["routes/health.py<br/>GET /health"]
+        r_auth["routes/authors.py<br/>GET /api/authors<br/>GET · POST …/style-profile<br/>POST …/documents<br/>DELETE /api/authors/{id}"]
         r_gen["routes/generate.py<br/>POST /api/generate"]
         r_pass["routes/passport.py<br/>POST /api/passports/verify"]
         r_jwks["routes/jwks.py<br/>GET /.well-known/jwks.json"]
-        dbl["db/ (SQLAlchemy models + session)"]
+        r_diag["routes/diagnostics.py<br/>GET /internal/env-check"]
+        dbl["db.py (Supabase client helpers)"]
     end
 
     pipe["ai_pipeline (lib)"]
     db[("Postgres")]
 
     r_auth --> dbl
-    r_ing --> dbl
-    r_ing --> pipe
+    r_auth --> pipe
     r_gen --> pipe
     r_gen --> dbl
     r_pass --> pipe
     r_jwks --> pipe
     dbl --> db
 ```
+
+> Ingest, StyleProfile read/recompute and author deletion all live in
+> `routes/authors.py`; there is no separate `routes/ingest.py`. `DELETE /api/authors/{id}`
+> cascades documents/chunks/profiles/passports, clears `umap_coords`, and enqueues a
+> global UMAP recompute — the three preloaded voices are `403`-protected against it
+> (Decision Log, 2026-07-30).
 
 ### 3.2 AI Pipeline (`ai_pipeline/autoria_ai/`)
 
@@ -284,7 +299,7 @@ graph TB
     subgraph prod [Production]
         vc["Vercel<br/>frontend (static + SSR)"]
         rw["Railway<br/>FastAPI + ai_pipeline"]
-        sb["Supabase<br/>Postgres+pgvector + Vault"]
+        sb["Supabase<br/>Postgres + pgvector"]
     end
 
     wx[("IBM Watsonx")]
@@ -301,11 +316,13 @@ graph TB
 | Environment | Frontend | Backend | Database |
 |---|---|---|---|
 | **Local** | `make front` (`:3000`) | `make back` (`:8000`) | `make db-up` (Docker pgvector) |
-| **Production** | Vercel | Railway | Supabase |
+| **Production** | Vercel — <https://quebasto.com> | Railway — <https://api.quebasto.com> | Supabase |
 
 Secrets (Watsonx API key/project id, DB URL, `PASSPORT_*`) come from `.env`
-locally and platform secret stores in production. The EC **private** key lives
-in Supabase Vault / Railway secrets — never in git (see `passport_schema.md` §6).
+locally and from platform secret stores in production. The EC **private** key is
+injected as `PASSPORT_PRIVATE_KEY_PEM` in Railway's variables — never in git
+(`.gitignore` excludes `keys/**`; see `passport_schema.md` §6 and
+[`DEPLOYMENT.md`](DEPLOYMENT.md)).
 
 ---
 

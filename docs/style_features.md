@@ -1,6 +1,6 @@
 # AutorIA — Style Feature Definitions
 
-> **Owner**: P2 · **Status**: Sprint 0 draft · **Last updated**: 2026-06-29
+> **Owner**: P2 · **Status**: current — every range in §7 is a measurement, not an estimate · **Last updated**: 2026-07-30
 > **Schema version this document describes**: `StyleProfile v1.0`
 > **Stack**: spaCy `en_core_web_lg` · sentence-transformers `all-mpnet-base-v2`
 

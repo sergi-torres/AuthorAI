@@ -1,6 +1,6 @@
 # AutorIA — Authorship Passport Specification
 
-> **Status**: draft for Sprint 0 · **Owner**: P3 (Backend + Crypto) · **Pairs with**: P1 (`/verify` UI) · **Last updated**: 2026-06-29
+> **Status**: current — implemented, deployed and verified end to end · **Owner**: P3 (Backend + Crypto) · **Pairs with**: P1 (`/verify` UI) · **Last updated**: 2026-07-31
 > **Schema version**: `1.0`
 > **Authoritative companions**:
 > - JSON Schema → `ai_pipeline/autoria_ai/schemas/passport.json` (to be generated from this doc)
@@ -145,7 +145,7 @@ Decoded payload of the JWS:
     "note": "v1: 100% AI-assisted. Human-edit tracking is in the roadmap."
   },
   "fit_score": 87,
-  "verifier_url": "https://autoria.vercel.app/verify"
+  "verifier_url": "https://quebasto.com/verify"
 }
 ```
 
