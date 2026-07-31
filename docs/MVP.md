@@ -491,19 +491,42 @@ Labels: `[front] [back] [ml] [bob] [demo] [docs] [infra]` · Sizes: XS<2h, S 2-4
 
 ## 10. MVP Definition of Done
 
-The project is "done" when **all** of these are true:
+The project is "done" when **all** of these are true.
 
-- [ ] 3 preloaded authors, each with a computed and visualizable StyleProfile
-- [ ] Side-by-side generation works end-to-end in **<8s P95**
-- [ ] Authorship Passport issued, downloaded, and **verifies** with a valid signature
-- [ ] Visible vanilla-vs-AutorIA difference: **≥3/3 non-technical humans** identify it in **≤5s** (Sprint 1 gate)
-- [ ] Live 90s demo rehearsed **5 times without failure** (Sprint 3)
-- [ ] Public repo with a complete README including the "How we used IBM Bob" section
-- [ ] 4 Custom Modes documented in `bob/custom-modes/`
-- [ ] ≥12 BobShell exports in `bob/sessions/`
-- [ ] 3-min video on public YouTube with English voiceover
-- [ ] Mandatory IBM SkillsBuild course completed by ≥1 member
-- [ ] Submission sent before **July 31, 12:00 Spain time**
+> **Status as of 2026-07-31.** Ticks below are claims backed by an artifact or a live
+> check, in keeping with the "measure, don't estimate" rule this project adopted after
+> the completeness audit. Anything unticked is unticked on purpose.
+
+- [x] **3 preloaded authors, each with a computed and visualizable StyleProfile**
+      — verified live: `GET https://api.quebasto.com/api/authors` returns Austen,
+      Dickens and Poe with `has_style_profile: true` (plus one live-added voice).
+- [x] **Side-by-side generation works end-to-end in <8s P95** — measured **7.73 s**
+      end to end against production on 2026-07-31, and a worst pair of **7.38 s**
+      across the 5-prompt suite in `bob/sessions/Sprint_1/baseline_eval.md` §10.
+      *Caveat stated rather than hidden: n=5 does not yield a real P95; the honest
+      figures are the max and the spread, and both sit inside the budget.*
+- [x] **Authorship Passport issued, downloaded, and verifies with a valid signature**
+      — verified live: valid token → `{"valid": true}`; one character flipped →
+      `invalid_signature`. `alg:none` → `unsupported_algorithm`.
+- [ ] **Visible vanilla-vs-AutorIA difference: ≥3/3 non-technical humans in ≤5s**
+      — issue #20 was closed as done, but **no artifact recording the three responses
+      exists in the repo**, so this box stays unticked. The five design devices that
+      carry the contrast are specified in `docs/design-system.md` §8.
+- [ ] **Live 90s demo rehearsed 5 times without failure** — issues #30 and #34 are open.
+- [x] **Public repo with a complete README including "How we used IBM Bob"**
+      — [`README.md`](../README.md), long form in [`bob/usage-report.md`](../bob/usage-report.md).
+- [x] **4 Custom Modes documented in `bob/custom-modes/`** — all four present.
+- [x] **≥12 BobShell exports in `bob/sessions/`** — **26** exported, 2026-07-08 → 2026-07-27.
+- [x] **3-min video on public YouTube with English voiceover** —
+      <https://youtu.be/V1r2oZ6dFB0> (*AutorIA: Verifiable Literary AI powered by IBM
+      watsonx*), public and resolving as of 2026-07-31.
+- [ ] **Mandatory IBM SkillsBuild course completed by ≥1 member** — team to confirm.
+- [ ] **Submission sent before July 31, 12:00 Spain time** — pending the two items above.
+
+**Also shipped, beyond this list:** a public deploy on a custom domain
+(<https://quebasto.com>), live author upload **and** deletion with the three demo voices
+protected, automatic UMAP recompute on corpus change, `POST /api/passports/verify` with
+structured error codes, and an end-to-end smoke harness (`scripts/smoke_demo.py`).
 
 ---
 

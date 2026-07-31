@@ -1,7 +1,35 @@
 # Deployment — Vercel (frontend) + Railway (backend)
 
 AutorIA is a monorepo deployed as **two services from one GitHub repo**
-(`github.com/sergi-torres/autorIA`):
+(`github.com/sergi-torres/autorIA`).
+
+## Production URLs (live)
+
+| What | URL |
+| --- | --- |
+| **App** | <https://quebasto.com> |
+| **Passport verifier** | <https://quebasto.com/verify> |
+| **API** | <https://api.quebasto.com> |
+| Liveness | <https://api.quebasto.com/health> |
+| Public key (JWKS) | <https://api.quebasto.com/.well-known/jwks.json> |
+| Secrets present? | <https://api.quebasto.com/internal/env-check> |
+| OpenAPI docs | <https://api.quebasto.com/docs> |
+
+Post-deploy smoke check — lists authors, reads a profile, generates side by side,
+issues a Passport, verifies it, and confirms a tampered one is rejected:
+
+```bash
+python scripts/smoke_demo.py --base-url https://api.quebasto.com
+```
+
+> ⚠️ **The domain sits behind Cloudflare**, which rejects some non-browser user agents
+> with `403`. `curl` passes; a bare `Python-urllib/3.x` agent does not, so
+> `smoke_demo.py` can report `403` on every step against the public domain while the
+> API is perfectly healthy. If that happens, run the script against the Railway origin
+> URL instead, or confirm by hand with `curl`. A `403` on **every** step is this, not
+> an outage — a real outage looks like `502`/`503` or a connection error.
+
+---
 
 | Service       | Platform | Root directory | Deploys           |
 | ------------- | -------- | -------------- | ----------------- |
@@ -76,7 +104,8 @@ Commonly needed alongside them (see `.env.example`): `WATSONX_URL`,
    verification against it will reject every valid Passport.
 4. Deploy. Confirm the Nixpacks plan shows
    `start │ cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-5. Note the public URL (e.g. `https://autoria-api.up.railway.app`).
+5. Note the public URL. Ours is served at **`https://api.quebasto.com`** via a custom
+   domain in front of the Railway service.
 
 
 ---
@@ -86,9 +115,16 @@ Commonly needed alongside them (see `.env.example`): `WATSONX_URL`,
 1. **Add New → Project** → import `autorIA`.
 2. **Root Directory** = `frontend` (framework auto-detected as Next.js).
 3. **Environment Variables** → add `SUPABASE_URL`, `SUPABASE_KEY` (anon), and
-   `NEXT_PUBLIC_API_BASE_URL` = the Railway backend URL from the step above.
-4. Deploy, then note the Vercel URL and add it to Railway's
-   `AUTORIA_CORS_ORIGINS` so the browser can call the API.
+   `NEXT_PUBLIC_API_BASE_URL` = the Railway backend URL from the step above
+   (ours: `https://api.quebasto.com`).
+
+   The variable name matters: `frontend/src/lib/api.ts` reads
+   **`NEXT_PUBLIC_API_BASE_URL`** and falls back to `http://localhost:8000`. A typo
+   here fails **silently** — the build succeeds and every browser call goes to
+   localhost (this was WO-01 / issue #82).
+4. Deploy, then note the public URL and add it to Railway's
+   `AUTORIA_CORS_ORIGINS` so the browser can call the API. Ours is
+   `https://quebasto.com`.
 
 ---
 
@@ -97,7 +133,7 @@ Commonly needed alongside them (see `.env.example`): `WATSONX_URL`,
 The backend exposes a secrets-safe check (booleans only, never values):
 
 ```bash
-curl https://<railway-backend-url>/internal/env-check
+curl https://api.quebasto.com/internal/env-check
 ```
 
 ```json
