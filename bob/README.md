@@ -4,6 +4,10 @@
 > In the May 2026 hackathon, IBM disqualified projects for "non-meaningful use of Bob."
 > Don't let that happen to us.
 
+**👉 Start with [`usage-report.md`](usage-report.md)** — the final report with metrics,
+what each Custom Mode built, three problems Bob solved, and an honest account of where
+it struggled. The [root README](../README.md) carries the short version.
+
 ---
 
 ## Structure
@@ -11,21 +15,24 @@
 ```
 bob/
 ├── README.md                    ← you are here
-├── custom-modes/                ← 4 Custom Modes we created
-│   ├── style-extractor.md
-│   ├── generation-conductor.md
-│   ├── studio-composer.md
-│   └── passport-auditor.md
-├── sessions/                    ← weekly BobShell exports per person
-│   ├── week1/
-│   ├── week2/
-│   ├── week3/
-│   └── week4/
-├── screenshots/                 ← representative captures of Bob in action
-└── usage-report.md              ← final report (Sprint 3) with metrics + analysis
+├── usage-report.md              ← FINAL REPORT — read this first
+├── playbook.md                  ← our operational manual for using Bob
+├── custom-modes/                ← the 4 Custom Modes we created
+│   ├── style-extractor.md          analyze  (P2)
+│   ├── generation-conductor.md     generate (P3)
+│   ├── studio-composer.md          present  (P1)
+│   └── passport-auditor.md         certify  (P3 + P1)
+├── sessions/                    ← 26 raw BobShell exports, by sprint and owner
+│   ├── Sprint_1/{P1,P2,P3}/        16 sessions
+│   ├── Sprint_1/baseline_eval.md   R1 voice-matching evaluation
+│   └── Sprint_2/{P1,P2,P3}/        10 sessions
+└── screenshots/                 ← 8 captures, Sprint_1/ and Sprint_2/
 ```
 
-> The `sessions/`, `screenshots/` and `custom-modes/` subfolders are created on demand — `sessions/weekN/` is added every Friday, `screenshots/` once we capture our first one in Sprint 1.
+> **Naming note.** The original plan in `docs/MVP.md` §8 called these folders
+> `sessions/week1…week4/`. In practice we exported per sprint and per owner, so the
+> layout on disk is `Sprint_N/PX/`. The disk layout is the real one; the MVP text was
+> not retro-edited.
 
 ---
 
@@ -44,38 +51,51 @@ Each Custom Mode is documented in `custom-modes/<mode-name>.md` with role, loade
 
 ---
 
-## Weekly BobShell exports
+## BobShell exports — **26 delivered** (target: 12)
 
-Every Friday (or before the Sunday sprint review), each team member exports their BobShell session to `bob/sessions/weekN/<initial>.md` (`p1.md`, `p2.md`, `p3.md`). Format: the raw BobShell export (markdown is fine).
+Each team member exports their BobShell session as raw JSON into
+`bob/sessions/Sprint_N/PX/<topic>.json`. Unedited — the export is the evidence.
 
-**Target by end of July**: 4 weeks × 3 people = **12 session exports**.
+| | P1 (frontend) | P2 (ML) | P3 (backend/crypto) | Total |
+| --- | --- | --- | --- | --- |
+| **Sprint 1** | 4 | 7 | 5 | 16 |
+| **Sprint 2** | 3 | 2 | 5 | 10 |
+| **Total** | **7** | **9** | **10** | **26** |
 
-If a week's session is light, write a short note explaining what you worked on (e.g. "this week was mostly debugging existing code with Bob, no major new flows").
+Spanning **2026-07-08 → 2026-07-27**, with **1 468** recorded message exchanges.
+
+Also here: [`sessions/Sprint_1/baseline_eval.md`](sessions/Sprint_1/baseline_eval.md) —
+the R1 voice-matching evaluation. Ten verbatim generations (5 prompts × vanilla /
+conditioned), per-call latency, RAG provenance down to the chunk, and source-file
+hashes so the run is reproducible.
 
 ---
 
-## Screenshots
+## Screenshots — **8 delivered** (target: 3)
 
-Pick 3+ representative screenshots showing Bob working on a non-trivial task — e.g.:
+`screenshots/Sprint_1/` (6) and `screenshots/Sprint_2/` (2), captioned in
+[`usage-report.md`](usage-report.md).
 
-- A Custom Mode answering a complex multi-file question
-- A BobShell session orchestrating a refactor
-- Bob generating tests for a tricky module
-
-Save them in `screenshots/`. Reference them in `usage-report.md`.
+> They are contemporaneous Sprint 1–2 captures and show the **pre-2026-07-30 UI** —
+> the vocabulary column was still labelled "TF-IDF" and the Style DNA panel could fall
+> back to fixture data. Both were changed later (Decision Log, 2026-07-27 and
+> 2026-07-30). For current behaviour use the live app at
+> [quebasto.com](https://quebasto.com/).
 
 ---
 
 ## Final usage report
 
-Compiled in **Sprint 3** (Jul 22-28). Lives in `usage-report.md`. Contents:
+[`usage-report.md`](usage-report.md), compiled 2026-07-31:
 
-- **Numbers**: PRs assisted, Custom Modes created, sessions exported
-- **Concrete examples**: 3-5 problems we solved with Bob that would have taken much longer without
-- **Honest assessment**: where Bob excelled, where it struggled
-- **Screenshots**: 3+ with captions
+- **Numbers** — modes, sessions, exchanges, screenshots, PRs
+- **Per mode** — what each Custom Mode actually built, with linked sessions
+- **Three problems Bob solved best** — the TF-IDF diagnosis, the completeness audit
+  that produced 18 work orders, and adversarial review of our own JWS verifier
+- **Where Bob struggled** — including where *our* discipline slipped, not just Bob's
+- **Verdict**
 
-This report is linked from the README's "How We Used IBM Bob" section.
+Linked from the root README's "How We Used IBM Bob" section.
 
 ---
 
@@ -85,10 +105,10 @@ This report is linked from the README's "How We Used IBM Bob" section.
 - **Speak to Bob in English** — sessions live in the public repo.
 - **Use the Custom Modes**, not just default chat — that's how we demonstrate "exploitation."
 - **Note Bob usage on every PR** via the template (`How IBM Bob helped`).
-- **Export weekly**.
+- **Export your sessions** into `sessions/Sprint_N/PX/` as you finish a piece of work.
 
 ---
 
 ## 📕 Want to use Bob like a power user?
 
-Read **[`bob/playbook.md`](playbook.md)** — the full operational manual: setup checklist, the 5 prompt patterns we use, BobShell export workflow, anti-patterns, advanced moves, weekly checklist and FAQ. **~25 min read. Do it before Sprint 1 day 1.**
+Read **[`bob/playbook.md`](playbook.md)** — the full operational manual: setup checklist, the 5 prompt patterns we use, BobShell export workflow, anti-patterns, advanced moves, recurring checklist and FAQ. **~25 min read.**
