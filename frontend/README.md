@@ -31,35 +31,77 @@ npx shadcn@latest add card badge
 
 Paths are under `src/`. **Routes follow the GitHub issues as source of truth.**
 
-| Path                                  | Purpose                                                                |
-| ------------------------------------- | ---------------------------------------------------------------------- |
-| `src/app/page.tsx`                    | Home — author selector (3 cards)                                       |
-| `src/app/author/[id]/page.tsx`        | Author detail — Style DNA + side-by-side generation                    |
-| `src/app/verify/page.tsx`             | Authorship Passport verifier                                           |
-| `src/app/layout.tsx`                  | Base layout shell (header/wordmark, metadata)                          |
-| `src/components/AuthorCard.tsx`       | Author card on home                                                    |
-| `src/components/StyleRadarChart.tsx`  | Radar chart of StyleProfile metrics                                    |
-| `src/components/StyleScatter2D.tsx`   | UMAP 2D scatter                                                        |
-| `src/components/PromptBox.tsx`        | Generation input                                                       |
-| `src/components/SideBySideOutput.tsx` | Vanilla vs AutorIA columns                                             |
-| `src/components/FitScoreBar.tsx`      | 0-100 fit score visualization                                          |
-| `src/components/PassportCard.tsx`     | Formatted Passport viewer                                              |
-| `src/lib/api.ts`                      | Backend HTTP client                                                    |
-| `src/lib/types.ts`                    | Types aligned with `docs/api_contract.yaml`                            |
-| `src/lib/authors.ts`                  | Local seed author data (until the backend `GET /api/authors` is wired) |
-| `src/lib/i18n/en.ts`                  | UI strings (English) — see `docs/ONBOARDING.md` §12                    |
+### Routes
+
+| Path                           | Purpose                                                      |
+| ------------------------------ | ------------------------------------------------------------ |
+| `src/app/page.tsx`             | Home — author gallery                                        |
+| `src/app/author/[id]/page.tsx` | **The studio**: Style DNA panel + prompt + side-by-side       |
+| `src/app/verify/page.tsx`      | Public Authorship Passport verifier                          |
+| `src/app/layout.tsx`           | Layout shell (wordmark, theme, metadata)                     |
 
 > The author detail route is **`/author/[id]`** per issue #9 — not `/studio/[author]`.
+> Style DNA and generation live on **one** screen: the earlier two-route split was
+> merged on 2026-07-21 because the "Generate in this voice" hop was easy to miss
+> (Decision Log).
+
+### Components
+
+| File | Purpose |
+| --- | --- |
+| `AuthorGrid.tsx` · `AuthorCard.tsx` · `AddAuthorCard.tsx` · `DeleteAuthorButton.tsx` | Gallery, live author upload, and removal (shown **only** for live-added authors — the 3 demo voices have no button, and the API returns 403 for them anyway) |
+| `StyleDnaPanel.tsx` | Style DNA container: corpus stats, loading / error / empty states, fixture policy |
+| `StyleRadarChart.tsx` · `StyleScatter2D.tsx` | 6-axis radar; UMAP 2D semantic map with centroid + spread ring |
+| `PromptComposer.tsx` | Generation input (4 000-char cap) |
+| `SideBySideOutput.tsx` · `AuthorColumn.tsx` | Vanilla vs AutorIA columns |
+| `FitScoreBar.tsx` · `MetricChip.tsx` · `ComparativeMetricsTable.tsx` | 0–100 fit score, metric chips, client-side comparative metrics |
+| `DistinctiveVocabHighlight.tsx` | `<mark>`s signature vocabulary inside the AutorIA output |
+| `PassportCard.tsx` | Decoded Passport on screen + download action |
+| `EmptyState.tsx` · `ThemeToggle.tsx` · `ui/{button,card,badge}.tsx` | Shared primitives |
+
+### Lib
+
+| File | Purpose |
+| --- | --- |
+| `src/lib/api.ts` | Backend HTTP client. Reads **`NEXT_PUBLIC_API_BASE_URL`** (not `NEXT_PUBLIC_API_URL` — that mismatch was issue #82) and exports typed `NetworkError` / `ServerError` |
+| `src/lib/types.ts` | Types aligned with `docs/api_contract.yaml` |
+| `src/lib/authors.ts` | Author list from `GET /api/authors`, with a declared fallback |
+| `src/lib/style-dna.ts` | Radar axis normalization — domains derived from the **measured** ranges in `docs/style_features.md` §7 |
+| `src/lib/textMetrics.ts` | Client-side comparative metrics (sentence length, TTR, word count) |
+| `src/lib/passport.ts` | Passport download (JWS + decoded payload) |
+| `src/lib/fixtures/style-profiles.ts` | Demo-safe fixtures — see the rule below |
+| `src/lib/i18n/en.ts` | All UI strings (English) |
+
+> **Fixture policy — do not loosen this.** Fixtures substitute **only** when the
+> backend gave no answer: a `NetworkError` or a 5xx. A real **404 is a definitive
+> answer** ("this author has no computed profile") and must render the empty state,
+> never invented metrics. Any other 4xx is an error, never a fixture. Enforced by
+> `StyleDnaPanel.test.ts` and `fixtures/style-profiles.test.ts`; rationale in the
+> Decision Log, 2026-07-27.
+
+### Tests
+
+Vitest, pure-function and policy tests (no jsdom):
+
+```bash
+npm run test          # 78 cases
+npx tsc --noEmit
+npm run lint
+```
 
 ---
 
 ## Local run
 
 ```bash
+cp .env.local.example .env.local   # sets NEXT_PUBLIC_API_BASE_URL
 npm install
 npm run dev
 # http://localhost:3000
 ```
+
+Next.js reads env from `frontend/`, **not** the repo root, so the root `.env` alone is
+not enough. Production: <https://quebasto.com> (Vercel).
 
 ---
 

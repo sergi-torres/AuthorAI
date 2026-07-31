@@ -85,9 +85,9 @@ front: ## Run the Next.js frontend (http://localhost:3000)
 	$(call need_file,frontend/package.json,Sprint 1)
 	cd frontend && npm run dev
 
-demo: ## Run the AI pipeline end-to-end on the seeded corpus (no web stack)
-	$(call need_file,scripts/run_demo.py,Sprint 3)
-	python scripts/run_demo.py
+demo: ## Smoke-test the whole demo path against a running backend (real Watsonx + DB)
+	$(call need_file,scripts/smoke_demo.py,Sprint 3)
+	python scripts/smoke_demo.py
 
 # ---- Quality ----------------------------------------------------------------
 

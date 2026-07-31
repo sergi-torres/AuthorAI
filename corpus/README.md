@@ -2,17 +2,22 @@
 
 Texts used to seed the 3 preloaded authors. **All public domain.**
 
-> Downloaded and cleaned during Sprint 0. Re-downloadable via `scripts/download_corpus.py`.
+> Downloaded from Project Gutenberg and manually pre-cleaned during Sprint 0. The
+> files are committed to the repo, so no download step is needed to run AutorIA.
 
 ---
 
 ## Authors
 
-| Author | Slug | Folder | Approx. word count |
-|---|---|---|---|
-| Jane Austen (1775–1817) | `austen` | `austen/` | ~330,000 |
-| Charles Dickens (1812–1870) | `dickens` | `dickens/` | ~440,000 |
-| Edgar Allan Poe (1809–1849) | `poe` | `poe/` | ~150,000 |
+| Author | Slug | Folder | Files | Cleaned tokens (measured) |
+|---|---|---|---|---|
+| Jane Austen (1775–1817) | `austen` | `austen/` | 4 | **643,533** |
+| Charles Dickens (1812–1870) | `dickens` | `dickens/` | 4 | **1,147,910** |
+| Edgar Allan Poe (1809–1849) | `poe` | `poe/` | 2 | **259,034** |
+
+> Token counts are `cl100k_base` tokens after cleaning, as reported by
+> `python scripts/seed_corpus.py --dry-run` on 2026-07-27. They are larger than a word
+> count — roughly 1.3–1.5 tokens per word.
 
 All 3 died **well over 70 years ago**, so their works are unambiguously public domain worldwide (US, EU, and Spain). They were chosen as **maximally distinct, instantly recognizable English voices** — Regency social irony · Victorian maximalism · Gothic first-person intensity.
 
@@ -58,15 +63,25 @@ All 3 died **well over 70 years ago**, so their works are unambiguously public d
 
 ---
 
-## Re-downloading
+## Cleaning, and where it happens
 
-```bash
-python scripts/download_corpus.py --author all
-# or for a single author:
-python scripts/download_corpus.py --author dickens
-```
+Two stages, deliberately separated:
 
-The script fetches from the source URLs noted in each subfolder's `SOURCES.md` (added in Sprint 0).
+1. **Manual pre-cleaning (Sprint 0, already applied to the committed files).** Only the
+   two cases in the tables above: the Saintsbury preface and illustration list removed
+   from *Pride and Prejudice*, and the Lowell/Willis biographical texts removed from
+   Poe Vol. 1. Recorded in [`docs/decision_log.md`](../docs/decision_log.md), 2026-06-29.
+
+2. **Automatic cleaning at ingest**, by
+   [`ai_pipeline/autoria_ai/extractor/cleaner.py`](../ai_pipeline/autoria_ai/extractor/cleaner.py):
+   Gutenberg header/footer stripping, quote and whitespace normalization, and removal of
+   `[Illustration]` / `[Illustration: caption]` markup. That last rule was added on
+   2026-07-30 after `illustration` ranked into Austen's top-10 signature vocabulary —
+   193 raw occurrences across *Pride and Prejudice* and *Sense and Sensibility*.
+
+> There is no `download_corpus.py`. Earlier drafts of this file described one; the
+> texts are committed instead, which keeps the seed reproducible without depending on
+> Gutenberg being reachable or its files being byte-stable.
 
 ---
 
@@ -74,7 +89,16 @@ The script fetches from the source URLs noted in each subfolder's `SOURCES.md` (
 
 The corpus is "valid" if:
 
-- Each author has ≥ 30,000 cleaned tokens
-- No file has Gutenberg-style headers (`*** START OF THE PROJECT GUTENBERG EBOOK ***`)
+- Each author has ≥ 30,000 cleaned tokens (all three exceed it by two orders of magnitude)
+- No file retains Gutenberg-style headers (`*** START OF THE PROJECT GUTENBERG EBOOK ***`)
 - Encoding is UTF-8 (no Windows-1252 leftovers)
-- `python scripts/seed_corpus.py --dry-run` runs without errors
+- `python scripts/seed_corpus.py --dry-run` exits 0 and prints the per-author manifest
+
+```bash
+python scripts/seed_corpus.py --dry-run     # validate only, never touches the DB
+make seed-full                              # ingest + embeddings + StyleProfiles
+```
+
+Chunking is 500 tokens with 50 overlap, byte-identical to the path used by
+`POST /api/authors/{id}/documents`, so a live-uploaded author is processed exactly like
+a seeded one. Re-seeding is idempotent by `content_hash`.
